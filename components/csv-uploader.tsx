@@ -1,16 +1,6 @@
 "use client"
 
 import type React from "react"
-<<<<<<< HEAD
-
-import { useState } from "react"
-import { Upload } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
-interface CSVUploaderProps {
-  onUploadSuccess: (products: any[]) => void
-=======
 import { useState } from "react"
 import { Upload, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,18 +9,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface CSVUploaderProps {
   onUploadSuccess: (products: any[], isAuqliFormatted?: boolean) => void
->>>>>>> master
   onUploadError: (error: string) => void
 }
 
 export function CSVUploader({ onUploadSuccess, onUploadError }: CSVUploaderProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
-<<<<<<< HEAD
-=======
   const [isAuqliFormatted, setIsAuqliFormatted] = useState(false)
   const [auqliFormatMessage, setAuqliFormatMessage] = useState<string | null>(null)
->>>>>>> master
 
   const uploadToAPI = async (file: File) => {
     const formData = new FormData()
@@ -55,12 +41,6 @@ export function CSVUploader({ onUploadSuccess, onUploadError }: CSVUploaderProps
 
     setFileName(file.name)
     setIsLoading(true)
-<<<<<<< HEAD
-
-    try {
-      const result = await uploadToAPI(file)
-      if (result.products) {
-=======
     setIsAuqliFormatted(false)
     setAuqliFormatMessage(null)
 
@@ -72,7 +52,6 @@ export function CSVUploader({ onUploadSuccess, onUploadError }: CSVUploaderProps
         setAuqliFormatMessage(result.message || "This file appears to be already formatted for Auqli.")
         onUploadSuccess(result.products, true)
       } else if (result.products) {
->>>>>>> master
         onUploadSuccess(result.products)
       } else if (result.error) {
         onUploadError(result.error)
@@ -90,8 +69,6 @@ export function CSVUploader({ onUploadSuccess, onUploadError }: CSVUploaderProps
         <CardTitle className="text-xl">Upload CSV File</CardTitle>
       </CardHeader>
       <CardContent>
-<<<<<<< HEAD
-=======
         {isAuqliFormatted && auqliFormatMessage && (
           <Alert className="mb-4 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
             <CheckCircle className="h-4 w-4 text-green-500" />
@@ -109,7 +86,6 @@ export function CSVUploader({ onUploadSuccess, onUploadError }: CSVUploaderProps
           </Alert>
         )}
 
->>>>>>> master
         <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
           <div className="mb-4 rounded-full bg-primary/10 p-3">
             <Upload className="h-6 w-6 text-primary" />

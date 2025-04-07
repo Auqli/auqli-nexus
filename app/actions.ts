@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-"use server"
-
-import { parse } from "csv-parse/sync"
-
-=======
 import { parse } from "csv-parse/sync"
 
 // Define the AuqliCategory type
@@ -14,7 +8,6 @@ interface AuqliCategory {
 }
 
 // Define the Product type
->>>>>>> master
 interface Product {
   name: string
   price: string
@@ -26,122 +19,11 @@ interface Product {
   mainCategory: string
   subCategory: string
   uploadStatus: string
-<<<<<<< HEAD
-  additionalImages: string[] // Store additional images
-}
-
-interface AuqliCategory {
-  id: string
-  name: string
-  subcategories: AuqliSubcategory[]
-}
-
-interface AuqliSubcategory {
-  id: string
-  name: string
-=======
   additionalImages: string[]
->>>>>>> master
 }
 
 // Function to convert HTML to plain text
 function htmlToText(html: string): string {
-<<<<<<< HEAD
-  if (!html) return ""
-
-  // Remove HTML tags
-  let text = html.replace(/<[^>]*>/g, " ")
-
-  // Replace common HTML entities
-  text = text
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-
-  // Remove extra spaces
-  text = text.replace(/\s+/g, " ").trim()
-
-  return text
-}
-
-// Function to extract the main category from a hierarchical category string
-function extractMainCategory(category: string): string {
-  if (!category) return ""
-
-  // Split by ">" and take the first part
-  const parts = category.split(">")
-  return parts[0].trim()
-}
-
-// Function to extract the subcategory from a hierarchical category string
-function extractSubCategory(category: string): string {
-  if (!category) return ""
-
-  // Split by ">" and take the second part if it exists
-  const parts = category.split(">")
-  return parts.length > 1 ? parts[1].trim() : ""
-}
-
-// Function to convert weight to KG
-function convertToKg(grams: string, unit: string): string {
-  if (!grams) return "0"
-
-  const weight = Number.parseFloat(grams)
-  if (isNaN(weight)) return "0"
-
-  // Always convert to kg regardless of the input unit
-  // Shopify stores weight in grams, so we need to divide by 1000
-  const weightInKg = weight / 1000
-
-  // Format without decimal places if it's a whole number
-  return Number.isInteger(weightInKg) ? weightInKg.toString() : weightInKg.toFixed(2)
-}
-
-// Function to map Shopify condition to Auqli condition (New or Fairly Used)
-function mapCondition(condition: string): string {
-  if (!condition) return "New" // Default to New if no condition provided
-
-  const lowerCondition = condition.toLowerCase()
-
-  // Map to "New" if condition contains new, mint, or unused
-  if (
-    lowerCondition.includes("new") ||
-    lowerCondition.includes("mint") ||
-    lowerCondition.includes("unused") ||
-    lowerCondition === "active"
-  ) {
-    return "New"
-  }
-
-  // Otherwise map to "Fairly Used"
-  return "Fairly Used"
-}
-
-// Function to fetch Auqli categories
-async function fetchAuqliCategories(): Promise<AuqliCategory[]> {
-  try {
-    const response = await fetch("https://auqliserver-8xr8zvib.b4a.run/api/public/categories", {
-      cache: "no-store", // Ensure we get fresh data
-    })
-
-    if (!response.ok) {
-      console.error("Failed to fetch Auqli categories:", response.statusText)
-      return []
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error("Error fetching Auqli categories:", error)
-    return []
-  }
-}
-
-// Update the findMatchingCategory function to return a confidence score
-=======
   // Remove HTML tags and convert HTML entities
   let text = html.replace(/<[^>]*>/g, "")
   text = text.replace(/&nbsp;/g, " ")
@@ -201,7 +83,6 @@ function mapCondition(condition: string): string {
 }
 
 // Update the findMatchingCategory function to be more sophisticated
->>>>>>> master
 function findMatchingCategory(
   productName: string,
   productDescription: string,
@@ -211,10 +92,6 @@ function findMatchingCategory(
     return { mainCategory: "", subCategory: "", confidence: 0 }
   }
 
-<<<<<<< HEAD
-  // Combine product name and description for better matching
-  const searchText = `${productName} ${productDescription}`.toLowerCase()
-=======
   // Normalize input text for better matching
   const normalizeText = (text: string) => {
     return text
@@ -302,7 +179,6 @@ function findMatchingCategory(
     hair: { category: "Health & Beauty", subcategory: "Hair Care", weight: 90 },
     fragrance: { category: "Health & Beauty", subcategory: "Fragrances", weight: 90 },
   }
->>>>>>> master
 
   // Initialize scores for each category and subcategory
   const scores: {
@@ -314,11 +190,6 @@ function findMatchingCategory(
     subcategoryScore?: number
   }[] = []
 
-<<<<<<< HEAD
-  // Calculate scores based on keyword matching
-  for (const category of categories) {
-    const categoryKeywords = category.name.toLowerCase().split(/\s+/)
-=======
   // First, check for direct matches with tech term mappings
   let directMatchFound = false
   let directMatchScore = 0
@@ -394,16 +265,10 @@ function findMatchingCategory(
 
     const categoryName = category.name.toLowerCase()
     const categoryKeywords = categoryName.split(/\s+/)
->>>>>>> master
     let categoryScore = 0
 
     // Calculate category score
     for (const keyword of categoryKeywords) {
-<<<<<<< HEAD
-      if (keyword.length > 2 && searchText.includes(keyword)) {
-        // Give more weight to longer keywords
-        categoryScore += keyword.length
-=======
       if (keyword.length > 2) {
         // Exact match in product name (highest weight)
         if (normalizedProductName.includes(keyword)) {
@@ -426,22 +291,12 @@ function findMatchingCategory(
             categoryScore += mapping.weight / 2 // Half weight for partial matches
           }
         }
->>>>>>> master
       }
     }
 
     // Find best matching subcategory
     let bestSubcategory = { id: "", name: "", score: 0 }
 
-<<<<<<< HEAD
-    for (const subcategory of category.subcategories) {
-      const subcategoryKeywords = subcategory.name.toLowerCase().split(/\s+/)
-      let subcategoryScore = 0
-
-      for (const keyword of subcategoryKeywords) {
-        if (keyword.length > 2 && searchText.includes(keyword)) {
-          subcategoryScore += keyword.length
-=======
     // Ensure subcategories exists and is an array before iterating
     const subcategories = Array.isArray(category.subcategories) ? category.subcategories : []
 
@@ -479,17 +334,12 @@ function findMatchingCategory(
           ) {
             subcategoryScore += mapping.weight / 2 // Half weight for partial matches
           }
->>>>>>> master
         }
       }
 
       if (subcategoryScore > bestSubcategory.score) {
         bestSubcategory = {
-<<<<<<< HEAD
-          id: subcategory.id,
-=======
           id: subcategory.id || "",
->>>>>>> master
           name: subcategory.name,
           score: subcategoryScore,
         }
@@ -517,11 +367,6 @@ function findMatchingCategory(
   // Calculate confidence score (0-100)
   // Higher scores mean better matches
   const topScore = scores[0].score
-<<<<<<< HEAD
-  const maxPossibleScore = productName.length + Math.min(100, productDescription.length)
-  const confidence = Math.min(100, Math.round((topScore / maxPossibleScore) * 100))
-
-=======
   const maxPossibleScore = productName.length * 3 // Maximum possible score based on our scoring system
   const confidence = Math.min(100, Math.round((topScore / maxPossibleScore) * 100))
 
@@ -538,7 +383,6 @@ function findMatchingCategory(
     }
   }
 
->>>>>>> master
   return {
     mainCategory: scores[0].categoryName,
     subCategory: scores[0].subcategoryName || "",
@@ -546,68 +390,6 @@ function findMatchingCategory(
   }
 }
 
-<<<<<<< HEAD
-export async function processCSV(formData: FormData) {
-  try {
-    const file = formData.get("file") as File
-    const platform = (formData.get("platform") as string) || "shopify"
-
-    if (!file) {
-      console.error("No file provided in formData")
-      return { error: "No file provided" }
-    }
-
-    console.log("Processing file:", file.name, "Size:", file.size, "Platform:", platform)
-
-    // Check if file is empty
-    if (file.size === 0) {
-      return { error: "The file is empty" }
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const content = buffer.toString()
-
-    // Log a sample of the content to verify it's being read correctly
-    console.log("CSV content sample:", content.substring(0, 100))
-
-    // Parse CSV
-    const records = parse(content, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-      relax_column_count: true,
-    })
-
-    if (!records || records.length === 0) {
-      return { error: "The CSV file is empty or invalid" }
-    }
-
-    console.log(`Successfully parsed ${records.length} records`)
-    console.log("First record sample:", JSON.stringify(records[0]).substring(0, 200))
-
-    // Fetch Auqli categories for smart matching
-    const auqliCategories = await fetchAuqliCategories()
-
-    // Map CSV columns to Auqli format based on platform
-    let products: Product[] = []
-
-    if (platform === "shopify") {
-      products = await mapShopifyToAuqli(records, auqliCategories)
-    } else if (platform === "woocommerce") {
-      products = await mapWooCommerceToAuqli(records, auqliCategories)
-    } else {
-      return { error: "Unsupported platform" }
-    }
-
-    return { products }
-  } catch (error) {
-    console.error("Error processing CSV:", error)
-    return { error: `Failed to process the CSV file: ${error instanceof Error ? error.message : "Unknown error"}` }
-  }
-}
-
-// Update the mapShopifyToAuqli function to use the confidence score
-=======
 // Make sure the fetchAuqliCategories function is properly exported
 async function fetchAuqliCategories(): Promise<AuqliCategory[]> {
   try {
@@ -652,7 +434,6 @@ async function fetchAuqliCategories(): Promise<AuqliCategory[]> {
 }
 
 // Update the mapShopifyToAuqli function to ensure weight conversion is happening correctly
->>>>>>> master
 async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[]): Promise<Product[]> {
   // Group records by Handle to handle variants and collect images
   const productGroups: { [key: string]: any[] } = {}
@@ -705,12 +486,8 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
 
     // Get weight from the first variant and convert to kg
     const weightValue = mainRecord["Variant Grams"] || "0"
-<<<<<<< HEAD
-    const weightUnit = mainRecord["Variant Weight Unit"] || "g"
-=======
     // Ensure we're explicitly passing 'g' as the unit to force conversion to kg
     const weightInKg = convertToKg(weightValue, "g")
->>>>>>> master
 
     // Get condition from Google Shopping / Condition or map from Status
     const shopifyCondition = mainRecord["Google Shopping / Condition"] || ""
@@ -726,15 +503,9 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
       auqliCategories,
     )
 
-<<<<<<< HEAD
-    // Only use the matched category if confidence is above threshold (e.g., 40%)
-    // Otherwise, use "Uncategorized" to flag it for manual selection
-    const confidenceThreshold = 40
-=======
     // Only use the matched category if confidence is above threshold
     // With our improved matching, we can use a higher threshold
     const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
->>>>>>> master
     const finalMainCategory =
       confidence >= confidenceThreshold
         ? mainCategory
@@ -747,11 +518,7 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
       price: mainRecord["Variant Price"] || "",
       image: mainImage,
       description: productDescription,
-<<<<<<< HEAD
-      weight: convertToKg(weightValue, weightUnit),
-=======
       weight: weightInKg, // Use the converted weight in kg
->>>>>>> master
       inventory: totalInventory.toString(),
       condition: mapCondition(shopifyCondition), // Map to either "New" or "Fairly Used"
       mainCategory: finalMainCategory,
@@ -764,11 +531,7 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
   return products
 }
 
-<<<<<<< HEAD
-// Make similar updates to mapWooCommerceToAuqli function
-=======
 // Update the mapWooCommerceToAuqli function to use the improved matching
->>>>>>> master
 async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCategory[]): Promise<Product[]> {
   return records.map((record) => {
     const productName = record["Name"] || record["name"] || record["product_name"] || ""
@@ -781,15 +544,9 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
       auqliCategories,
     )
 
-<<<<<<< HEAD
-    // Only use the matched category if confidence is above threshold (e.g., 40%)
-    // Otherwise, use "Uncategorized" to flag it for manual selection
-    const confidenceThreshold = 40
-=======
     // Only use the matched category if confidence is above threshold
     // With our improved matching, we can use a higher threshold
     const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
->>>>>>> master
     const finalMainCategory =
       confidence >= confidenceThreshold
         ? mainCategory
@@ -813,8 +570,6 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
   })
 }
 
-<<<<<<< HEAD
-=======
 // Make sure the processCSV function is properly exported
 export async function processCSV(formData: FormData) {
   try {
@@ -885,4 +640,3 @@ export async function processCSV(formData: FormData) {
   }
 }
 
->>>>>>> master

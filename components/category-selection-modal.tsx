@@ -1,19 +1,11 @@
 "use client"
 
-<<<<<<< HEAD
-import { useState, useEffect } from "react"
-import { X } from "lucide-react"
-=======
 import { useState, useEffect, useRef } from "react"
 import { X, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, ArrowRight } from "lucide-react"
->>>>>>> master
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-<<<<<<< HEAD
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-=======
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +16,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
->>>>>>> master
 
 interface AuqliCategory {
   id: string
@@ -45,8 +36,6 @@ interface CategorySelectionModalProps {
   auqliCategories: AuqliCategory[]
 }
 
-<<<<<<< HEAD
-=======
 function SelectionGuide({ step, targetRef, message, position = "right" }) {
   if (!targetRef?.current) return null
 
@@ -72,7 +61,6 @@ function SelectionGuide({ step, targetRef, message, position = "right" }) {
   )
 }
 
->>>>>>> master
 export function CategorySelectionModal({
   isOpen,
   onClose,
@@ -86,8 +74,6 @@ export function CategorySelectionModal({
   const [activeProduct, setActiveProduct] = useState<string | null>(null)
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("")
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("")
-<<<<<<< HEAD
-=======
   const [showWarningDialog, setShowWarningDialog] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -114,7 +100,6 @@ export function CategorySelectionModal({
       setCurrentPage(currentPage - 1)
     }
   }
->>>>>>> master
 
   // Initialize selected categories with current values
   useEffect(() => {
@@ -130,12 +115,9 @@ export function CategorySelectionModal({
 
       setSelectedCategories(initialSelections)
       setActiveProduct(unmatchedProducts[0].id)
-<<<<<<< HEAD
-=======
 
       // Reset pagination to first page when opening modal
       setCurrentPage(1)
->>>>>>> master
     }
   }, [isOpen, unmatchedProducts])
 
@@ -150,22 +132,6 @@ export function CategorySelectionModal({
     }
   }, [activeProduct, selectedCategories])
 
-<<<<<<< HEAD
-  const handleCategorySelect = (categoryName: string) => {
-    if (!activeProduct) return
-
-    setSelectedMainCategory(categoryName)
-    setSelectedSubCategory("")
-
-    setSelectedCategories((prev) => ({
-      ...prev,
-      [activeProduct]: {
-        ...prev[activeProduct],
-        mainCategory: categoryName,
-        subCategory: "",
-      },
-    }))
-=======
   useEffect(() => {
     if (selectedMainCategory && !selectedSubCategory) {
       setSelectionStep(2) // Move to subcategory selection
@@ -207,7 +173,6 @@ export function CategorySelectionModal({
         },
       }))
     }
->>>>>>> master
   }
 
   const handleSubcategorySelect = (subcategoryName: string) => {
@@ -228,8 +193,6 @@ export function CategorySelectionModal({
     onSave(selectedCategories)
   }
 
-<<<<<<< HEAD
-=======
   const getCompletedCount = () => {
     return Object.values(selectedCategories).filter(
       (cat) =>
@@ -240,7 +203,6 @@ export function CategorySelectionModal({
     ).length
   }
 
->>>>>>> master
   const moveToNextProduct = () => {
     const currentIndex = unmatchedProducts.findIndex((p) => p.id === activeProduct)
     if (currentIndex < unmatchedProducts.length - 1) {
@@ -250,10 +212,6 @@ export function CategorySelectionModal({
     }
   }
 
-<<<<<<< HEAD
-  const getCompletedCount = () => {
-    return Object.values(selectedCategories).filter((cat) => cat.mainCategory && cat.subCategory).length
-=======
   // Function to get specific categorization status message
   const getCategoryStatusMessage = (product: { mainCategory: string; subCategory: string }) => {
     const mainCategoryMissing = !product.mainCategory || product.mainCategory.includes("Uncategorized")
@@ -267,15 +225,11 @@ export function CategorySelectionModal({
       return "Subcategory missing"
     }
     return null
->>>>>>> master
   }
 
   if (!isOpen || unmatchedProducts.length === 0) return null
 
   return (
-<<<<<<< HEAD
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-=======
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
@@ -293,7 +247,6 @@ export function CategorySelectionModal({
         }
       }}
     >
->>>>>>> master
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center justify-between">
@@ -318,30 +271,6 @@ export function CategorySelectionModal({
             <div className="bg-muted p-2 font-medium">Products</div>
             <ScrollArea className="h-[calc(100%-2.5rem)]">
               <div className="p-2">
-<<<<<<< HEAD
-                {unmatchedProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`p-2 rounded-md mb-2 cursor-pointer ${
-                      activeProduct === product.id
-                        ? "bg-primary text-primary-foreground"
-                        : selectedCategories[product.id]?.mainCategory && selectedCategories[product.id]?.subCategory
-                          ? "bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-900"
-                          : "hover:bg-muted"
-                    }`}
-                    onClick={() => setActiveProduct(product.id)}
-                  >
-                    <div className="font-medium truncate">{product.name}</div>
-                    {selectedCategories[product.id]?.mainCategory && (
-                      <div className="text-xs mt-1 opacity-80">
-                        {selectedCategories[product.id].mainCategory}
-                        {selectedCategories[product.id].subCategory &&
-                          ` › ${selectedCategories[product.id].subCategory}`}
-                      </div>
-                    )}
-                  </div>
-                ))}
-=======
                 {unmatchedProducts.map((product) => {
                   const statusMessage = getCategoryStatusMessage(selectedCategories[product.id] || {})
                   const isFullyCategorized = !statusMessage
@@ -378,7 +307,6 @@ export function CategorySelectionModal({
                     </div>
                   )
                 })}
->>>>>>> master
               </div>
             </ScrollArea>
           </div>
@@ -398,39 +326,6 @@ export function CategorySelectionModal({
               </div>
 
               <TabsContent value="categories" className="flex-1 overflow-hidden">
-<<<<<<< HEAD
-                <ScrollArea className="h-full">
-                  <div className="p-4">
-                    <Accordion type="single" collapsible className="w-full">
-                      {auqliCategories.map((category) => (
-                        <AccordionItem key={category.id} value={category.id}>
-                          <AccordionTrigger
-                            className={`${selectedMainCategory === category.name ? "text-primary font-medium" : ""}`}
-                            onClick={() => handleCategorySelect(category.name)}
-                          >
-                            {category.name}
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="pl-4 space-y-2">
-                              {category.subcategories.map((subcategory) => (
-                                <div
-                                  key={subcategory.id}
-                                  className={`p-2 rounded-md cursor-pointer ${
-                                    selectedMainCategory === category.name && selectedSubCategory === subcategory.name
-                                      ? "bg-primary/10 text-primary font-medium"
-                                      : "hover:bg-muted"
-                                  }`}
-                                  onClick={() => handleSubcategorySelect(subcategory.name)}
-                                >
-                                  {subcategory.name}
-                                </div>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-=======
                 <div className="bg-muted/50 p-2 text-sm border-b">
                   <p className="font-medium">Instructions:</p>
                   <ol className="ml-5 mt-1 space-y-1">
@@ -528,7 +423,6 @@ export function CategorySelectionModal({
                         </Button>
                       </div>
                     )}
->>>>>>> master
                   </div>
                 </ScrollArea>
               </TabsContent>
@@ -541,28 +435,22 @@ export function CategorySelectionModal({
                         <h3 className="font-medium">Selected Category</h3>
                         <p className="text-lg">
                           {selectedMainCategory || <span className="text-muted-foreground italic">None selected</span>}
-<<<<<<< HEAD
-=======
                           {selectedMainCategory && selectedMainCategory.includes("Uncategorized") && (
                             <span className="ml-2 text-sm text-amber-600 dark:text-amber-400 flex items-center">
                               <AlertTriangle className="h-3 w-3 mr-1" /> Please select a proper main category
                             </span>
                           )}
->>>>>>> master
                         </p>
                       </div>
                       <div>
                         <h3 className="font-medium">Selected Subcategory</h3>
                         <p className="text-lg">
                           {selectedSubCategory || <span className="text-muted-foreground italic">None selected</span>}
-<<<<<<< HEAD
-=======
                           {selectedSubCategory && selectedSubCategory.includes("Uncategorized") && (
                             <span className="ml-2 text-sm text-amber-600 dark:text-amber-400 flex items-center">
                               <AlertTriangle className="h-3 w-3 mr-1" /> Please select a proper subcategory
                             </span>
                           )}
->>>>>>> master
                         </p>
                       </div>
                     </div>
@@ -582,24 +470,6 @@ export function CategorySelectionModal({
             )}
           </div>
           <div className="space-x-2">
-<<<<<<< HEAD
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            {activeProduct &&
-            unmatchedProducts.findIndex((p) => p.id === activeProduct) < unmatchedProducts.length - 1 ? (
-              <Button onClick={moveToNextProduct} disabled={!selectedMainCategory || !selectedSubCategory}>
-                Next Product
-              </Button>
-            ) : (
-              <Button onClick={handleSave} disabled={getCompletedCount() < unmatchedProducts.length}>
-                Save All
-              </Button>
-            )}
-          </div>
-        </DialogFooter>
-      </DialogContent>
-=======
             <Button
               variant="outline"
               onClick={() => {
@@ -662,7 +532,6 @@ export function CategorySelectionModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
->>>>>>> master
     </Dialog>
   )
 }

@@ -1,15 +1,9 @@
-<<<<<<< HEAD
-import { clsx, type ClassValue } from "clsx"
-=======
 import { type ClassValue, clsx } from "clsx"
->>>>>>> master
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
-<<<<<<< HEAD
-=======
 
 /**
  * Converts HTML to plain text by removing HTML tags and converting common HTML entities
@@ -91,4 +85,3 @@ export function mapCondition(condition: string): string {
   }
 }
 
->>>>>>> master

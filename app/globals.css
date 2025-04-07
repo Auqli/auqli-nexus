@@ -72,10 +72,7 @@
   }
   body {
     @apply bg-background text-foreground;
-<<<<<<< HEAD
-=======
     font-feature-settings: "rlig" 1, "calt" 1;
->>>>>>> master
   }
 }
 
@@ -139,8 +136,6 @@
   animation: slideUp 0.5s ease-out;
 }
 
-<<<<<<< HEAD
-=======
 /* Update the marquee animation styles to ensure they work properly */
 /* Replace the existing marquee animation styles with these improved ones */
 
@@ -234,4 +229,3 @@ section {
   }
 }
 
->>>>>>> master
