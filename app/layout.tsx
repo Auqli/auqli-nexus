@@ -6,8 +6,13 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
+<<<<<<< HEAD
   title: "CSV Product Formatter",
   description: "Upload and format CSV files for product data",
+=======
+  title: "Auqli Switch - Tools for Auqli Sellers",
+  description: "One suite for all your CSV conversions, price updates, and bulk edits for Auqli",
+>>>>>>> master
     generator: 'v0.dev'
 }
 

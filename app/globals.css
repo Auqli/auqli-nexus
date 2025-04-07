@@ -72,6 +72,10 @@
   }
   body {
     @apply bg-background text-foreground;
+<<<<<<< HEAD
+=======
+    font-feature-settings: "rlig" 1, "calt" 1;
+>>>>>>> master
   }
 }
 
@@ -135,3 +139,99 @@
   animation: slideUp 0.5s ease-out;
 }
 
+<<<<<<< HEAD
+=======
+/* Update the marquee animation styles to ensure they work properly */
+/* Replace the existing marquee animation styles with these improved ones */
+
+/* Marquee animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee2 {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.marquee-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.marquee-content {
+  display: flex;
+  position: relative;
+  width: max-content;
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  display: flex;
+  margin-right: 20px;
+}
+
+.animate-marquee2 {
+  animation: marquee2 30s linear infinite;
+  display: flex;
+  margin-right: 20px;
+}
+
+/* Hover pause effect */
+.group:hover .animate-marquee,
+.group:hover .animate-marquee2 {
+  animation-play-state: paused;
+}
+
+/* Add these animation styles at the end of the file */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Hover effects */
+.card-hover-effect {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Ensure uniform heights for content sections */
+section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .marquee-container .text-lg {
+    font-size: 0.95rem;
+  }
+}
+
+>>>>>>> master
