@@ -1,10 +1,10 @@
-import type React from "react"
+import type { ReactNode } from "react"
+import { PageLayout } from "@/components/layout/page-layout"
 
 export default function ConverterLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
-  return <>{children}</>
+  return <PageLayout>{children}</PageLayout>
 }
-

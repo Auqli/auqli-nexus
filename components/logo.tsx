@@ -3,7 +3,15 @@ import Image from "next/image"
 export function AuqliLogo() {
   return (
     <div className="flex items-center gap-2">
-      <Image src="/images/auqli-logo.png" alt="Auqli Logo" width={120} height={40} className="h-auto" />
+      <Image
+        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MARK-rlaHxgk2H2Z1pLvKYo7HsSBa801gp4.png"
+        alt="Auqli Logo"
+        width={40}
+        height={40}
+        className="h-10 w-auto"
+        priority
+      />
+      <span className="text-xl font-semibold text-gray-800">Auqli Nexus</span>
     </div>
   )
 }
@@ -11,8 +19,14 @@ export function AuqliLogo() {
 export function AuqliSymbol() {
   return (
     <div className="flex items-center justify-center">
-      <Image src="/images/auqli-symbol.png" alt="Auqli Symbol" width={60} height={40} className="h-auto" />
+      <Image
+        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MARK-rlaHxgk2H2Z1pLvKYo7HsSBa801gp4.png"
+        alt="Auqli Logo"
+        width={36}
+        height={36}
+        className="h-9 w-auto"
+        priority
+      />
     </div>
   )
 }
-

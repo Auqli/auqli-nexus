@@ -2,29 +2,41 @@
 
 **Your Connected Suite of AI Tools for Smarter Selling.**
 
-Auqli Nexus is your all-in-one suite of AI-powered tools built for sellers on Auqli.  
-From CSV conversion to AI-powered product research, supplier matching, copywriting, and creative generation — Nexus helps you sell smarter and faster, with less manual work.
+Auqli Nexus is an open AI-powered suite of tools built for anyone selling products online.  
+From product conversion to AI copywriting, product discovery, supplier matching, and creative generation — Nexus helps you automate repetitive tasks and grow your business faster.
 
-> Everything you need to grow your store, in one place.
+> Work smarter. Save hours. Focus on growth.
 
 ---
 
-## 🌟 Features
+## 🌟 Core Features
 
-### ✅ Shopify to Auqli Converter
-Instantly convert your Shopify CSV into the correct format for Auqli, with automatic category mapping and error correction.
+### ✅ Shopify CSV Converter (Phase 1 — Live)
+Instantly convert your Shopify CSV product data into marketplace-ready format. Supports automatic category mapping, error correction, and bulk processing.
 
-### 🚀 AI Product Search *(Coming Soon)*
+### 🚀 AI Copywriting Assistant (Phase 2 — In Progress)
+Generate high-converting product titles and descriptions in seconds. Save time on copywriting and make your product listings stand out.
+
+### 🔜 AI Product Search
 Discover trending and high-potential products using AI-powered market insights.
 
-### 🌍 AI Import Connect *(Coming Soon)*
-Connect with verified global suppliers. Submit your product needs and let AI find your best sourcing opportunities.
+### 🔜 AI Import Connect
+Get matched with verified suppliers and importers worldwide, based on your product needs.
 
-### ✍️ AI Copywriting Assistant *(Coming Soon)*
-Generate high-converting product descriptions and titles in seconds.
+### 🔜 AI Social Post Creative
+Turn your products into scroll-stopping social media creatives, ready to post.
 
-### 📣 AI Social Post Creative *(Coming Soon)*
-Turn your products into ready-to-share social content for Facebook, Instagram, TikTok, and more.
+---
+
+## 🌍 Who Is Nexus For?
+
+- ✅ Online sellers (Shopify, TikTok Shop, Auqli, Amazon, and more)
+- ✅ Product creators and dropshippers
+- ✅ Entrepreneurs launching new products
+- ✅ Marketers managing product listings and promotions
+- ✅ Anyone looking to automate product and content workflows
+
+> **If you sell or promote products online, Nexus speeds you up.**
 
 ---
 
@@ -36,14 +48,7 @@ Explore Auqli Nexus online:
 Use the Shopify to Auqli Converter directly:  
 👉 [https://auqli-switch.vercel.app/converter](https://auqli-switch.vercel.app/converter)
 
-*Note: Domain will update to official Auqli Nexus domain soon!*
-
----
-
-## 📂 Project Structure
-
-/app # App routes and pages /components # React components /hooks # Custom hooks /lib # Utilities and helpers /public # Static assets /styles # Global CSS and Tailwind config .gitignore # Git ignored files README.md # Project documentation package.json # Dependencies and project metadata
-
+*Note: Domain will update to the official Auqli Nexus domain soon.*
 
 ---
 
@@ -55,58 +60,48 @@ Use the Shopify to Auqli Converter directly:
 - Git
 - Package manager (npm, yarn, or pnpm)
 
-### Installation
+### Install dependencies
 
 ```bash
 git clone https://github.com/Auqli/auqli-nexus.git
 cd auqli-nexus
 npm install
-Development Server
+Start the development server
 bash
 Copy
 Edit
 npm run dev
 Visit: http://localhost:3000
 
-Build for Production
+Build for production
 bash
 Copy
 Edit
 npm run build
+
 🧭 Roadmap
- Shopify to Auqli Converter ✅
+Phase	Feature
+✅ Phase 1	Shopify CSV Converter
+🚀 Phase 2 (Now)	AI Copywriting Assistant
+🔜 Phase 3	AI Product Search
+🔜 Phase 4	AI Import Connect
+🔜 Phase 5	AI Social Post Creative
+🌟 Future	Dashboard, analytics, API integrations, workflow automations
+💡 Why Use Auqli Nexus?
+Save Time — Automate manual tasks and reduce errors.
 
- AI Product Search 🚧
+Scale Faster — Speed up your workflows, from product sourcing to content creation.
 
- AI Import Connect 🚧
+AI-Powered — Built with powerful AI to help you grow smarter.
 
- AI Copywriting Assistant 🚧
+Platform-Agnostic — Shopify, Auqli, TikTok Shop, or your own site — you choose.
 
- AI Social Post Creative 🚧
+For Everyone — Sellers, creators, marketers, and entrepreneurs.
 
- Mobile optimization & animations ✨
-
- Continuous scrolling marquee (clean loop) ✨
-
- Future API integrations 🌐
-
- Multi-language support 🌍
-
-💡 Why Auqli Nexus?
-Save Time — Automate tasks that used to take hours.
-
-Reduce Errors — Smart validation and error correction built-in.
-
-Scale Faster — Tools designed for serious sellers looking to grow.
-
-Built for Auqli Sellers — 100% tailored for the Auqli ecosystem.
-
-Future-Proof — New AI-powered tools launching regularly.
-
-🧩 Contribution Guide
+🤝 Contributing
 We welcome contributions!
 
-Fork the repository.
+Fork the repository
 
 Create a new branch:
 git checkout -b feature/your-feature
@@ -119,17 +114,33 @@ git push origin feature/your-feature
 
 Open a Pull Request!
 
-Have ideas for new tools? Open an issue or suggest below 👇
-
 💡 Suggest a Tool
-We're building Auqli Nexus for sellers like you.📄 License
+We’re building Nexus for creators, sellers, and entrepreneurs.
+
+👉 Suggest a Tool (Link to form or feedback page — add later)
+
+Help us build the tools you need!
+
+📬 Stay Updated
+🚀 Subscribe for early access to new tools and updates!
+
+Newsletter (Coming Soon)
+
+Early Access Program (Coming Soon)
+
+📄 License
 This project is licensed under the MIT License.
 
-🌍 About Auqli
-Auqli is the live stream shopping platform for sellers in Africa and beyond.
-Reach your customers in real time and grow your store with live selling.
+🌍 About Auqli Nexus
+Auqli Nexus is a growing suite of AI tools designed to automate, accelerate, and simplify your product workflows.
+It works for any online seller, marketer, or entrepreneur looking to scale their business smarter.
 
-Visit: https://auqli.live
+Learn more: https://auqli.live
 
 📣 Contact
-Questions or feedback? - EMail joseph@auqli.liveS
+Questions or feedback?
+📩 hello@auqli.live
+
+We’d love to hear from you!
+
+🚀 Built for creators, sellers, and entrepreneurs. More powerful tools launching soon.

@@ -563,4 +563,3 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
     }
   })
 }
-

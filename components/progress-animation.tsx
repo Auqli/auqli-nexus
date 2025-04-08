@@ -109,4 +109,3 @@ export function ProgressAnimation({ progress }: ProgressAnimationProps) {
     </div>
   )
 }
-

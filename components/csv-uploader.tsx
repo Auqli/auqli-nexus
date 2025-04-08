@@ -119,4 +119,3 @@ export function CSVUploader({ onUploadSuccess, onUploadError }: CSVUploaderProps
     </Card>
   )
 }
-

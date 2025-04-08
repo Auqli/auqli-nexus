@@ -3,4 +3,3 @@ export interface AuqliCategory {
   name: string
   subcategories?: AuqliCategory[]
 }
-

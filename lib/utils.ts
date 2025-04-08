@@ -84,4 +84,3 @@ export function mapCondition(condition: string): string {
     return "Fairly Used"
   }
 }
-

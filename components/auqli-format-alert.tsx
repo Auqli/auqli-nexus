@@ -24,4 +24,3 @@ export function AuqliFormatAlert({ message }: AuqliFormatAlertProps) {
     </Alert>
   )
 }
-
