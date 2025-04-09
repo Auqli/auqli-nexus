@@ -3,7 +3,7 @@
 client_id = "a4ee12720079c331fb96a4416c4f9a8e"
 name = "auqli-nexus-app"
 handle = "auqli-nexus-app"
-application_url = "https://interim-star-cho-portal.trycloudflare.com"
+application_url = "https://periods-find-exclude-colors.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://interim-star-cho-portal.trycloudflare.com/auth/callback",
-  "https://interim-star-cho-portal.trycloudflare.com/auth/shopify/callback",
-  "https://interim-star-cho-portal.trycloudflare.com/api/auth/callback"
+  "https://periods-find-exclude-colors.trycloudflare.com/auth/callback",
+  "https://periods-find-exclude-colors.trycloudflare.com/auth/shopify/callback",
+  "https://periods-find-exclude-colors.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
