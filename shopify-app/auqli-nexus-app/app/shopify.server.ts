@@ -12,16 +12,15 @@ import prisma from "./db.server";
 // ✅ Set up Express App
 const app = express();
 
-// ✅ ONLY frontend domain here (not backend)
+// ✅ Allowed frontend domains
 const allowedOrigins = [
-  "https://nexus.auqli.com", // ✅ Vercel frontend
-  "https://auqli-dev.myshopify.com", // Optional: Replace with your actual store domain for direct testing
+  "https://nexus.auqli.com", // Your frontend domain
+  "https://auqli-dev.myshopify.com", // Your Shopify store (optional)
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow server-to-server requests (origin === undefined) and valid frontend origins
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -62,7 +61,6 @@ app.get("/auqli-tools/account2", async (req, res) => {
       return res.status(400).json({ success: false, error: "Missing shop parameter" });
     }
 
-    // 🧩 Retrieve session from Prisma DB
     const session = await prisma.session.findFirst({
       where: { shop },
     });
@@ -71,7 +69,6 @@ app.get("/auqli-tools/account2", async (req, res) => {
       return res.status(404).json({ success: false, error: "Session not found" });
     }
 
-    // 🧩 Shopify API client
     const client = new shopify.api.clients.Rest({
       session: {
         id: session.id,
@@ -81,15 +78,12 @@ app.get("/auqli-tools/account2", async (req, res) => {
       },
     });
 
-    // 🧩 Fetch shop info
     const shopResponse = await client.get({ path: "shop" });
     const shopData = shopResponse.body.shop;
 
-    // 🧩 Fetch product count
     const productResponse = await client.get({ path: "products/count" });
     const productCount = productResponse.body.count;
 
-    // 🧩 Build response
     const responseData = {
       success: true,
       data: {
@@ -109,6 +103,12 @@ app.get("/auqli-tools/account2", async (req, res) => {
     console.error("Error in /auqli-tools/account2:", error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// 🚨 CRITICAL FIX: START THE EXPRESS SERVER
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Express server is running on port ${PORT}`);
 });
 
 // ✅ Export Shopify app core exports
