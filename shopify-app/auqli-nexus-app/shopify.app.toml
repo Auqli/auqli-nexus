@@ -1,9 +1,7 @@
-# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
-
 client_id = "a4ee12720079c331fb96a4416c4f9a8e"
 name = "auqli-nexus-app"
 handle = "auqli-nexus-app"
-application_url = "https://bookmark-mon-kingdom-travesti.trycloudflare.com"
+application_url = "https://auqli-nexus-be.onrender.com"
 embedded = true
 
 [build]
@@ -22,14 +20,14 @@ api_version = "2025-04"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "read_products, write_products"
+
 
 [auth]
 redirect_urls = [
-  "https://bookmark-mon-kingdom-travesti.trycloudflare.com/auth/callback",
-  "https://bookmark-mon-kingdom-travesti.trycloudflare.com/auth/shopify/callback",
-  "https://bookmark-mon-kingdom-travesti.trycloudflare.com/api/auth/callback"
+  "https://auqli-nexus-be.onrender.com/auth/callback",
+  "https://auqli-nexus-be.onrender.com/auth/shopify/callback",
+  "https://auqli-nexus-be.onrender.com/api/auth/callback"
 ]
 
 [pos]
