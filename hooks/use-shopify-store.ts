@@ -29,20 +29,15 @@ export function useShopifyStore() {
     setError(null)
 
     try {
-      // Check if we're in the Shopify embedded app context
-      // by looking for shop and host query parameters
       const shop = searchParams.get("shop")
-
       setIsEmbedded(Boolean(shop))
 
-      // Build the API URL
-      let apiUrl = `https://auqli-nexus-be.onrender.com/api/shopify/store-info`
+      // ✅ FIXED: Use correct backend path
+      let apiUrl = `https://auqli-nexus-be.onrender.com/store-info`
 
-      // If we have a shop parameter, pass it to the API
       if (shop) {
         apiUrl += `?shop=${encodeURIComponent(shop)}`
       } else {
-        // If no shop parameter, return mock data (for development/preview)
         console.log("No shop parameter provided, returning mock data")
         setStore({
           shopName: "Auqli Demo Store",
@@ -66,16 +61,15 @@ export function useShopifyStore() {
 
       const data = await response.json()
 
-      // Map the API response to the ShopifyStore interface
       const mappedStore: ShopifyStore = {
-        shopName: data.shopName,
+        shopName: data.name,
         email: data.email,
         domain: data.domain,
         country: data.country,
         currency: data.currency,
         plan: data.plan,
         productsCount: data.productsCount,
-        installedAt: data.installedAt,
+        installedAt: data.createdAt,
       }
 
       setStore(mappedStore)
@@ -88,7 +82,6 @@ export function useShopifyStore() {
         description: err instanceof Error ? err.message : "An unknown error occurred",
         variant: "destructive",
       })
-      // Fallback to demo data
       setStore({
         shopName: "Auqli Demo Store",
         email: "demo@auqli.live",
@@ -106,9 +99,6 @@ export function useShopifyStore() {
 
   useEffect(() => {
     fetchStoreData()
-    // In a real implementation, you might want to set up a refresh interval
-    // const interval = setInterval(fetchStoreData, 3600000) // Refresh every hour
-    // return () => clearInterval(interval)
   }, [fetchStoreData])
 
   return {
