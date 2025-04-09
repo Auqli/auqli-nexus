@@ -26,6 +26,7 @@ function cleanGeneratedContent(content: string): string {
     .replace(/^TikTok Script$/m, "## TikTok Script")
     .replace(/^Linkedin Post$/m, "## LinkedIn Post")
     .replace(/^Google Ad Copy$/m, "## Google Ad Copy")
+    .replace(/\[(.*?)\]\$\$(.*?)\$\$/g, "$1 ($2)")
     .trim()
 
   // If the content is just a list of content types or appears to be instructions,
@@ -33,8 +34,7 @@ function cleanGeneratedContent(content: string): string {
   if (
     cleanedContent.includes("Instagram Post") &&
     cleanedContent.includes("Twitter Post") &&
-    cleanedContent.includes("Email Subject Line") &&
-    cleanedContent.length < 500
+    cleanedContent.includes("Email Subject Line")
   ) {
     return "ERROR_INVALID_RESPONSE"
   }
@@ -95,12 +95,8 @@ Respond ONLY with the requested content.`
     }
 
     // If Llama failed or returned invalid content, try with DeepSeek
-    const deepseekResponse = await callDeepInfraAPI(
-      DEFAULT_MODEL_ID,
-      fullPrompt + "\n\nIMPORTANT: Generate ONLY the requested content. DO NOT list content types.",
-      temperature,
-      maxTokens,
-    )
+    const deepseekPrompt = fullPrompt + "\n\nIMPORTANT: Generate ONLY the requested content. DO NOT list content types."
+    const deepseekResponse = await callDeepInfraAPI(DEFAULT_MODEL_ID, deepseekPrompt, temperature, maxTokens)
 
     // Clean the DeepSeek response
     const cleanedDeepseekContent = cleanGeneratedContent(deepseekResponse.content)
