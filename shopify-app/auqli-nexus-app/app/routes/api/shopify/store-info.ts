@@ -1,5 +1,4 @@
 import { json } from "@remix-run/node";
-import { getSession } from "~/sessions";
 import { shopifyApi } from "~/shopify.server";
 
 export const loader = async ({ request }: { request: Request }) => {
@@ -10,14 +9,21 @@ export const loader = async ({ request }: { request: Request }) => {
     return json({ error: "Missing shop parameter" }, { status: 400 });
   }
 
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.replace("Bearer ", "");
+
+  if (!token) {
+    return json({ error: "Missing authorization token" }, { status: 401 });
+  }
+
   try {
-    const session = await getSession(shop);
-
-    if (!session?.accessToken) {
-      return json({ error: "No session found for this shop" }, { status: 404 });
-    }
-
-    const client = new shopifyApi.clients.Rest({ session });
+    const client = new shopifyApi.clients.Rest({
+      session: {
+        accessToken: token,
+        shop,
+        isOnline: true,
+      },
+    });
 
     const shopData = await client.get({ path: "shop" });
 
