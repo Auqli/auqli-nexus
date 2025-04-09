@@ -1,4 +1,6 @@
 import "@shopify/shopify-app-remix/adapters/node";
+import cors from "cors";
+import express from "express";
 import {
   ApiVersion,
   AppDistribution,
@@ -7,8 +9,13 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
+// ✅ Add Express App for CORS
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
+  apiKey: process.env.SHOPIFY_API_KEY!,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.January25,
   scopes: process.env.SCOPES?.split(","),
@@ -34,4 +41,3 @@ export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
 export const shopifyApi = shopify.api;
-
