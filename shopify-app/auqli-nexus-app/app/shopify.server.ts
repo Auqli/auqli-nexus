@@ -11,15 +11,17 @@ import prisma from "./db.server";
 
 // ✅ Set up Express App
 const app = express();
+
+// ✅ ONLY frontend domain here (not backend)
 const allowedOrigins = [
-  "https://nexus.auqli.com",
-  "https://auqli-nexus.be.onrender.com",
-  "https://YOUR-STORE.myshopify.com", // Replace with your actual store domain
+  "https://nexus.auqli.com", // ✅ Vercel frontend
+  "https://auqli-dev.myshopify.com", // Optional: Replace with your actual store domain for direct testing
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow server-to-server requests (origin === undefined) and valid frontend origins
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -32,6 +34,7 @@ app.use(
 
 app.use(express.json());
 
+// ✅ Initialize Shopify App
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY!,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
@@ -50,7 +53,7 @@ const shopify = shopifyApp({
     : {}),
 });
 
-// ✅ Your FULL account2 route, fetching **real Shopify data**
+// ✅ Route: Fetch account info
 app.get("/auqli-tools/account2", async (req, res) => {
   try {
     const shop = req.query.shop as string;
@@ -59,7 +62,7 @@ app.get("/auqli-tools/account2", async (req, res) => {
       return res.status(400).json({ success: false, error: "Missing shop parameter" });
     }
 
-    // 1️⃣ Retrieve session from DB (Prisma)
+    // 🧩 Retrieve session from Prisma DB
     const session = await prisma.session.findFirst({
       where: { shop },
     });
@@ -68,6 +71,7 @@ app.get("/auqli-tools/account2", async (req, res) => {
       return res.status(404).json({ success: false, error: "Session not found" });
     }
 
+    // 🧩 Shopify API client
     const client = new shopify.api.clients.Rest({
       session: {
         id: session.id,
@@ -77,15 +81,15 @@ app.get("/auqli-tools/account2", async (req, res) => {
       },
     });
 
-    // 2️⃣ Fetch store info (shop details)
+    // 🧩 Fetch shop info
     const shopResponse = await client.get({ path: "shop" });
     const shopData = shopResponse.body.shop;
 
-    // 3️⃣ Fetch product count
+    // 🧩 Fetch product count
     const productResponse = await client.get({ path: "products/count" });
     const productCount = productResponse.body.count;
 
-    // 4️⃣ Build response
+    // 🧩 Build response
     const responseData = {
       success: true,
       data: {
@@ -107,7 +111,7 @@ app.get("/auqli-tools/account2", async (req, res) => {
   }
 });
 
-// ✅ Export shopify app
+// ✅ Export Shopify app core exports
 export default shopify;
 export const apiVersion = ApiVersion.January25;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
