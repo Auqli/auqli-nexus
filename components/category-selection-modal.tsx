@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { X, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -75,6 +75,7 @@ export function CategorySelectionModal({
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>("")
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("")
   const [showWarningDialog, setShowWarningDialog] = useState(false)
+  const [completedProducts, setCompletedProducts] = useState<Set<string>>(new Set())
 
   const [currentPage, setCurrentPage] = useState(1)
   const categoriesPerPage = 5
@@ -100,6 +101,36 @@ export function CategorySelectionModal({
       setCurrentPage(currentPage - 1)
     }
   }
+
+  // Helper function to check if a product is properly categorized
+  const isProductCategorized = useCallback(
+    (productId: string): boolean => {
+      const product = selectedCategories[productId]
+      if (!product) return false
+
+      return (
+        !!product.mainCategory &&
+        !!product.subCategory &&
+        !product.mainCategory.includes("Uncategorized") &&
+        !product.subCategory.includes("Uncategorized")
+      )
+    },
+    [selectedCategories],
+  )
+
+  // Update completed products set whenever selectedCategories changes
+  useEffect(() => {
+    const newCompletedProducts = new Set<string>()
+
+    Object.keys(selectedCategories).forEach((productId) => {
+      if (isProductCategorized(productId)) {
+        newCompletedProducts.add(productId)
+      }
+    })
+
+    setCompletedProducts(newCompletedProducts)
+    console.log(`Completed products: ${newCompletedProducts.size}/${unmatchedProducts.length}`)
+  }, [selectedCategories, isProductCategorized, unmatchedProducts.length])
 
   // Initialize selected categories with current values
   useEffect(() => {
@@ -187,20 +218,30 @@ export function CategorySelectionModal({
         subCategory: subcategoryName,
       },
     }))
+
+    // Check if this completes the current product
+    const isComplete =
+      selectedMainCategory &&
+      subcategoryName &&
+      !selectedMainCategory.includes("Uncategorized") &&
+      !subcategoryName.includes("Uncategorized")
+
+    if (isComplete) {
+      // Add to completed products
+      setCompletedProducts((prev) => new Set(prev).add(activeProduct))
+    }
   }
 
   const handleSave = () => {
+    // Log the final state before saving
+    console.log("Saving categories:", selectedCategories)
+    console.log(`Completed: ${completedProducts.size}/${unmatchedProducts.length}`)
+
     onSave(selectedCategories)
   }
 
   const getCompletedCount = () => {
-    return Object.values(selectedCategories).filter(
-      (cat) =>
-        cat.mainCategory &&
-        cat.subCategory &&
-        !cat.mainCategory.includes("Uncategorized") &&
-        !cat.subCategory.includes("Uncategorized"),
-    ).length
+    return completedProducts.size
   }
 
   const moveToNextProduct = () => {
@@ -213,9 +254,15 @@ export function CategorySelectionModal({
   }
 
   // Function to get specific categorization status message
-  const getCategoryStatusMessage = (product: { mainCategory: string; subCategory: string }) => {
-    const mainCategoryMissing = !product.mainCategory || product.mainCategory.includes("Uncategorized")
-    const subCategoryMissing = !product.subCategory || product.subCategory.includes("Uncategorized")
+  const getCategoryStatusMessage = (product: {
+    id: string
+    name: string
+    mainCategory: string
+    subCategory: string
+  }) => {
+    const productData = selectedCategories[product.id] || { mainCategory: "", subCategory: "" }
+    const mainCategoryMissing = !productData.mainCategory || productData.mainCategory.includes("Uncategorized")
+    const subCategoryMissing = !productData.subCategory || productData.subCategory.includes("Uncategorized")
 
     if (mainCategoryMissing && subCategoryMissing) {
       return "Main category & subcategory missing"
@@ -235,9 +282,7 @@ export function CategorySelectionModal({
       onOpenChange={(open) => {
         if (!open) {
           // Check if all products have been categorized
-          const uncategorizedCount = unmatchedProducts.filter(
-            (product) => !selectedCategories[product.id]?.mainCategory || !selectedCategories[product.id]?.subCategory,
-          ).length
+          const uncategorizedCount = unmatchedProducts.length - completedProducts.size
 
           if (uncategorizedCount > 0) {
             setShowWarningDialog(true)
@@ -272,7 +317,7 @@ export function CategorySelectionModal({
             <ScrollArea className="h-[calc(100%-2.5rem)]">
               <div className="p-2">
                 {unmatchedProducts.map((product) => {
-                  const statusMessage = getCategoryStatusMessage(selectedCategories[product.id] || {})
+                  const statusMessage = getCategoryStatusMessage(product)
                   const isFullyCategorized = !statusMessage
                   const statusColor = isFullyCategorized
                     ? "text-green-600 dark:text-green-400"
@@ -474,10 +519,7 @@ export function CategorySelectionModal({
               variant="outline"
               onClick={() => {
                 // Check if all products have been categorized
-                const uncategorizedCount = unmatchedProducts.filter(
-                  (product) =>
-                    !selectedCategories[product.id]?.mainCategory || !selectedCategories[product.id]?.subCategory,
-                ).length
+                const uncategorizedCount = unmatchedProducts.length - completedProducts.size
 
                 if (uncategorizedCount > 0) {
                   setShowWarningDialog(true)
@@ -499,7 +541,7 @@ export function CategorySelectionModal({
             >
               Next Product
             </Button>
-            <Button onClick={handleSave} disabled={getCompletedCount() < unmatchedProducts.length}>
+            <Button onClick={handleSave} disabled={completedProducts.size < unmatchedProducts.length}>
               Save All
             </Button>
           </div>

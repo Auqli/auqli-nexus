@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Upload, Download, ChevronLeft, AlertTriangle, X, RefreshCw, CheckCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -14,10 +14,11 @@ import { Progress } from "@/components/ui/progress"
 import { ProgressAnimation } from "@/components/progress-animation"
 import { CategorySelectionModal } from "@/components/category-selection-modal"
 import { InvalidCSVModal } from "@/components/invalid-csv-modal"
-import { PageHeader } from "@/components/layout/page-header"
+import { EnhancedPageHeader } from "@/components/layout/enhanced-page-header"
 
-// Update the Product interface to include additional image fields
+// Update the Product interface to include additional image fields and an id field
 interface Product {
+  id: string // Add an id field for better tracking
   name: string
   price: string
   image: string
@@ -29,6 +30,7 @@ interface Product {
   subCategory: string
   uploadStatus: string
   additionalImages: string[] // Store additional images
+  isCategorized?: boolean // Flag to track if this product has been properly categorized
 }
 
 // Add these interfaces
@@ -87,6 +89,9 @@ export default function ConverterPage() {
   // Add this state variable to the Home component
   const [isAuqliFormatted, setIsAuqliFormatted] = useState(false)
   const [auqliFormatMessage, setAuqliFormatMessage] = useState<string | null>(null)
+
+  // Add a state to track if all categories have been successfully matched
+  const [allCategoriesMatched, setAllCategoriesMatched] = useState(false)
 
   useEffect(() => {
     setIsPageLoaded(true)
@@ -193,6 +198,37 @@ export default function ConverterPage() {
     })
   }
 
+  // Helper function to check if a product is properly categorized
+  const isProductCategorized = useCallback((product: Product): boolean => {
+    return (
+      !!product.mainCategory &&
+      !!product.subCategory &&
+      !product.mainCategory.includes("Uncategorized") &&
+      !product.subCategory.includes("Uncategorized")
+    )
+  }, [])
+
+  // Helper function to update the categorization status of all products
+  const updateCategorizationStatus = useCallback(() => {
+    if (products.length === 0) {
+      setMatchedCategories(0)
+      setTotalProducts(0)
+      setHasUncategorizedProducts(false)
+      setAllCategoriesMatched(false)
+      return
+    }
+
+    const categorizedProducts = products.filter(isProductCategorized)
+    setMatchedCategories(categorizedProducts.length)
+    setTotalProducts(products.length)
+
+    const uncategorized = products.length - categorizedProducts.length
+    setHasUncategorizedProducts(uncategorized > 0)
+    setAllCategoriesMatched(uncategorized === 0)
+
+    console.log(`Categorization status updated: ${categorizedProducts.length}/${products.length} categorized`)
+  }, [products, isProductCategorized])
+
   // Update the handleFileUpload function to validate the CSV format
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -201,6 +237,8 @@ export default function ConverterPage() {
     setFileName(file.name)
     setIsLoading(true)
     setError(null)
+    setAllCategoriesMatched(false)
+    setHasUncategorizedProducts(false)
 
     // Validate if the file is a Shopify CSV template
     const isValidShopifyCSV = await validateShopifyCSV(file)
@@ -237,53 +275,68 @@ export default function ConverterPage() {
         if (result.isAuqliFormatted) {
           setIsAuqliFormatted(true)
           setAuqliFormatMessage(result.message || "This file appears to be already formatted for Auqli.")
+
+          // Add IDs to products for better tracking
+          const productsWithIds = result.products.map((product, index) => ({
+            ...product,
+            id: `product-${index}`,
+            isCategorized: true, // Auqli formatted products are already categorized
+          }))
+
           // Handle Auqli-formatted file
-          setProducts(result.products)
-          setTotalProducts(result.products.length)
-          setMatchedCategories(result.products.length) // All products are considered categorized
+          setProducts(productsWithIds)
+          setTotalProducts(productsWithIds.length)
+          setMatchedCategories(productsWithIds.length) // All products are considered categorized
           setHasUncategorizedProducts(false)
+          setAllCategoriesMatched(true)
 
           // Display a success message
           setError(null)
         } else {
           setIsAuqliFormatted(false)
           setAuqliFormatMessage(null)
+
+          // Add IDs and categorization status to products
+          const productsWithIds = result.products.map((product, index) => {
+            const isCategorized =
+              !!product.mainCategory &&
+              !!product.subCategory &&
+              !product.mainCategory.includes("Uncategorized") &&
+              !product.subCategory.includes("Uncategorized")
+
+            return {
+              ...product,
+              id: `product-${index}`,
+              isCategorized,
+            }
+          })
+
           // Handle regular file conversion
-          setTotalProducts(result.products.length)
+          setTotalProducts(productsWithIds.length)
 
           // Count products with matched categories (not Uncategorized)
-          const matched = result.products.filter(
-            (product) =>
-              product.mainCategory &&
-              product.subCategory &&
-              !product.mainCategory.includes("Uncategorized") &&
-              !product.subCategory.includes("Uncategorized"),
-          ).length
+          const matched = productsWithIds.filter((product) => product.isCategorized).length
 
           setMatchedCategories(matched)
+          setAllCategoriesMatched(matched === productsWithIds.length)
+          setHasUncategorizedProducts(matched < productsWithIds.length)
 
           // Check for products with missing or default categories
-          const unmatched = result.products
-            .map((product, index) => ({
-              id: `product-${index}`,
+          const unmatched = productsWithIds
+            .filter((product) => !product.isCategorized)
+            .map((product) => ({
+              id: product.id,
               name: product.name,
               mainCategory: product.mainCategory,
               subCategory: product.subCategory,
             }))
-            .filter(
-              (product) =>
-                !product.mainCategory ||
-                !product.subCategory ||
-                product.mainCategory.includes("Uncategorized") ||
-                product.subCategory.includes("Uncategorized"),
-            )
 
           if (unmatched.length > 0) {
             setUnmatchedProducts(unmatched)
             setIsCategoryModalOpen(true)
           }
 
-          setProducts(result.products)
+          setProducts(productsWithIds)
         }
       }
     } catch (err) {
@@ -305,6 +358,7 @@ export default function ConverterPage() {
     setTotalProducts(0)
     setMatchedCategories(0)
     setHasUncategorizedProducts(false)
+    setAllCategoriesMatched(false)
     setError(null)
   }
 
@@ -314,32 +368,53 @@ export default function ConverterPage() {
   }) => {
     // Update products with the selected categories
     setProducts((prevProducts) =>
-      prevProducts.map((product, index) => {
-        const productId = `product-${index}`
-        if (selectedCategories[productId]) {
+      prevProducts.map((product) => {
+        if (selectedCategories[product.id]) {
+          const mainCategory = selectedCategories[product.id].mainCategory
+          const subCategory = selectedCategories[product.id].subCategory
+
+          const isCategorized =
+            !!mainCategory &&
+            !!subCategory &&
+            !mainCategory.includes("Uncategorized") &&
+            !subCategory.includes("Uncategorized")
+
           return {
             ...product,
-            mainCategory: selectedCategories[productId].mainCategory,
-            subCategory: selectedCategories[productId].subCategory,
+            mainCategory,
+            subCategory,
+            isCategorized,
           }
         }
         return product
       }),
     )
 
-    // Update matched categories count - only count properly categorized products
-    const newMatchedCount = Object.values(selectedCategories).filter(
-      (cat) =>
-        cat.mainCategory &&
-        cat.subCategory &&
-        !cat.mainCategory.includes("Uncategorized") &&
-        !cat.subCategory.includes("Uncategorized"),
-    ).length
+    // Use a callback to ensure we're working with the updated products
+    setProducts((currentProducts) => {
+      // Count properly categorized products
+      const categorizedCount = currentProducts.filter(
+        (product) =>
+          !!product.mainCategory &&
+          !!product.subCategory &&
+          !product.mainCategory.includes("Uncategorized") &&
+          !product.subCategory.includes("Uncategorized"),
+      ).length
 
-    setMatchedCategories(newMatchedCount)
+      // Update matched categories count
+      setMatchedCategories(categorizedCount)
 
-    // Check if all products are now categorized
-    setHasUncategorizedProducts(newMatchedCount < totalProducts)
+      // Check if all products are now categorized
+      const allCategorized = categorizedCount === currentProducts.length
+      setHasUncategorizedProducts(!allCategorized)
+      setAllCategoriesMatched(allCategorized)
+
+      console.log(
+        `After category selection: ${categorizedCount}/${currentProducts.length} categorized, allMatched: ${allCategorized}`,
+      )
+
+      return currentProducts
+    })
 
     setIsCategoryModalOpen(false)
   }
@@ -418,45 +493,50 @@ export default function ConverterPage() {
 
   // Add this to the existing handleUploadSuccess function in app/page.tsx
   const handleUploadSuccess = (products: Product[], isAuqliFormatted = false) => {
-    setProducts(products)
+    // Add IDs to products for better tracking
+    const productsWithIds = products.map((product, index) => {
+      const isCategorized =
+        !!product.mainCategory &&
+        !!product.subCategory &&
+        !product.mainCategory.includes("Uncategorized") &&
+        !product.subCategory.includes("Uncategorized")
+
+      return {
+        ...product,
+        id: `product-${index}`,
+        isCategorized,
+      }
+    })
+
+    setProducts(productsWithIds)
     setError(null)
 
     // If the file is already in Auqli format, we don't need to check for categories
     if (isAuqliFormatted) {
-      setTotalProducts(products.length)
-      setMatchedCategories(products.length) // All products are considered categorized
+      setTotalProducts(productsWithIds.length)
+      setMatchedCategories(productsWithIds.length) // All products are considered categorized
       setHasUncategorizedProducts(false)
+      setAllCategoriesMatched(true)
       return
     }
 
-    // The rest of your existing code for handling non-Auqli formatted files
     // Count products with matched categories (not Uncategorized)
-    const matched = products.filter(
-      (product) =>
-        product.mainCategory &&
-        product.subCategory &&
-        !product.mainCategory.includes("Uncategorized") &&
-        !product.subCategory.includes("Uncategorized"),
-    ).length
+    const matched = productsWithIds.filter((product) => product.isCategorized).length
 
     setMatchedCategories(matched)
-    setTotalProducts(products.length)
+    setTotalProducts(productsWithIds.length)
+    setAllCategoriesMatched(matched === productsWithIds.length)
+    setHasUncategorizedProducts(matched < productsWithIds.length)
 
     // Check for products with missing or default categories
-    const unmatched = products
-      .map((product, index) => ({
-        id: `product-${index}`,
+    const unmatched = productsWithIds
+      .filter((product) => !product.isCategorized)
+      .map((product) => ({
+        id: product.id,
         name: product.name,
         mainCategory: product.mainCategory,
         subCategory: product.subCategory,
       }))
-      .filter(
-        (product) =>
-          !product.mainCategory ||
-          !product.subCategory ||
-          product.mainCategory.includes("Uncategorized") ||
-          product.subCategory.includes("Uncategorized"),
-      )
 
     if (unmatched.length > 0) {
       setUnmatchedProducts(unmatched)
@@ -464,16 +544,21 @@ export default function ConverterPage() {
     }
   }
 
+  // Effect to update categorization status whenever products change
+  useEffect(() => {
+    updateCategorizationStatus()
+  }, [products, updateCategorizationStatus])
+
   return (
     <>
-      <PageHeader
+      <EnhancedPageHeader
         title="CSV Product Formatter"
         description="Transform your Shopify product data into Auqli-ready format with just a few clicks."
       >
         <div className="inline-block mb-4 bg-[#16783a]/10 px-4 py-2 rounded-full">
           <span className="text-[#16783a] font-medium">Save hours of manual formatting work</span>
         </div>
-      </PageHeader>
+      </EnhancedPageHeader>
 
       <div className="bg-white">
         <div className="container mx-auto px-4 py-8">
@@ -978,7 +1063,7 @@ export default function ConverterPage() {
                   ) : (
                     matchedCategories === totalProducts && (
                       <Alert className="mt-4 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                        <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-green-500" />
                         <AlertTitle className="text-green-800 dark:text-green-300">All Categories Matched</AlertTitle>
                         <AlertDescription className="text-green-700 dark:text-green-400">
                           <div className="space-y-2">
@@ -1255,23 +1340,7 @@ export default function ConverterPage() {
         isOpen={isCategoryModalOpen}
         onClose={() => {
           setIsCategoryModalOpen(false)
-
-          // Check if there are still uncategorized products
-          const uncategorized = products.filter(
-            (product) =>
-              !product.mainCategory ||
-              !product.subCategory ||
-              product.mainCategory.includes("Uncategorized") ||
-              product.subCategory.includes("Uncategorized"),
-          )
-
-          // Update the hasUncategorizedProducts state based on whether there are any uncategorized products
-          setHasUncategorizedProducts(uncategorized.length > 0)
-
-          // If all products are now categorized, update the matchedCategories count
-          if (uncategorized.length === 0) {
-            setMatchedCategories(totalProducts)
-          }
+          updateCategorizationStatus()
         }}
         onSave={handleCategorySelection}
         unmatchedProducts={unmatchedProducts}
@@ -1316,26 +1385,6 @@ function ChevronDownIcon(props: any) {
       {...props}
     >
       <path d="m6 9 6 6 6-6" />
-    </svg>
-  )
-}
-
-function CheckCircleIcon(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   )
 }

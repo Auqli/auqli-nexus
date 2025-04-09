@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CSVUploader } from "@/components/csv-uploader"
+import { EnhancedPageHeader } from "@/components/layout/enhanced-page-header"
 
 interface Product {
   name: string
@@ -78,72 +79,78 @@ export default function AlternativePage() {
   }
 
   return (
-    <main className="container mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-center">CSV Product Formatter</h1>
+    <>
+      <EnhancedPageHeader
+        title="CSV Product Formatter"
+        description="Transform your product data into Auqli-ready format with just a few clicks."
+      />
+      <main className="container mx-auto py-10 px-4">
+        <h1 className="text-3xl font-bold mb-8 text-center">CSV Product Formatter</h1>
 
-      <div className="grid gap-8 max-w-4xl mx-auto">
-        <CSVUploader onUploadSuccess={handleUploadSuccess} onUploadError={handleUploadError} />
+        <div className="grid gap-8 max-w-4xl mx-auto">
+          <CSVUploader onUploadSuccess={handleUploadSuccess} onUploadError={handleUploadError} />
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {products.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Formatted Products</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product Name</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Image</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Weight</TableHead>
-                      <TableHead>Inventory</TableHead>
-                      <TableHead>Condition</TableHead>
-                      <TableHead>Main Category</TableHead>
-                      <TableHead>Subcategory</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.slice(0, 5).map((product, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>{product.price}</TableCell>
-                        <TableCell className="max-w-[100px] truncate">{product.image}</TableCell>
-                        <TableCell className="max-w-[150px] truncate">{product.description}</TableCell>
-                        <TableCell>{product.weight}</TableCell>
-                        <TableCell>{product.inventory}</TableCell>
-                        <TableCell>{product.condition}</TableCell>
-                        <TableCell>{product.mainCategory}</TableCell>
-                        <TableCell>{product.subCategory}</TableCell>
+          {products.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Formatted Products</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product Name</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Image</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Weight</TableHead>
+                        <TableHead>Inventory</TableHead>
+                        <TableHead>Condition</TableHead>
+                        <TableHead>Main Category</TableHead>
+                        <TableHead>Subcategory</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {products.length > 5 && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Showing 5 of {products.length} products. Download to see all.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button onClick={downloadFormattedCSV}>
-                <Download className="mr-2 h-4 w-4" />
-                Download Formatted CSV
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-      </div>
-    </main>
+                    </TableHeader>
+                    <TableBody>
+                      {products.slice(0, 5).map((product, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell>{product.price}</TableCell>
+                          <TableCell className="max-w-[100px] truncate">{product.image}</TableCell>
+                          <TableCell className="max-w-[150px] truncate">{product.description}</TableCell>
+                          <TableCell>{product.weight}</TableCell>
+                          <TableCell>{product.inventory}</TableCell>
+                          <TableCell>{product.condition}</TableCell>
+                          <TableCell>{product.mainCategory}</TableCell>
+                          <TableCell>{product.subCategory}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {products.length > 5 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Showing 5 of {products.length} products. Download to see all.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button onClick={downloadFormattedCSV}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Formatted CSV
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+        </div>
+      </main>
+    </>
   )
 }

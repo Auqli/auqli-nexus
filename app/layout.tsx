@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Auqli Switch - Tools for Auqli Sellers",
+  title: "Auqli Nexus - Tools for Auqli Sellers",
   description: "One suite for all your CSV conversions, price updates, and bulk edits for Auqli",
     generator: 'v0.dev'
 }

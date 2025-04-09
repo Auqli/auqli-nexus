@@ -11,7 +11,7 @@ export function AuqliLogo() {
         className="h-10 w-auto"
         priority
       />
-      <span className="text-xl font-semibold text-gray-800">Auqli Nexus</span>
+      <span className="text-xl font-semibold text-white">Auqli Nexus</span>
     </div>
   )
 }

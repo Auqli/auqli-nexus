@@ -62,7 +62,7 @@ Use the Shopify to Auqli Converter directly:
 
 ### Install dependencies
 
-```bash
+\`\`\`bash
 git clone https://github.com/Auqli/auqli-nexus.git
 cd auqli-nexus
 npm install

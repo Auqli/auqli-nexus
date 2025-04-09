@@ -60,7 +60,9 @@
     "zod": "^3.24.1",
     "@emotion/is-prop-valid": "latest",
     "framer-motion": "latest",
-    "csv-parse": "latest"
+    "csv-parse": "latest",
+    "react-markdown": "latest",
+    "remark-gfm": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
