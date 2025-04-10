@@ -52,8 +52,8 @@ const shopify = shopifyApp({
     : {}),
 });
 
-// ✅ Route: Fetch account info
-app.get("/auqli-tools/account2", async (req, res) => {
+// ✅ Route: Fetch account info (✅ FIXED)
+app.get("/api/shopify/store-info", async (req, res) => {
   try {
     const shop = req.query.shop as string;
 
@@ -100,7 +100,7 @@ app.get("/auqli-tools/account2", async (req, res) => {
 
     res.json(responseData);
   } catch (error: any) {
-    console.error("Error in /auqli-tools/account2:", error);
+    console.error("Error in /api/shopify/store-info:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
