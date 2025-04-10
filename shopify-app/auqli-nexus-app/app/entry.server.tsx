@@ -7,8 +7,15 @@ import {
 } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import cors from "cors";
 
 export const streamTimeout = 5000;
+
+// Allowed origins for CORS
+const allowedOrigins = [
+  "https://nexus.auqli.com",
+  "https://auqli-dev.myshopify.com",
+];
 
 export default async function handleRequest(
   request: Request,
@@ -16,17 +23,25 @@ export default async function handleRequest(
   responseHeaders: Headers,
   remixContext: EntryContext
 ) {
-  // ✅ Always add CORS headers
-  responseHeaders.set("Access-Control-Allow-Origin", "*");
-  responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  // ✅ Handle OPTIONS preflight properly
-  if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: responseHeaders });
+  // ✅ Manually set CORS headers
+  const origin = request.headers.get("Origin") || request.headers.get("origin");
+  if (origin && allowedOrigins.includes(origin)) {
+    responseHeaders.set("Access-Control-Allow-Origin", origin);
+    responseHeaders.set("Access-Control-Allow-Credentials", "true");
   }
 
-  // ✅ Add Shopify document response headers
+  responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // ✅ Properly handle OPTIONS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: responseHeaders,
+    });
+  }
+
+  // ✅ Shopify headers
   addDocumentResponseHeaders(request, responseHeaders);
 
   const userAgent = request.headers.get("user-agent");
