@@ -14,8 +14,8 @@ const app = express();
 
 // ✅ Allowed frontend domains
 const allowedOrigins = [
-  "https://nexus.auqli.com", // Your frontend domain
-  "https://auqli-dev.myshopify.com", // Your Shopify store (optional)
+  "https://nexus.auqli.com",
+  "https://auqli-dev.myshopify.com",
 ];
 
 app.use(
@@ -105,13 +105,9 @@ app.get("/auqli-tools/account2", async (req, res) => {
   }
 });
 
-// 🚨 CRITICAL FIX: START THE EXPRESS SERVER
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Express server is running on port ${PORT}`);
-});
+// ✅ ⛔️ DO NOT START THE SERVER WITH `app.listen()`
+// Render already runs the server. You just export the app and routes.
 
-// ✅ Export Shopify app core exports
 export default shopify;
 export const apiVersion = ApiVersion.January25;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
@@ -121,3 +117,6 @@ export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
 export const shopifyApi = shopify.api;
+
+// ✅ Export the app if needed by Remix runtime (optional)
+export { app };
