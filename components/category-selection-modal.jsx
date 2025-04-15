@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from "react"
 import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { forceMatchWithAI } from "@/lib/ai-category-matcher"
+import { forceMatchWithAI, batchProcessCategories } from "@/lib/deep-ai-matcher"
+import { Progress } from "@/components/ui/progress"
 
 export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts, auqliCategories }) {
   const [selectedCategories, setSelectedCategories] = useState({})
@@ -14,6 +15,9 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
   const [productSearchQuery, setProductSearchQuery] = useState("")
   const [isAIMatching, setIsAIMatching] = useState(false)
   const [aiMatchedProducts, setAIMatchedProducts] = useState({})
+  const [aiMatchProgress, setAIMatchProgress] = useState({ processed: 0, total: 0 })
+  const [isSingleProductMatching, setIsSingleProductMatching] = useState(false)
+  const [aiError, setAiError] = useState(null)
 
   // New state for category pagination
   const [categoryPage, setCategoryPage] = useState(1)
@@ -50,6 +54,7 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
   // Reset state when modal opens or products change
   useEffect(() => {
     if (isOpen && unmatchedProducts.length > 0) {
+      console.log("Category selection modal opened with", unmatchedProducts.length, "unmatched products")
       setCurrentProductIndex(0)
       setActiveTab("categories")
       setExpandedCategory(null)
@@ -58,6 +63,8 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
       setProductSearchQuery("")
       setIsAIMatching(false)
       setAIMatchedProducts({})
+      setAIMatchProgress({ processed: 0, total: 0 })
+      setAiError(null)
     }
   }, [isOpen, unmatchedProducts])
 
@@ -123,10 +130,10 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
     const selected = selectedCategories[product.id] || aiMatchedProducts[product.id]
 
     if (!selected) {
-      if (product.mainCategory.includes("Uncategorized") || !product.mainCategory) {
+      if (product.mainCategory?.includes("Uncategorized") || !product.mainCategory) {
         return { mainMissing: true, subMissing: true }
       }
-      return { mainMissing: false, subMissing: product.subCategory.includes("Uncategorized") || !product.subCategory }
+      return { mainMissing: false, subMissing: product.subCategory?.includes("Uncategorized") || !product.subCategory }
     }
 
     return {
@@ -138,67 +145,107 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
   // Handle AI matching for all unmatched products
   const handleForceAIMatch = async () => {
     setIsAIMatching(true)
+    setAIMatchProgress({ processed: 0, total: unmatchedProducts.length })
+    setAiError(null)
 
-    const aiMatches = {}
-    let matchCount = 0
+    try {
+      // Filter out products that already have manual selections
+      const productsToMatch = unmatchedProducts.filter((product) => !selectedCategories[product.id])
 
-    // Process products in batches to avoid UI freezing
-    const batchSize = 10
-    const totalBatches = Math.ceil(unmatchedProducts.length / batchSize)
+      if (productsToMatch.length === 0) {
+        setIsAIMatching(false)
+        return
+      }
 
-    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-      const batchStart = batchIndex * batchSize
-      const batchEnd = Math.min(batchStart + batchSize, unmatchedProducts.length)
-      const batch = unmatchedProducts.slice(batchStart, batchEnd)
+      // Prepare products for batch processing
+      const productsForAI = productsToMatch.map((product) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description || "",
+      }))
 
-      // Process each product in the batch
-      const batchPromises = batch.map(async (product) => {
-        // Skip products that already have manual selections
-        if (selectedCategories[product.id]) {
-          return null
-        }
+      // Process in smaller batches to show progress
+      const batchSize = 5
+      const batches = Math.ceil(productsForAI.length / batchSize)
+      const allMatches = {}
+
+      for (let i = 0; i < batches; i++) {
+        const start = i * batchSize
+        const end = Math.min(start + batchSize, productsForAI.length)
+        const batch = productsForAI.slice(start, end)
 
         try {
-          const match = await forceMatchWithAI(product.name, "", auqliCategories)
+          // Process this batch
+          const batchMatches = await batchProcessCategories(batch, auqliCategories)
 
-          if (
-            match.mainCategory &&
-            match.subCategory &&
-            !match.mainCategory.includes("Uncategorized") &&
-            !match.subCategory.includes("Uncategorized")
-          ) {
-            matchCount++
-            return { productId: product.id, match }
-          }
+          // Add to all matches
+          Object.assign(allMatches, batchMatches)
         } catch (error) {
-          console.error(`Error matching product ${product.id}:`, error)
+          console.error("Error processing batch:", error)
+          // Continue with next batch even if this one failed
         }
 
-        return null
-      })
+        // Update progress
+        setAIMatchProgress({
+          processed: end,
+          total: productsForAI.length,
+        })
 
-      const batchResults = await Promise.all(batchPromises)
+        // Small delay to allow UI to update
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
 
-      // Update state with batch results
-      const newMatches = {}
-      batchResults.forEach((result) => {
-        if (result) {
-          newMatches[result.productId] = result.match
-        }
-      })
+      // Update state with all matches
+      setAIMatchedProducts(allMatches)
 
-      setAIMatchedProducts((prev) => ({
-        ...prev,
-        ...newMatches,
-      }))
+      // Show a message if no matches were found
+      if (Object.keys(allMatches).length === 0) {
+        setAiError("No categories could be matched automatically. Please select categories manually.")
+      }
+    } catch (error) {
+      console.error("Error during AI matching:", error)
+      setAiError("An error occurred during category matching. Using local matching only.")
+    } finally {
+      setIsAIMatching(false)
     }
+  }
 
-    setIsAIMatching(false)
+  // Handle AI matching for a single product
+  const handleSingleProductAIMatch = async () => {
+    if (!currentProduct || !currentProduct.id) return
+
+    setIsSingleProductMatching(true)
+    setAiError(null)
+
+    try {
+      const match = await forceMatchWithAI(
+        currentProduct.id,
+        currentProduct.name,
+        currentProduct.description || "",
+        auqliCategories,
+      )
+
+      // Only update if we got a valid match
+      if (match.mainCategory && !match.mainCategory.includes("Uncategorized")) {
+        setAIMatchedProducts((prev) => ({
+          ...prev,
+          [currentProduct.id]: match,
+        }))
+      } else {
+        setAiError("Could not find a matching category. Please select manually.")
+      }
+    } catch (error) {
+      console.error(`Error matching product ${currentProduct.id}:`, error)
+      setAiError("An error occurred during category matching. Please select manually.")
+    } finally {
+      setIsSingleProductMatching(false)
+    }
   }
 
   // Calculate progress
   const categorizedCount = Object.keys(selectedCategories).length + Object.keys(aiMatchedProducts).length
 
+  // Force the modal to be visible if isOpen is true
   if (!isOpen) return null
 
   return (
@@ -261,12 +308,12 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  AI Matching...
+                  AI Matching... {aiMatchProgress.processed} of {aiMatchProgress.total}
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Force Match With AI
+                  Force Match All With AI
                 </>
               )}
             </Button>
@@ -278,6 +325,21 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
               </span>
             )}
           </div>
+
+          {/* AI matching progress bar */}
+          {isAIMatching && aiMatchProgress.total > 0 && (
+            <div className="mt-3">
+              <Progress value={(aiMatchProgress.processed / aiMatchProgress.total) * 100} className="h-2" />
+            </div>
+          )}
+
+          {/* Error message */}
+          {aiError && (
+            <div className="mt-3 p-2 bg-amber-900/20 border border-amber-800/30 rounded-md text-amber-300 text-sm flex items-start">
+              <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+              <span>{aiError}</span>
+            </div>
+          )}
         </div>
 
         {/* Main content */}
@@ -378,6 +440,44 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
                 <div className="p-4">
                   <h3 className="font-medium mb-4">{currentProduct.name}</h3>
 
+                  {/* Single product AI match button */}
+                  <Button
+                    onClick={handleSingleProductAIMatch}
+                    disabled={isSingleProductMatching}
+                    className="mb-4 w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                  >
+                    {isSingleProductMatching ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Matching...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Force Match This Product
+                      </>
+                    )}
+                  </Button>
+
                   <div className="mb-4">
                     <h4 className="text-sm text-gray-400 mb-2">Instructions:</h4>
                     <p className="text-sm mb-1">
@@ -434,7 +534,7 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
 
                           {expandedCategory === category.name && (
                             <div className="mt-2 space-y-1 pl-4">
-                              {category.subcategories.map((subcategory) => {
+                              {category.subcategories?.map((subcategory) => {
                                 const isSubcategorySelected =
                                   selectedCategories[currentProduct.id]?.subCategory === subcategory.name ||
                                   aiMatchedProducts[currentProduct.id]?.subCategory === subcategory.name
