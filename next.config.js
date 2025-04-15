@@ -6,7 +6,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  swcMinify: false,
+  swcMinify: true, // Re-enable SWC minification since we're removing Babel
   output: "standalone",
   images: {
     unoptimized: true,
