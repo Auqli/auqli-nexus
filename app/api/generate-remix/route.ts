@@ -59,8 +59,7 @@ export async function POST(request: Request) {
 
     // Fix: Use type assertion to tell TypeScript this is a valid key
     const promptEnhancer =
-      ImageGenerationConfig.promptEnhancers[promptEnhancerType as keyof typeof ImageGenerationConfig.promptEnhancers] ||
-      ImageGenerationConfig.promptEnhancers.general
+      ImageGenerationConfig.promptEnhancers[promptEnhancerType] || ImageGenerationConfig.promptEnhancers.general
 
     // Get tone addition if specified
     const toneAddition =

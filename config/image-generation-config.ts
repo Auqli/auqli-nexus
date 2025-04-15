@@ -46,7 +46,7 @@ export const ImageGenerationConfig = {
     general: "Masterful composition, photorealistic, 8k resolution",
     product: "Clean studio shot, detailed textures, professional lighting",
     social: "Engaging, vibrant colors, trending style",
-  } as Record<string, string>,
+  },
   toneOptions: [
     { value: "none", label: "None", promptAddition: "" },
     { value: "vibrant", label: "Vibrant", promptAddition: "Vibrant colors" },
@@ -97,7 +97,7 @@ export function expandMinimalPrompt(prompt: string, useCase: string, productCate
 
   // Add product-specific details
   if (productCategory && productCategory !== "none") {
-    const categoryDetails: Record<string, string> = {
+    const categoryDetails = {
       clothing: "with visible fabric texture, stitching details, and proper fit. Natural lighting to show true colors.",
       electronics: "with clean design, visible features, and proper scale. Studio lighting to highlight details.",
       beauty:
