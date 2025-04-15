@@ -1,124 +1,117 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search, Sparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { forceMatchWithAI } from "@/lib/ai-category-matcher"
 
-interface CategorySelectionModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (selectedCategories: { [productId: string]: { mainCategory: string; subCategory: string } }) => void
-  unmatchedProducts: Array<{ id: string; name: string; mainCategory: string; subCategory: string }>
-  auqliCategories: Array<{ id: string; name: string; subcategories: Array<{ id: string; name: string }> }>
-}
+export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts, auqliCategories }) {
+  const [selectedCategories, setSelectedCategories] = useState({})
+  const [currentProductIndex, setCurrentProductIndex] = useState(0)
+  const [activeTab, setActiveTab] = useState("categories") // 'categories' or 'preview'
+  const [expandedCategory, setExpandedCategory] = useState(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [productSearchQuery, setProductSearchQuery] = useState("")
+  const [isAIMatching, setIsAIMatching] = useState(false)
+  const [aiMatchedProducts, setAIMatchedProducts] = useState({})
 
-export function CategorySelectionModal({
-  isOpen,
-  onClose,
-  onSave,
-  unmatchedProducts,
-  auqliCategories,
-}: CategorySelectionModalProps) {
-  const [selectedCategories, setSelectedCategories] = useState<{
-    [productId: string]: { mainCategory: string; subCategory: string }
-}>(
-{
-}
-)
-const [currentProductIndex, setCurrentProductIndex] = useState(0)
-const [activeTab, setActiveTab] = useState("categories") // 'categories' or 'preview'
-const [expandedCategory, setExpandedCategory] = useState(null)
-const [searchQuery, setSearchQuery] = useState("")
-const [productSearchQuery, setProductSearchQuery] = useState("")
+  // New state for category pagination
+  const [categoryPage, setCategoryPage] = useState(1)
+  const categoriesPerPage = 8
 
-// New state for category pagination
-const [categoryPage, setCategoryPage] = useState(1)
-const categoriesPerPage = 8
-
-const currentProduct = unmatchedProducts[currentProductIndex] || {
-  id: "",
-  name: "",
-  mainCategory: "",
-  subCategory: "",
-}
-
-// Filter products based on search query
-const filteredProducts = useMemo(() => {
-  if (!productSearchQuery.trim()) return unmatchedProducts
-
-  return unmatchedProducts.filter((product) => product.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
-}, [unmatchedProducts, productSearchQuery])
-
-// Filter categories based on search query
-const filteredCategories = useMemo(() => {
-  if (!searchQuery.trim()) return auqliCategories
-
-  return auqliCategories.filter((category) => category.name.toLowerCase().includes(searchQuery.toLowerCase()))
-}, [auqliCategories, searchQuery])
-
-// Paginate categories
-const totalCategoryPages = Math.ceil(filteredCategories.length / categoriesPerPage)
-const displayedCategories = filteredCategories.slice(
-  (categoryPage - 1) * categoriesPerPage,
-  categoryPage * categoriesPerPage,
-)
-
-// Reset state when modal opens or products change
-useEffect(() => {
-  if (isOpen && unmatchedProducts.length > 0) {
-    setCurrentProductIndex(0)
-    setActiveTab("categories")
-    setExpandedCategory(null)
-    setCategoryPage(1)
-    setSearchQuery("")
-    setProductSearchQuery("")
+  const currentProduct = unmatchedProducts[currentProductIndex] || {
+    id: "",
+    name: "",
+    mainCategory: "",
+    subCategory: "",
   }
-}, [isOpen, unmatchedProducts])
 
-const handleMainCategoryChange = (productId: string, mainCategory: string) => {
-  setSelectedCategories((prev) => ({
-    ...prev,
-    [productId]: {
-      mainCategory,
-      subCategory: "", // Reset subcategory when main category changes
-    },
-  }))
-}
+  // Filter products based on search query
+  const filteredProducts = useMemo(() => {
+    if (!productSearchQuery.trim()) return unmatchedProducts
 
-const handleSubCategoryChange = (productId: string, subCategory: string) => {
-  setSelectedCategories((prev) => ({
-    ...prev,
-    [productId]: {
-      ...prev[productId],
-      subCategory,
-    },
-  }))
-}
+    return unmatchedProducts.filter((product) => product.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
+  }, [unmatchedProducts, productSearchQuery])
 
-const handleNextProduct = () => {
-  if (currentProductIndex < unmatchedProducts.length - 1) {
-    setCurrentProductIndex(currentProductIndex + 1)
-    setExpandedCategory(null) // Close any expanded category when moving to next product
+  // Filter categories based on search query
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery.trim()) return auqliCategories
+
+    return auqliCategories.filter((category) => category.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  }, [auqliCategories, searchQuery])
+
+  // Paginate categories
+  const totalCategoryPages = Math.ceil(filteredCategories.length / categoriesPerPage)
+  const displayedCategories = filteredCategories.slice(
+    (categoryPage - 1) * categoriesPerPage,
+    categoryPage * categoriesPerPage,
+  )
+
+  // Reset state when modal opens or products change
+  useEffect(() => {
+    if (isOpen && unmatchedProducts.length > 0) {
+      setCurrentProductIndex(0)
+      setActiveTab("categories")
+      setExpandedCategory(null)
+      setCategoryPage(1)
+      setSearchQuery("")
+      setProductSearchQuery("")
+      setIsAIMatching(false)
+      setAIMatchedProducts({})
+    }
+  }, [isOpen, unmatchedProducts])
+
+  const handleMainCategoryChange = (productId, mainCategory) => {
+    setSelectedCategories((prev) => ({
+      ...prev,
+      [productId]: {
+        mainCategory,
+        subCategory: "", // Reset subcategory when main category changes
+      },
+    }))
   }
-}
 
-// Category pagination handlers
-const handlePrevCategoryPage = () => {
-  if (categoryPage > 1) {
-    setCategoryPage(categoryPage - 1)
+  const handleSubCategoryChange = (productId, subCategory) => {
+    setSelectedCategories((prev) => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        subCategory,
+      },
+    }))
   }
-}
 
-const handleNextCategoryPage = () => {
-  if (categoryPage < totalCategoryPages) {
-    setCategoryPage(categoryPage + 1)
+  const handleNextProduct = () => {
+    if (currentProductIndex < unmatchedProducts.length - 1) {
+      setCurrentProductIndex(currentProductIndex + 1)
+      setExpandedCategory(null) // Close any expanded category when moving to next product
+    }
   }
-}
 
-const handleSaveAll = () => {
-  onSave(selectedCategories)
-}
+  // Category pagination handlers
+  const handlePrevCategoryPage = () => {
+    if (categoryPage > 1) {
+      setCategoryPage(categoryPage - 1)
+    }
+  }
 
-const toggleCategory = (categoryName: string) => {
+  const handleNextCategoryPage = () => {
+    if (categoryPage < totalCategoryPages) {
+      setCategoryPage(categoryPage + 1)
+    }
+  }
+
+  const handleSaveAll = () => {
+    // Combine manually selected categories with AI matched ones
+    const combinedCategories = {
+      ...selectedCategories,
+      ...aiMatchedProducts,
+    }
+
+    onSave(combinedCategories)
+  }
+
+  const toggleCategory = (categoryName) => {
     if (expandedCategory === categoryName) {
       setExpandedCategory(null)
     } else {
@@ -126,8 +119,8 @@ const toggleCategory = (categoryName: string) => {
     }
   }
 
-const getProductCategoryStatus = (product: { id: string; mainCategory: string; subCategory: string }) => {
-    const selected = selectedCategories[product.id]
+  const getProductCategoryStatus = (product) => {
+    const selected = selectedCategories[product.id] || aiMatchedProducts[product.id]
 
     if (!selected) {
       if (product.mainCategory.includes("Uncategorized") || !product.mainCategory) {
@@ -142,12 +135,73 @@ const getProductCategoryStatus = (product: { id: string; mainCategory: string; s
     }
   }
 
-// Calculate progress
-const categorizedCount = Object.keys(selectedCategories).length
+  // Handle AI matching for all unmatched products
+  const handleForceAIMatch = async () => {
+    setIsAIMatching(true)
 
-if (!isOpen) return null
+    const aiMatches = {}
+    let matchCount = 0
 
-return (
+    // Process products in batches to avoid UI freezing
+    const batchSize = 10
+    const totalBatches = Math.ceil(unmatchedProducts.length / batchSize)
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const batchStart = batchIndex * batchSize
+      const batchEnd = Math.min(batchStart + batchSize, unmatchedProducts.length)
+      const batch = unmatchedProducts.slice(batchStart, batchEnd)
+
+      // Process each product in the batch
+      const batchPromises = batch.map(async (product) => {
+        // Skip products that already have manual selections
+        if (selectedCategories[product.id]) {
+          return null
+        }
+
+        try {
+          const match = await forceMatchWithAI(product.name, "", auqliCategories)
+
+          if (
+            match.mainCategory &&
+            match.subCategory &&
+            !match.mainCategory.includes("Uncategorized") &&
+            !match.subCategory.includes("Uncategorized")
+          ) {
+            matchCount++
+            return { productId: product.id, match }
+          }
+        } catch (error) {
+          console.error(`Error matching product ${product.id}:`, error)
+        }
+
+        return null
+      })
+
+      const batchResults = await Promise.all(batchPromises)
+
+      // Update state with batch results
+      const newMatches = {}
+      batchResults.forEach((result) => {
+        if (result) {
+          newMatches[result.productId] = result.match
+        }
+      })
+
+      setAIMatchedProducts((prev) => ({
+        ...prev,
+        ...newMatches,
+      }))
+    }
+
+    setIsAIMatching(false)
+  }
+
+  // Calculate progress
+  const categorizedCount = Object.keys(selectedCategories).length + Object.keys(aiMatchedProducts).length
+
+  if (!isOpen) return null
+
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
       <div className="relative w-[90vw] max-w-4xl max-h-[90vh] bg-[#0c1322] rounded-lg overflow-hidden text-white">
         {/* Close button */}
@@ -177,6 +231,53 @@ return (
               ></div>
             </div>
           </div>
+
+          {/* AI Match button */}
+          <div className="mt-3">
+            <Button
+              onClick={handleForceAIMatch}
+              disabled={isAIMatching}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+            >
+              {isAIMatching ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  AI Matching...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Force Match With AI
+                </>
+              )}
+            </Button>
+
+            {Object.keys(aiMatchedProducts).length > 0 && (
+              <span className="ml-3 text-sm text-purple-300">
+                <Sparkles className="inline-block h-3 w-3 mr-1" />
+                {Object.keys(aiMatchedProducts).length} products matched by AI
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Main content */}
@@ -203,11 +304,18 @@ return (
 
             {/* Scrollable products list */}
             <div className="overflow-y-auto flex-1" style={{ maxHeight: "calc(90vh - 340px)" }}>
-              {filteredProducts.map((product, index) => {
+              {filteredProducts.map((product) => {
                 const status = getProductCategoryStatus(product)
                 const isSelected = currentProduct.id === product.id
-                const mainCategory = selectedCategories[product.id]?.mainCategory || product.mainCategory
-                const subCategory = selectedCategories[product.id]?.subCategory || product.subCategory
+                const mainCategory =
+                  selectedCategories[product.id]?.mainCategory ||
+                  aiMatchedProducts[product.id]?.mainCategory ||
+                  product.mainCategory
+                const subCategory =
+                  selectedCategories[product.id]?.subCategory ||
+                  aiMatchedProducts[product.id]?.subCategory ||
+                  product.subCategory
+                const isAIMatched = aiMatchedProducts[product.id] && !selectedCategories[product.id]
 
                 return (
                   <div
@@ -217,7 +325,15 @@ return (
                     }`}
                     onClick={() => setCurrentProductIndex(unmatchedProducts.findIndex((p) => p.id === product.id))}
                   >
-                    <div className={`font-medium ${isSelected ? "text-white" : ""}`}>{product.name}</div>
+                    <div className={`font-medium ${isSelected ? "text-white" : ""}`}>
+                      {product.name}
+                      {isAIMatched && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">
+                          <Sparkles className="mr-1 h-3 w-3" />
+                          AI
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-400 mt-1">
                       {mainCategory && !mainCategory.includes("Uncategorized") ? mainCategory : "Uncategorized"} &gt;{" "}
                       {subCategory && !subCategory.includes("Uncategorized") ? subCategory : "Uncategorized"}
@@ -297,7 +413,9 @@ return (
                   <div className="space-y-2">
                     {displayedCategories.map((category) => {
                       // Check if this category is selected for the current product
-                      const isSelected = selectedCategories[currentProduct.id]?.mainCategory === category.name
+                      const isSelected =
+                        selectedCategories[currentProduct.id]?.mainCategory === category.name ||
+                        aiMatchedProducts[currentProduct.id]?.mainCategory === category.name
 
                       return (
                         <div key={category.id}>
@@ -318,7 +436,8 @@ return (
                             <div className="mt-2 space-y-1 pl-4">
                               {category.subcategories.map((subcategory) => {
                                 const isSubcategorySelected =
-                                  selectedCategories[currentProduct.id]?.subCategory === subcategory.name
+                                  selectedCategories[currentProduct.id]?.subCategory === subcategory.name ||
+                                  aiMatchedProducts[currentProduct.id]?.subCategory === subcategory.name
 
                                 return (
                                   <button
@@ -373,9 +492,17 @@ return (
                     <h4 className="text-sm text-gray-400 mb-2">Selected Category</h4>
                     <div className="p-3 bg-[#1a2235] rounded-md">
                       {selectedCategories[currentProduct.id]?.mainCategory ||
+                        aiMatchedProducts[currentProduct.id]?.mainCategory ||
                         (currentProduct.mainCategory && !currentProduct.mainCategory.includes("Uncategorized")
                           ? currentProduct.mainCategory
                           : "Uncategorized")}
+
+                      {aiMatchedProducts[currentProduct.id] && !selectedCategories[currentProduct.id] && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">
+                          <Sparkles className="mr-1 h-3 w-3" />
+                          AI Matched
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -383,17 +510,20 @@ return (
                     <h4 className="text-sm text-gray-400 mb-2">Selected Subcategory</h4>
                     <div className="p-3 bg-[#1a2235] rounded-md">
                       {selectedCategories[currentProduct.id]?.subCategory ||
+                        aiMatchedProducts[currentProduct.id]?.subCategory ||
                         (currentProduct.subCategory && !currentProduct.subCategory.includes("Uncategorized")
                           ? currentProduct.subCategory
                           : "Uncategorized")}
 
-                      {(!selectedCategories[currentProduct.id]?.subCategory ||
-                        selectedCategories[currentProduct.id]?.subCategory.includes("Uncategorized")) && (
-                        <div className="flex items-center mt-2 text-amber-500 text-sm">
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          Please select a proper subcategory
-                        </div>
-                      )}
+                      {(!selectedCategories[currentProduct.id]?.subCategory &&
+                        !aiMatchedProducts[currentProduct.id]?.subCategory) ||
+                        (selectedCategories[currentProduct.id]?.subCategory?.includes("Uncategorized") &&
+                          !aiMatchedProducts[currentProduct.id]?.subCategory && (
+                            <div className="flex items-center mt-2 text-amber-500 text-sm">
+                              <AlertTriangle className="h-4 w-4 mr-1" />
+                              Please select a proper subcategory
+                            </div>
+                          ))}
                     </div>
                   </div>
                 </div>

@@ -1,14 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { Sparkles } from "lucide-react"
 
-interface ProgressAnimationProps {
-  progress: number
-  totalItems: number
-  processedItems: number
-}
-
-export function ProgressAnimation({ progress, totalItems, processedItems }: ProgressAnimationProps) {
+export function ProgressAnimation({ progress, totalItems, processedItems, isAIMatching = false, aiMatchedCount = 0 }) {
   return (
     <div className="space-y-2">
       {totalItems > 0 && (
@@ -19,6 +14,13 @@ export function ProgressAnimation({ progress, totalItems, processedItems }: Prog
               Processing {processedItems}/{totalItems}
             </span>
           </div>
+
+          {isAIMatching && aiMatchedCount > 0 && (
+            <div className="flex items-center text-purple-300 text-xs">
+              <Sparkles className="h-3 w-3 mr-1 text-purple-400" />
+              <span>AI matched {aiMatchedCount} products</span>
+            </div>
+          )}
         </div>
       )}
       <div className="relative h-1 w-full bg-gray-800 rounded-full overflow-hidden mb-1">
