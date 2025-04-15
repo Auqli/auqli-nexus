@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { buildPrompt } from "@/lib/prompt-builder"
-import { getModelForRequest } from "@/lib/model-router"
 import { ERROR_MESSAGES } from "@/config/ai-config"
 import { MODEL_ROUTING } from "@/config/model-routing"
 
@@ -39,13 +38,25 @@ export async function POST(request: Request) {
       browsing,
     })
 
-    // Get the appropriate model for this request
-    const modelId = getModelForRequest({
-      contentType,
-      browsing,
-      language,
-      fastMode,
-    })
+    // Replace the dynamic model selection with a simpler approach
+    // Change this line:
+    // const modelId = getModelForRequest({
+    //   contentType,
+    //   browsing,
+    //   language,
+    //   fastMode,
+    // });
+
+    // To this more explicit approach:
+    let modelId = "deepseek-ai/DeepSeek-R1-Turbo" // Default model
+    if (fastMode) {
+      modelId = "deepseek-ai/DeepSeek-R1-Turbo"
+    } else if (browsing) {
+      modelId = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+    } else {
+      // Use the default model
+      modelId = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+    }
 
     // Determine which API to use based on the model
     let response
