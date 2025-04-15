@@ -61,9 +61,9 @@ const EXPECTED_SHOPIFY_HEADERS = [
 export default function ConverterPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = (useState < string) | (null > null)
-  const [fileName, setFileName] = (useState < string) | (null > null)
-  const [platform, setPlatform] = useState < string > "shopify"
+  const [error, setError] = useState(null)
+  const [fileName, setFileName] = useState(null)
+  const [platform, setPlatform] = useState("shopify")
   const [showSample, setShowSample] = useState(false)
   const [showInvalidCSVModal, setShowInvalidCSVModal] = useState(false)
 
@@ -93,7 +93,7 @@ const [hasUncategorizedProducts, setHasUncategorizedProducts] = useState(false)
 
 // Add this state variable to the Home component
 const [isAuqliFormatted, setIsAuqliFormatted] = useState(false)
-const [auqliFormatMessage, setAuqliFormatMessage] = (useState < string) | (null > null)
+const [auqliFormatMessage, setAuqliFormatMessage] = useState(null)
 
 // Add a state to track if all categories have been successfully matched
 const [allCategoriesMatched, setAllCategoriesMatched] = useState(false)
@@ -750,7 +750,7 @@ return (
                         transition={{ delay: 0.2, duration: 0.5 }}
                       >
                         WooCommerce Integration Coming Soon
-                      </motion.h3>
+                      </motion.h3
 
                       <motion.p
                         className="text-gray-400 text-center max-w-md mb-6"
@@ -1340,7 +1340,7 @@ return (
                       >
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path
-                            d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z"
+                            d="M9 22H15C20 22 22 20 22 15V9C22 4 22 20 2 15H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z"
                             stroke="#8696ee"
                             strokeWidth="1.5"
                             strokeLinecap="round"
