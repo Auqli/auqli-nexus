@@ -87,12 +87,13 @@ export const ImageGenerationConfig = {
   },
 }
 
-export function enhanceComplexScenePrompt(prompt: string): string {
-  // Add enhancements for complex scenes
+// Simple function with no TypeScript complexity
+export function enhanceComplexScenePrompt(prompt) {
   return `${prompt}, intricate details, volumetric lighting, cinematic composition, trending on artstation`
 }
 
-export function expandMinimalPrompt(prompt: string, useCase: string, productCategory: string): string {
+// Simple function with no TypeScript complexity
+export function expandMinimalPrompt(prompt, useCase, productCategory) {
   let expandedPrompt = prompt
 
   // Add product-specific details
