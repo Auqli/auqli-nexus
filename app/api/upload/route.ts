@@ -1,25 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { parse } from "csv-parse/sync"
-import type { AuqliCategory } from "@/types"
+import type { AuqliCategory, Product } from "@/types"
 
 // Import necessary utility functions
 import { htmlToText } from "@/lib/utils"
 import { extractMainCategory, convertToKg, mapCondition } from "@/lib/utils"
-
-// Define the Product type
-type Product = {
-  name: string
-  price: string
-  image: string
-  description: string
-  weight: string
-  inventory: string
-  condition: string
-  mainCategory: string
-  subCategory: string
-  uploadStatus: string
-  additionalImages: string[]
-}
 
 // Define the expected Auqli CSV headers
 const AUQLI_REQUIRED_HEADERS = [
@@ -110,13 +95,133 @@ export async function POST(request: NextRequest) {
       products,
       totalProcessed: records.length,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error processing CSV:", error)
     return NextResponse.json(
       { error: `Failed to process the CSV file: ${error instanceof Error ? error.message : "Unknown error"}` },
       { status: 500 },
     )
   }
+}
+
+// Add this helper function to the route file
+function improveApparelCategorization(product: Product): Product {
+  // Normalize product name for better matching
+  const normalizedName = product.name.toLowerCase()
+
+  // Check for specific patterns in clothing items
+
+  // Men's clothing patterns
+  if (/\bmen'?s?\b|\bman'?s?\b|\bmale\b/i.test(normalizedName)) {
+    // If we already have Apparel & Accessories as main category
+    if (product.mainCategory === "Apparel & Accessories") {
+      // But subcategory is missing or generic
+      if (!product.subCategory || product.subCategory === "Uncategorized") {
+        // Try to determine specific subcategory
+        if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+          product.subCategory = "Men's T-Shirts"
+        } else if (/\bpolo\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Polo Shirts"
+        } else if (/\bhenley\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Casual Shirts"
+        } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Jeans"
+        } else if (/\bshort\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Shorts"
+        } else {
+          // Default to Men's Clothing if we can't determine specific type
+          product.subCategory = "Men's Clothing"
+        }
+      }
+    } else {
+      // If main category isn't set to Apparel yet
+      product.mainCategory = "Apparel & Accessories"
+
+      // Try to determine specific subcategory
+      if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+        product.subCategory = "Men's T-Shirts"
+      } else if (/\bpolo\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Polo Shirts"
+      } else if (/\bhenley\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Casual Shirts"
+      } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Jeans"
+      } else if (/\bshort\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Shorts"
+      } else {
+        // Default to Men's Clothing if we can't determine specific type
+        product.subCategory = "Men's Clothing"
+      }
+    }
+  }
+
+  // Women's clothing patterns
+  else if (/\bwomen'?s?\b|\bwoman'?s?\b|\bfemale\b|\bladies\b/i.test(normalizedName)) {
+    // If we already have Apparel & Accessories as main category
+    if (product.mainCategory === "Apparel & Accessories") {
+      // But subcategory is missing or generic
+      if (!product.subCategory || product.subCategory === "Uncategorized") {
+        // Try to determine specific subcategory
+        if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+          product.subCategory = "Women's T-Shirts"
+        } else if (/\bdress\b/i.test(normalizedName)) {
+          product.subCategory = "Dresses"
+        } else if (/\bskirt\b/i.test(normalizedName)) {
+          product.subCategory = "Skirts"
+        } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+          product.subCategory = "Women's Jeans"
+        } else if (/\bshort\b/i.test(normalizedName)) {
+          product.subCategory = "Women's Shorts"
+        } else if (/\bblouse\b/i.test(normalizedName)) {
+          product.subCategory = "Blouses & Shirts"
+        } else {
+          // Default to Women's Clothing if we can't determine specific type
+          product.subCategory = "Women's Clothing"
+        }
+      }
+    } else {
+      // If main category isn't set to Apparel yet
+      product.mainCategory = "Apparel & Accessories"
+
+      // Try to determine specific subcategory
+      if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+        product.subCategory = "Women's T-Shirts"
+      } else if (/\bdress\b/i.test(normalizedName)) {
+        product.subCategory = "Dresses"
+      } else if (/\bskirt\b/i.test(normalizedName)) {
+        product.subCategory = "Skirts"
+      } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+        product.subCategory = "Women's Jeans"
+      } else if (/\bshort\b/i.test(normalizedName)) {
+        product.subCategory = "Women's Shorts"
+      } else if (/\bblouse\b/i.test(normalizedName)) {
+        product.subCategory = "Blouses & Shirts"
+      } else {
+        // Default to Women's Clothing if we can't determine specific type
+        product.subCategory = "Women's Clothing"
+      }
+    }
+  }
+
+  // Generic clothing items without gender specification
+  else if (/\btee\b|\bt-?shirt\b|\bpolo\b|\bhenley\b|\bjean\b|\bdenim\b|\bshort\b/i.test(normalizedName)) {
+    product.mainCategory = "Apparel & Accessories"
+
+    // Try to determine specific subcategory
+    if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+      product.subCategory = "T-Shirts"
+    } else if (/\bpolo\b/i.test(normalizedName)) {
+      product.subCategory = "Polo Shirts"
+    } else if (/\bhenley\b/i.test(normalizedName)) {
+      product.subCategory = "Casual Shirts"
+    } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+      product.subCategory = "Jeans"
+    } else if (/\bshort\b/i.test(normalizedName)) {
+      product.subCategory = "Shorts"
+    }
+  }
+
+  return product
 }
 
 // Update the findMatchingCategory function to be more sophisticated (same as in actions.ts)
@@ -460,69 +565,83 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
   })
 
   // Process each product group
-  const products = Object.keys(productGroups).map((handle) => {
+  const products: Product[] = []
+  Object.keys(productGroups).forEach((handle) => {
     const group = productGroups[handle]
-    // Use the first record for most fields
-    const mainRecord = group[0]
 
-    // Sort images by position and extract URLs
-    const sortedImages = productImages[handle].sort((a, b) => a.position - b.position).map((img) => img.url)
+    group.forEach((record, index) => {
+      // Use the record for most fields
+      const mainRecord = record
 
-    // Use the first image as the main image, store the rest as additional images
-    const mainImage = sortedImages.length > 0 ? sortedImages[0] : ""
-    const additionalImages = sortedImages.length > 1 ? sortedImages.slice(1) : []
+      // Sort images by position and extract URLs
+      const sortedImages = productImages[handle].sort((a, b) => a.position - b.position).map((img) => img.url)
 
-    // Combine inventory quantities if there are variants
-    const totalInventory = group.reduce((sum, record) => {
-      const qty = Number.parseInt(record["Variant Inventory Qty"] || "0")
-      return sum + (isNaN(qty) ? 0 : qty)
-    }, 0)
+      // Use the first image as the main image, store the rest as additional images
+      const mainImage = sortedImages.length > 0 ? sortedImages[0] : ""
+      const additionalImages = sortedImages.length > 1 ? sortedImages.slice(1) : []
 
-    // Get weight from the first variant and convert to kg
-    const weightValue = mainRecord["Variant Grams"] || "0"
-    // Ensure we're explicitly passing 'g' as the unit to force conversion to kg
-    const weightInKg = convertToKg(weightValue, "g")
+      // Get weight from the first variant and convert to kg
+      const weightValue = mainRecord["Variant Grams"] || "0"
+      // Ensure we're explicitly passing 'g' as the unit to force conversion to kg
+      const weightInKg = convertToKg(weightValue, "g")
 
-    // Get condition from Google Shopping / Condition or map from Status
-    const shopifyCondition = mainRecord["Google Shopping / Condition"] || ""
+      // Get condition from Google Shopping / Condition or map from Status
+      const shopifyCondition = mainRecord["Google Shopping / Condition"] || ""
 
-    // Extract product name and description for category matching
-    const productName = mainRecord["Title"] || ""
-    const productDescription = htmlToText(mainRecord["Body (HTML)"] || "")
+      // Extract product name and description for category matching
+      let productName = mainRecord["Title"] || ""
+      const productDescription = htmlToText(mainRecord["Body (HTML)"] || "")
 
-    // Find matching Auqli category based on product name and description
-    const { mainCategory, subCategory, confidence } = findMatchingCategory(
-      productName,
-      productDescription,
-      auqliCategories,
-    )
+      // Append variant options to the product name
+      const option1 = mainRecord["Option1 Value"] || ""
+      const option2 = mainRecord["Option2 Value"] || ""
+      const option3 = mainRecord["Option3 Value"] || ""
 
-    // Only use the matched category if confidence is above threshold
-    // With our improved matching, we can use a higher threshold
-    const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
-    const finalMainCategory =
-      confidence >= confidenceThreshold
-        ? mainCategory
-        : extractMainCategory(mainRecord["Product Category"] || "") || "Uncategorized"
+      if (option1) productName += ` ${option1}`
+      if (option2) productName += ` ${option2}`
+      if (option3) productName += ` ${option3}`
 
-    const finalSubCategory = confidence >= confidenceThreshold ? subCategory : mainRecord["Type"] || "Uncategorized"
+      // Find matching Auqli category based on product name and description
+      const { mainCategory, subCategory, confidence } = findMatchingCategory(
+        productName,
+        productDescription,
+        auqliCategories,
+      )
 
-    return {
-      name: productName,
-      price: mainRecord["Variant Price"] || "",
-      image: mainImage,
-      description: productDescription,
-      weight: weightInKg, // Use the converted weight in kg
-      inventory: totalInventory.toString(),
-      condition: mapCondition(shopifyCondition), // Map to either "New" or "Fairly Used"
-      mainCategory: finalMainCategory,
-      subCategory: finalSubCategory,
-      uploadStatus: mainRecord["Status"] || "active", // Use Status for upload status
-      additionalImages: additionalImages,
-    }
+      // Only use the matched category if confidence is above threshold
+      // With our improved matching, we can use a higher threshold
+      const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
+      const finalMainCategory =
+        confidence >= confidenceThreshold
+          ? mainCategory
+          : extractMainCategory(mainRecord["Product Category"] || "") || "Uncategorized"
+
+      const finalSubCategory = confidence >= confidenceThreshold ? subCategory : mainRecord["Type"] || "Uncategorized"
+
+      // Combine inventory quantities if there are variants
+      const totalInventory = Number.parseInt(record["Variant Inventory Qty"] || "0")
+
+      products.push({
+        id: `${handle}-${index}`, // Unique ID for each product
+        name: productName,
+        price: mainRecord["Variant Price"] || "",
+        image: mainImage,
+        description: productDescription,
+        weight: weightInKg, // Use the converted weight in kg
+        inventory: totalInventory.toString(),
+        condition: mapCondition(shopifyCondition), // Map to either "New" or "Fairly Used"
+        mainCategory: finalMainCategory,
+        subCategory: finalSubCategory,
+        uploadStatus: mainRecord["Status"] || "active", // Use Status for upload status
+        additionalImages: additionalImages,
+      })
+    })
   })
 
-  return products
+  // Apply additional apparel-specific categorization improvements
+  const improvedProducts = products.map((product) => improveApparelCategorization(product))
+
+  return improvedProducts
 }
 
 // Update the mapWooCommerceToAuqli function to use the improved matching
@@ -549,6 +668,7 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
       confidence >= confidenceThreshold ? subCategory : record["Tags"] || record["tags"] || "Uncategorized"
 
     return {
+      id: record["ID"] || record["id"] || record["product_id"] || "",
       name: productName,
       price: record["Regular price"] || record["regular_price"] || record["price"] || "",
       image: record["Images"] || record["images"] || record["image"] || "",

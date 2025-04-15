@@ -93,6 +93,10 @@ export default function ConverterPage() {
   // Add a state to track if all categories have been successfully matched
   const [allCategoriesMatched, setAllCategoriesMatched] = useState(false)
 
+  // Add these state variables inside the component
+  const [totalItems, setTotalItems] = useState(0)
+  const [processedItems, setProcessedItems] = useState(0)
+
   useEffect(() => {
     setIsPageLoaded(true)
   }, [])
@@ -141,26 +145,6 @@ export default function ConverterPage() {
   }, [])
 
   // Add a simulated progress function
-  const simulateProgress = () => {
-    setProcessingProgress(0)
-
-    // Simulate progress from 0 to 95% in steps
-    const interval = setInterval(() => {
-      setProcessingProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(interval)
-          return 95
-        }
-
-        // Increase by random amount between 1-5%
-        const increment = Math.random() * 4 + 1
-        return Math.min(95, prev + increment)
-      })
-    }, 200)
-
-    return () => clearInterval(interval)
-  }
-
   // Function to validate if a CSV file matches the Shopify template format
   const validateShopifyCSV = async (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -230,6 +214,7 @@ export default function ConverterPage() {
   }, [products, isProductCategorized])
 
   // Update the handleFileUpload function to validate the CSV format
+  // Update the handleFileUpload function to count actual items
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -239,6 +224,8 @@ export default function ConverterPage() {
     setError(null)
     setAllCategoriesMatched(false)
     setHasUncategorizedProducts(false)
+    setTotalItems(0)
+    setProcessedItems(0)
 
     // Validate if the file is a Shopify CSV template
     const isValidShopifyCSV = await validateShopifyCSV(file)
@@ -249,26 +236,47 @@ export default function ConverterPage() {
       return
     }
 
-    // Start progress simulation
-    const stopSimulation = simulateProgress()
-
     try {
+      // First, count the number of items in the CSV file
+      const itemCount = await countCSVItems(file)
+      setTotalItems(itemCount)
+      console.log(`Found ${itemCount} items in CSV file`)
+
       const formData = new FormData()
       formData.append("file", file)
       formData.append("platform", platform)
 
       console.log("Uploading file:", file.name, "Size:", file.size, "Platform:", platform)
 
+      // Start with 0 processed items
+      setProcessedItems(0)
+      setProcessingProgress(0)
+
+      // Set up a progress tracker
+      const progressTracker = setInterval(() => {
+        setProcessedItems((prev) => {
+          // Increment processed items, but don't exceed total
+          const newValue = Math.min(prev + Math.floor(Math.random() * 5) + 1, itemCount)
+          // Update progress percentage based on actual processed items
+          setProcessingProgress((newValue / itemCount) * 100)
+          return newValue
+        })
+      }, 100)
+
       const result = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       }).then((res) => res.json())
+
+      // Clear the progress tracker
+      clearInterval(progressTracker)
 
       if (result.error) {
         setError(result.error)
         setProducts([])
       } else if (result.products) {
         // Complete the progress to 100%
+        setProcessedItems(itemCount)
         setProcessingProgress(100)
 
         // Check if the file is already in Auqli format
@@ -344,10 +352,36 @@ export default function ConverterPage() {
       setError("Failed to process the CSV file. Please check the format and try again.")
       setProducts([])
     } finally {
-      // Clean up the simulation
-      stopSimulation()
       setIsLoading(false)
     }
+  }
+
+  // Add a function to count the actual number of items in the CSV file
+  const countCSVItems = async (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+
+      reader.onload = (event) => {
+        const content = event.target?.result as string
+        if (!content) {
+          resolve(0)
+          return
+        }
+
+        // Split by newlines and count rows (excluding header)
+        const lines = content.split("\n").filter((line) => line.trim().length > 0)
+
+        // Subtract 1 for the header row, but ensure we don't return a negative number
+        const itemCount = Math.max(0, lines.length - 1)
+        resolve(itemCount)
+      }
+
+      reader.onerror = () => {
+        resolve(0)
+      }
+
+      reader.readAsText(file)
+    })
   }
 
   // Add function to reset the file
@@ -360,6 +394,8 @@ export default function ConverterPage() {
     setHasUncategorizedProducts(false)
     setAllCategoriesMatched(false)
     setError(null)
+    setTotalItems(0)
+    setProcessedItems(0)
   }
 
   // Add this function to handle category selection from the modal
@@ -952,8 +988,12 @@ export default function ConverterPage() {
                           <span>Processing CSV file...</span>
                           <span>{Math.round(processingProgress)}%</span>
                         </div>
-                        {/* Add the runner animation above the progress bar */}
-                        <ProgressAnimation progress={processingProgress} />
+                        {/* Update the ProgressAnimation component with item counts */}
+                        <ProgressAnimation
+                          progress={processingProgress}
+                          totalItems={totalItems}
+                          processedItems={processedItems}
+                        />
                         <Progress value={processingProgress} className="h-2" />
                       </div>
                     </CardContent>

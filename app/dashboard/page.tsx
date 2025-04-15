@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Sparkles, ImageIcon, FileText, BookOpen, ArrowRight } from "lucide-react"
 
-export default function AuqliToolsDashboard() {
+export default function Dashboard() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function AuqliToolsDashboard() {
       name: "ImageGen AI",
       description: "Generate high-quality product images with AI",
       icon: ImageIcon,
-      href: "/auqli-tools/imagegen-ai",
+      href: "/imagegen",
       buttonText: "Open ImageGen",
       color: "from-purple-500/20 to-indigo-500/20",
       borderColor: "border-purple-500/30",
@@ -29,7 +29,7 @@ export default function AuqliToolsDashboard() {
       name: "CopyGen AI",
       description: "AI-powered product descriptions and collection copy",
       icon: FileText,
-      href: "/auqli-tools/copygen-ai",
+      href: "/copygen",
       buttonText: "Open CopyGen",
       color: "from-emerald-500/20 to-teal-500/20",
       borderColor: "border-emerald-500/30",
@@ -38,9 +38,9 @@ export default function AuqliToolsDashboard() {
     {
       id: "bloggen",
       name: "BlogGen AI",
-      description: "Create SEO blog posts for your content",
+      description: "Create SEO blog posts for your store",
       icon: BookOpen,
-      href: "/auqli-tools/bloggen-ai",
+      href: "/bloggen",
       buttonText: "Open BlogGen",
       color: "from-orange-500/20 to-amber-500/20",
       borderColor: "border-orange-500/30",
@@ -59,6 +59,7 @@ export default function AuqliToolsDashboard() {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
+      {/* Welcome section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
@@ -71,7 +72,7 @@ export default function AuqliToolsDashboard() {
           <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Welcome to Auqli Nexus</h1>
-              <p className="text-gray-400 mb-4">Your AI-powered toolkit for content creation.</p>
+              <p className="text-gray-400 mb-4">Your AI-powered toolkit for success.</p>
             </div>
             <div className="mt-4 md:mt-0">
               <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">

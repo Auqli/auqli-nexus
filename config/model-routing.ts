@@ -1,28 +1,30 @@
+import { AI_MODELS } from "@/config/ai-config"
+
 export const MODEL_ROUTING = {
   default: {
-    "product-titles": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "product-descriptions": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "ad-copy": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "social-captions": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "blog-articles": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    emails: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "product-titles": AI_MODELS.DEEPINFRA_LLAMA4,
+    "product-descriptions": AI_MODELS.DEEPINFRA_LLAMA4,
+    "ad-copy": AI_MODELS.DEEPINFRA_LLAMA4,
+    "social-captions": AI_MODELS.DEEPINFRA_LLAMA4,
+    "blog-articles": AI_MODELS.DEEPINFRA_LLAMA4,
+    emails: AI_MODELS.DEEPINFRA_LLAMA4,
   },
   browsing: {
-    default: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "blog-articles": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    default: AI_MODELS.DEEPINFRA_LLAMA4,
+    "blog-articles": AI_MODELS.DEEPINFRA_LLAMA4,
   },
   languages: {
     es: {
-      default: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+      default: AI_MODELS.DEEPINFRA_LLAMA4,
     },
     fr: {
-      default: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+      default: AI_MODELS.DEEPINFRA_LLAMA4,
     },
     de: {
-      default: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+      default: AI_MODELS.DEEPINFRA_LLAMA4,
     },
   },
   fastMode: {
-    default: "deepseek-ai/DeepSeek-R1-Turbo",
+    default: AI_MODELS.DEEPINFRA_DEEPSEEK,
   },
 }

@@ -180,6 +180,69 @@ function findMatchingCategory(
     fragrance: { category: "Health & Beauty", subcategory: "Fragrances", weight: 90 },
   }
 
+  // Apparel & Clothing specific mappings
+  const apparelMappings: { [key: string]: { category: string; subcategory?: string; weight: number } } = {
+    // Men's clothing
+    men: { category: "Apparel & Accessories", subcategory: "Men's Clothing", weight: 70 },
+    mens: { category: "Apparel & Accessories", subcategory: "Men's Clothing", weight: 70 },
+    "men's": { category: "Apparel & Accessories", subcategory: "Men's Clothing", weight: 70 },
+    tee: { category: "Apparel & Accessories", subcategory: "T-Shirts", weight: 80 },
+    tees: { category: "Apparel & Accessories", subcategory: "T-Shirts", weight: 80 },
+    "t-shirt": { category: "Apparel & Accessories", subcategory: "T-Shirts", weight: 90 },
+    tshirt: { category: "Apparel & Accessories", subcategory: "T-Shirts", weight: 90 },
+    polo: { category: "Apparel & Accessories", subcategory: "Polo Shirts", weight: 90 },
+    henley: { category: "Apparel & Accessories", subcategory: "Casual Shirts", weight: 85 },
+    shirt: { category: "Apparel & Accessories", subcategory: "Casual Shirts", weight: 80 },
+    shorts: { category: "Apparel & Accessories", subcategory: "Shorts", weight: 90 },
+    jeans: { category: "Apparel & Accessories", subcategory: "Jeans", weight: 90 },
+    denim: { category: "Apparel & Accessories", subcategory: "Jeans", weight: 80 },
+    pants: { category: "Apparel & Accessories", subcategory: "Pants", weight: 85 },
+    trousers: { category: "Apparel & Accessories", subcategory: "Pants", weight: 85 },
+    jacket: { category: "Apparel & Accessories", subcategory: "Jackets & Coats", weight: 90 },
+    coat: { category: "Apparel & Accessories", subcategory: "Jackets & Coats", weight: 90 },
+    sweater: { category: "Apparel & Accessories", subcategory: "Sweaters", weight: 90 },
+    hoodie: { category: "Apparel & Accessories", subcategory: "Hoodies & Sweatshirts", weight: 90 },
+    sweatshirt: { category: "Apparel & Accessories", subcategory: "Hoodies & Sweatshirts", weight: 90 },
+
+    // Women's clothing
+    women: { category: "Apparel & Accessories", subcategory: "Women's Clothing", weight: 70 },
+    womens: { category: "Apparel & Accessories", subcategory: "Women's Clothing", weight: 70 },
+    "women's": { category: "Apparel & Accessories", subcategory: "Women's Clothing", weight: 70 },
+    ladies: { category: "Apparel & Accessories", subcategory: "Women's Clothing", weight: 70 },
+    dress: { category: "Apparel & Accessories", subcategory: "Dresses", weight: 90 },
+    skirt: { category: "Apparel & Accessories", subcategory: "Skirts", weight: 90 },
+    blouse: { category: "Apparel & Accessories", subcategory: "Blouses & Shirts", weight: 90 },
+    leggings: { category: "Apparel & Accessories", subcategory: "Leggings", weight: 90 },
+
+    // Unisex/general clothing
+    apparel: { category: "Apparel & Accessories", weight: 60 },
+    clothing: { category: "Apparel & Accessories", weight: 60 },
+    accessories: { category: "Apparel & Accessories", weight: 60 },
+    hat: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    cap: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    beanie: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    scarf: { category: "Apparel & Accessories", subcategory: "Scarves", weight: 90 },
+    gloves: { category: "Apparel & Accessories", subcategory: "Gloves", weight: 90 },
+    socks: { category: "Apparel & Accessories", subcategory: "Socks", weight: 90 },
+    underwear: { category: "Apparel & Accessories", subcategory: "Underwear", weight: 90 },
+    belt: { category: "Apparel & Accessories", subcategory: "Belts", weight: 90 },
+    wallet: { category: "Apparel & Accessories", subcategory: "Wallets", weight: 90 },
+    bag: { category: "Apparel & Accessories", subcategory: "Bags", weight: 90 },
+    backpack: { category: "Apparel & Accessories", subcategory: "Backpacks", weight: 90 },
+    purse: { category: "Apparel & Accessories", subcategory: "Handbags", weight: 90 },
+    handbag: { category: "Apparel & Accessories", subcategory: "Handbags", weight: 90 },
+
+    // Brands that might help with categorization
+    zara: { category: "Apparel & Accessories", weight: 60 },
+    "h&m": { category: "Apparel & Accessories", weight: 60 },
+    ralph: { category: "Apparel & Accessories", weight: 60 },
+    "polo ralph": { category: "Apparel & Accessories", subcategory: "Polo Shirts", weight: 80 },
+    levi: { category: "Apparel & Accessories", subcategory: "Jeans", weight: 80 },
+    nike: { category: "Apparel & Accessories", subcategory: "Athletic Wear", weight: 70 },
+    adidas: { category: "Apparel & Accessories", subcategory: "Athletic Wear", weight: 70 },
+    "under armour": { category: "Apparel & Accessories", subcategory: "Athletic Wear", weight: 70 },
+  }
+
   // Initialize scores for each category and subcategory
   const scores: {
     categoryId: string
@@ -225,8 +288,100 @@ function findMatchingCategory(
     }
   }
 
+  // Combine the tech mappings with our apparel mappings
+  const combinedMappings = { ...techTermMappings, ...apparelMappings }
+
+  // First, check for direct matches with our mappings
+  directMatchFound = false
+  directMatchScore = 0
+  directMatchCategory = ""
+  directMatchSubcategory = ""
+
+  // Check for multi-word terms first (like "polo ralph" or "t-shirt")
+  const multiWordTermsCombined = Object.keys(combinedMappings)
+    .filter((term) => term.includes(" "))
+    .sort((a, b) => b.length - a.length)
+
+  for (const term of multiWordTermsCombined) {
+    if (searchText.includes(term)) {
+      const mapping = combinedMappings[term]
+      directMatchCategory = mapping.category
+      directMatchSubcategory = mapping.subcategory || ""
+      directMatchScore = mapping.weight
+      directMatchFound = true
+      break
+    }
+  }
+
+  // If no multi-word match, check single words
+  if (!directMatchFound) {
+    // First check for exact matches in product terms
+    for (const term of productTerms) {
+      if (combinedMappings[term]) {
+        const mapping = combinedMappings[term]
+        directMatchCategory = mapping.category
+        directMatchSubcategory = mapping.subcategory || ""
+        directMatchScore = mapping.weight
+        directMatchFound = true
+        break
+      }
+    }
+
+    // If still no match, try partial matches
+    if (!directMatchFound) {
+      for (const mappingTerm in combinedMappings) {
+        // Skip multi-word terms as we already checked them
+        if (mappingTerm.includes(" ")) continue
+
+        // Check if any product term contains this mapping term
+        for (const term of productTerms) {
+          if (term.includes(mappingTerm) || mappingTerm.includes(term)) {
+            const mapping = combinedMappings[mappingTerm]
+            // Reduce weight for partial matches
+            const partialMatchScore = mapping.weight * 0.8
+
+            // Only use this match if it's better than what we have
+            if (partialMatchScore > directMatchScore) {
+              directMatchCategory = mapping.category
+              directMatchSubcategory = mapping.subcategory || ""
+              directMatchScore = partialMatchScore
+              directMatchFound = true
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Special case for apparel - check for gender indicators
+  if (directMatchFound && directMatchCategory === "Apparel & Accessories") {
+    // If we have a subcategory but no gender specified, try to determine gender
+    if (
+      directMatchSubcategory &&
+      !directMatchSubcategory.includes("Men") &&
+      !directMatchSubcategory.includes("Women")
+    ) {
+      // Check if product name or description contains gender indicators
+      const isMens = /\bmen'?s?\b|\bman'?s?\b|\bmale\b/i.test(searchText)
+      const isWomens = /\bwomen'?s?\b|\bwoman'?s?\b|\bfemale\b|\bladies\b/i.test(searchText)
+
+      // Adjust subcategory based on gender if detected
+      if (isMens && !isWomens) {
+        // If it's a generic subcategory like "T-Shirts", prefix with "Men's"
+        if (!directMatchSubcategory.includes("Men")) {
+          directMatchSubcategory = `Men's ${directMatchSubcategory}`
+        }
+      } else if (isWomens && !isMens) {
+        // If it's a generic subcategory like "T-Shirts", prefix with "Women's"
+        if (!directMatchSubcategory.includes("Women")) {
+          directMatchSubcategory = `Women's ${directMatchSubcategory}`
+        }
+      }
+    }
+  }
+
   // If we have a direct match with high confidence, use it
-  if (directMatchFound && directMatchScore >= 90) {
+  if (directMatchFound && directMatchScore >= 70) {
     // Find the actual category and subcategory in the Auqli categories
     for (const category of categories) {
       if (!category || !category.name) continue
@@ -234,6 +389,7 @@ function findMatchingCategory(
       if (category.name.toLowerCase() === directMatchCategory.toLowerCase()) {
         // If we have a direct subcategory match
         if (directMatchSubcategory && Array.isArray(category.subcategories)) {
+          // First try exact match
           for (const subcategory of category.subcategories) {
             if (!subcategory || !subcategory.name) continue
 
@@ -245,6 +401,23 @@ function findMatchingCategory(
               }
             }
           }
+
+          // If no exact match, try partial match for subcategory
+          for (const subcategory of category.subcategories) {
+            if (!subcategory || !subcategory.name) continue
+
+            const subName = subcategory.name.toLowerCase()
+            const directSub = directMatchSubcategory.toLowerCase()
+
+            // Check if subcategory contains our match or vice versa
+            if (subName.includes(directSub) || directSub.includes(subName)) {
+              return {
+                mainCategory: category.name,
+                subCategory: subcategory.name,
+                confidence: 85, // Good confidence for partial matches
+              }
+            }
+          }
         }
 
         // If we found the category but not the exact subcategory
@@ -252,7 +425,7 @@ function findMatchingCategory(
         return {
           mainCategory: category.name,
           subCategory: directMatchSubcategory || "",
-          confidence: 85,
+          confidence: 80,
         }
       }
     }
@@ -284,9 +457,9 @@ function findMatchingCategory(
     // Boost scores for certain categories based on product terms
     for (const term of productTerms) {
       // Check if any term in our mappings partially matches this category
-      for (const mappingTerm in techTermMappings) {
+      for (const mappingTerm in combinedMappings) {
         if (term.includes(mappingTerm) || mappingTerm.includes(term)) {
-          const mapping = techTermMappings[mappingTerm]
+          const mapping = combinedMappings[mappingTerm]
           if (mapping.category.toLowerCase() === categoryName) {
             categoryScore += mapping.weight / 2 // Half weight for partial matches
           }
@@ -325,8 +498,8 @@ function findMatchingCategory(
       // Boost scores for certain subcategories based on product terms
       for (const term of productTerms) {
         // Check if any term in our mappings partially matches this subcategory
-        for (const mappingTerm in techTermMappings) {
-          const mapping = techTermMappings[mappingTerm]
+        for (const mappingTerm in combinedMappings) {
+          const mapping = combinedMappings[mappingTerm]
           if (
             mapping.subcategory &&
             (term.includes(mappingTerm) || mappingTerm.includes(term)) &&
