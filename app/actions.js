@@ -221,14 +221,6 @@ function findMatchingCategory(
     hat: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
     cap: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
     beanie: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
-    headwear: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
-    bucket: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
-    baseball: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
-    cadet: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
-    snapback: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
-    fedora: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
-    visor: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
-    beret: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
     scarf: { category: "Apparel & Accessories", subcategory: "Scarves", weight: 90 },
     gloves: { category: "Apparel & Accessories", subcategory: "Gloves", weight: 90 },
     socks: { category: "Apparel & Accessories", subcategory: "Socks", weight: 90 },
@@ -384,19 +376,6 @@ function findMatchingCategory(
         if (!directMatchSubcategory.includes("Women")) {
           directMatchSubcategory = `Women's ${directMatchSubcategory}`
         }
-      }
-    }
-
-    // Hat and headwear detection
-    if (/\bhat\b|\bcap\b|\bbeanie\b|\bbucket\b|\bbaseball\b|\bcadet\b|\bfedora\b|\bsnapback\b|\btrucker\b|\bvisor\b|\bheadwear\b/i.test(searchText)) {
-      directMatchCategory = "Apparel & Accessories";
-      directMatchSubcategory = "Hats";
-      
-      // Check if it's specifically a men's or women's hat
-      if (/\bmen'?s?\b|\bman'?s?\b|\bmale\b/i.test(searchText)) {
-        directMatchSubcategory = "Men's Hats";
-      } else if (/\bwomen'?s?\b|\bwoman'?s?\b|\bfemale\b|\bladies\b/i.test(searchText)) {
-        directMatchSubcategory = "Women's Hats";
       }
     }
   }
@@ -832,85 +811,4 @@ export async function processCSV(formData: FormData) {
     console.error("Error processing CSV:", error)
     return { error: `Failed to process the CSV file: ${error instanceof Error ? error.message : "Unknown error"}` }
   }
-}
-
-export async function updateProductCategory(product: any, selectedCategory: string, selectedSubcategory: string) {
-  // Keep existing logic
-
-  // Add enhanced matching for edge cases
-  if (!selectedCategory && !selectedSubcategory) {
-    const normalizedName = product.title.toLowerCase()
-
-    // Try pattern matching for common categories
-    if (
-      /\bhat\b|\bcap\b|\bbeanie\b|\bbucket\b|\bsnapback\b|\bfedora\b|\bvisor\b|\bberet\b|\bcadet\b/i.test(
-        normalizedName,
-      )
-    ) {
-      return {
-        ...product,
-        mainCategory: "Apparel & Accessories",
-        subCategory: "Hats",
-      }
-    }
-
-    if (/\bdress\b/i.test(normalizedName)) {
-      return {
-        ...product,
-        mainCategory: "Apparel & Accessories",
-        subCategory: "Dresses",
-      }
-    }
-
-    if (/\bshirt\b|\bblouse\b/i.test(normalizedName)) {
-      return {
-        ...product,
-        mainCategory: "Apparel & Accessories",
-        subCategory: "Shirts",
-      }
-    }
-
-    // Add other pattern matching as in the route.ts file
-    // (Include the same comprehensive patterns as above)
-  }
-
-  // Continue with existing logic
-  return product
-}
-
-export function improveApparelCategorization(products: any[]) {
-  return products.map(product => {
-    // Keep existing logic
-    
-    // Add enhanced pattern matching
-    const normalizedName = product.name.toLowerCase();
-    
-    // Check for hat patterns
-    if (/\bhat\b|\bcap\b|\bbeanie\b|\bbucket\b|\bsnapback\b|\bfedora\b|\bvisor\b|\bberet\b|\bcadet\b/i.test(normalizedName)) {
-      product.mainCategory = "Apparel & Accessories";
-      product.subCategory = "Hats";
-      product.confidence = 0.9;
-      return product;
-    }
-
-    if (/\bdress\b/i.test(normalizedName)) {
-      product.mainCategory = "Apparel & Accessories";
-      product.subCategory = "Dresses";
-      product.confidence = 0.9;
-      return product;
-    }
-
-    if (/\bshirt\b|\bblouse\b/i.test(normalizedName)) {
-      product.mainCategory = "Apparel & Accessories";
-      product.subCategory = "Shirts";
-      product.confidence = 0.9;
-      return product;
-    }
-    
-    // Add other pattern matching as in the route.ts file
-    // (Include the same comprehensive patterns as above)
-    
-    // Continue with existing logic
-    return product;
-  });
 }

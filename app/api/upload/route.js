@@ -91,8 +91,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unsupported platform" }, { status: 400 })
     }
 
+    // Final validation to ensure no duplicates, no blank titles, and no missing data
+    const validatedProducts = validateAndCleanProducts(products)
+
     return NextResponse.json({
-      products,
+      products: validatedProducts,
       totalProcessed: records.length,
     })
   } catch (error: any) {
@@ -102,6 +105,60 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
+}
+
+// Function to clean up product titles
+function cleanProductTitle(title) {
+  if (!title) return "Untitled Product"
+
+  // Remove "Default Title" references
+  let cleanedTitle = title
+    .replace(/\s*-\s*Default Title$/i, "")
+    .replace(/^Default Title\s*-\s*/i, "")
+    .replace(/^Default Title$/i, "Untitled Product")
+
+  // Trim whitespace and ensure title isn't empty
+  cleanedTitle = cleanedTitle.trim()
+
+  // If title is empty after cleaning, use a fallback
+  if (!cleanedTitle) {
+    return "Untitled Product"
+  }
+
+  return cleanedTitle
+}
+
+// Function to validate and clean the final product list
+function validateAndCleanProducts(products) {
+  const seenTitles = new Set()
+  const validatedProducts = []
+
+  for (const product of products) {
+    // Clean the title
+    product.name = cleanProductTitle(product.name)
+
+    // Skip products with duplicate titles
+    if (seenTitles.has(product.name)) {
+      continue
+    }
+
+    // Add title to seen set
+    seenTitles.add(product.name)
+
+    // Ensure required fields have values
+    product.price = product.price || "0"
+    product.image = product.image || ""
+    product.description = product.description || ""
+    product.weight = product.weight || "0"
+    product.inventory = product.inventory || "0"
+    product.condition = product.condition || "New"
+    product.mainCategory = product.mainCategory || "Uncategorized"
+    product.subCategory = product.subCategory || "Uncategorized"
+
+    validatedProducts.push(product)
+  }
+
+  return validatedProducts
 }
 
 // Add this helper function to the route file
@@ -532,11 +589,11 @@ function findMatchingCategory(
   }
 }
 
-// Update the mapShopifyToAuqli function in the API route to ensure weight conversion is happening correctly
-async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[]): Promise<Product[]> {
+// Update the mapShopifyToAuqli function to handle the new requirements
+async function mapShopifyToAuqli(records, auqliCategories) {
   // Group records by Handle to handle variants and collect images
-  const productGroups: { [key: string]: any[] } = {}
-  const productImages: { [key: string]: Array<{ url: string; position: number }> } = {}
+  const productGroups = {}
+  const productImages = {}
 
   records.forEach((record) => {
     const handle = record.Handle
@@ -565,52 +622,50 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
   })
 
   // Process each product group
-  const products: Product[] = []
+  const products = []
+
   Object.keys(productGroups).forEach((handle) => {
     const group = productGroups[handle]
+    const baseRecord = group[0] // Use the first record for base product info
 
-    group.forEach((record, index) => {
-      // Use the record for most fields
-      const mainRecord = record
+    // Sort images by position and extract URLs
+    const sortedImages = productImages[handle].sort((a, b) => a.position - b.position).map((img) => img.url)
 
-      // Sort images by position and extract URLs
-      const sortedImages = productImages[handle].sort((a, b) => a.position - b.position).map((img) => img.url)
+    // Get base product information
+    const baseProductName = baseRecord["Title"] || ""
+    const baseProductDescription = htmlToText(baseRecord["Body (HTML)"] || "")
+
+    // Check if this product has variants
+    const hasVariants =
+      group.length > 1 ||
+      (baseRecord["Option1 Name"] && baseRecord["Option1 Value"] && baseRecord["Option1 Value"] !== "Default Title") ||
+      baseRecord["Option2 Name"] ||
+      baseRecord["Option3 Name"]
+
+    // If no variants or only one variant with "Default Title", process as a single product
+    if (!hasVariants || (group.length === 1 && baseRecord["Option1 Value"] === "Default Title")) {
+      const mainRecord = baseRecord
 
       // Use the first image as the main image, store the rest as additional images
       const mainImage = sortedImages.length > 0 ? sortedImages[0] : ""
       const additionalImages = sortedImages.length > 1 ? sortedImages.slice(1) : []
 
-      // Get weight from the first variant and convert to kg
+      // Get weight from the variant and convert to kg
       const weightValue = mainRecord["Variant Grams"] || "0"
-      // Ensure we're explicitly passing 'g' as the unit to force conversion to kg
       const weightInKg = convertToKg(weightValue, "g")
 
       // Get condition from Google Shopping / Condition or map from Status
       const shopifyCondition = mainRecord["Google Shopping / Condition"] || ""
 
-      // Extract product name and description for category matching
-      let productName = mainRecord["Title"] || ""
-      const productDescription = htmlToText(mainRecord["Body (HTML)"] || "")
-
-      // Append variant options to the product name
-      const option1 = mainRecord["Option1 Value"] || ""
-      const option2 = mainRecord["Option2 Value"] || ""
-      const option3 = mainRecord["Option3 Value"] || ""
-
-      if (option1) productName += ` ${option1}`
-      if (option2) productName += ` ${option2}`
-      if (option3) productName += ` ${option3}`
-
       // Find matching Auqli category based on product name and description
       const { mainCategory, subCategory, confidence } = findMatchingCategory(
-        productName,
-        productDescription,
+        baseProductName,
+        baseProductDescription,
         auqliCategories,
       )
 
       // Only use the matched category if confidence is above threshold
-      // With our improved matching, we can use a higher threshold
-      const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
+      const confidenceThreshold = 60
       const finalMainCategory =
         confidence >= confidenceThreshold
           ? mainCategory
@@ -618,24 +673,122 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
 
       const finalSubCategory = confidence >= confidenceThreshold ? subCategory : mainRecord["Type"] || "Uncategorized"
 
-      // Combine inventory quantities if there are variants
-      const totalInventory = Number.parseInt(record["Variant Inventory Qty"] || "0")
+      // Get inventory quantity
+      const totalInventory = Number.parseInt(mainRecord["Variant Inventory Qty"] || "0")
+
+      // Clean the product title - remove "Default Title" references
+      const cleanedTitle = cleanProductTitle(baseProductName)
 
       products.push({
-        id: `${handle}-${index}`, // Unique ID for each product
-        name: productName,
+        id: `${handle}-single`,
+        name: cleanedTitle,
         price: mainRecord["Variant Price"] || "",
         image: mainImage,
-        description: productDescription,
-        weight: weightInKg, // Use the converted weight in kg
+        description: baseProductDescription,
+        weight: weightInKg,
         inventory: totalInventory.toString(),
-        condition: mapCondition(shopifyCondition), // Map to either "New" or "Fairly Used"
+        condition: mapCondition(shopifyCondition),
         mainCategory: finalMainCategory,
         subCategory: finalSubCategory,
-        uploadStatus: mainRecord["Status"] || "active", // Use Status for upload status
+        uploadStatus: mainRecord["Status"] || "active",
         additionalImages: additionalImages,
+        sku: mainRecord["Variant SKU"] || "",
       })
-    })
+    } else {
+      // Process each variant as a separate product
+      group.forEach((variantRecord, variantIndex) => {
+        // Initialize the variant title with the base product name
+        let variantTitle = baseProductName
+
+        // Skip variants with "Default Title" as the only option value
+        if (
+          group.length > 1 &&
+          variantRecord["Option1 Value"] === "Default Title" &&
+          !variantRecord["Option2 Value"] &&
+          !variantRecord["Option3 Value"]
+        ) {
+          // Use the base product name without modification
+          // variantTitle is already set to baseProductName
+        } else {
+          // Add option values to the title if they exist and are not "Default Title"
+          const option1Value = variantRecord["Option1 Value"] || ""
+          const option2Value = variantRecord["Option2 Value"] || ""
+          const option3Value = variantRecord["Option3 Value"] || ""
+
+          // Only add non-empty and non-"Default Title" options to the variant title
+          let variantSuffix = ""
+
+          if (option1Value && option1Value !== "Default Title") {
+            variantSuffix += ` - ${option1Value}`
+          }
+
+          if (option2Value && option2Value !== "Default Title") {
+            variantSuffix += ` - ${option2Value}`
+          }
+
+          if (option3Value && option3Value !== "Default Title") {
+            variantSuffix += ` - ${option3Value}`
+          }
+
+          // Only append the suffix if it's not empty
+          if (variantSuffix) {
+            variantTitle += variantSuffix
+          }
+        }
+
+        // Use variant image if available, otherwise use the first product image
+        let variantImage = variantRecord["Variant Image"] || ""
+        if (!variantImage && sortedImages.length > 0) {
+          variantImage = sortedImages[0]
+        }
+
+        // Get weight from the variant and convert to kg
+        const weightValue = variantRecord["Variant Grams"] || "0"
+        const weightInKg = convertToKg(weightValue, "g")
+
+        // Get condition from Google Shopping / Condition or map from Status
+        const shopifyCondition = variantRecord["Google Shopping / Condition"] || ""
+
+        // Find matching Auqli category based on product name and description
+        const { mainCategory, subCategory, confidence } = findMatchingCategory(
+          variantTitle,
+          baseProductDescription,
+          auqliCategories,
+        )
+
+        // Only use the matched category if confidence is above threshold
+        const confidenceThreshold = 60
+        const finalMainCategory =
+          confidence >= confidenceThreshold
+            ? mainCategory
+            : extractMainCategory(variantRecord["Product Category"] || "") || "Uncategorized"
+
+        const finalSubCategory =
+          confidence >= confidenceThreshold ? subCategory : variantRecord["Type"] || "Uncategorized"
+
+        // Get inventory quantity for this variant
+        const variantInventory = Number.parseInt(variantRecord["Variant Inventory Qty"] || "0")
+
+        // Clean the variant title
+        const cleanedVariantTitle = cleanProductTitle(variantTitle)
+
+        products.push({
+          id: `${handle}-variant-${variantIndex}`,
+          name: cleanedVariantTitle,
+          price: variantRecord["Variant Price"] || "",
+          image: variantImage,
+          description: baseProductDescription,
+          weight: weightInKg,
+          inventory: variantInventory.toString(),
+          condition: mapCondition(shopifyCondition),
+          mainCategory: finalMainCategory,
+          subCategory: finalSubCategory,
+          uploadStatus: variantRecord["Status"] || "active",
+          additionalImages: sortedImages.filter((img) => img !== variantImage),
+          sku: variantRecord["Variant SKU"] || "",
+        })
+      })
+    }
   })
 
   // Apply additional apparel-specific categorization improvements
@@ -646,7 +799,7 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
 
 // Update the mapWooCommerceToAuqli function to use the improved matching
 async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCategory[]): Promise<Product[]> {
-  return records.map((record) => {
+  const mappedProducts = records.map((record) => {
     const productName = record["Name"] || record["name"] || record["product_name"] || ""
     const productDescription = htmlToText(record["Description"] || record["description"] || "")
 
@@ -667,9 +820,12 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
     const finalSubCategory =
       confidence >= confidenceThreshold ? subCategory : record["Tags"] || record["tags"] || "Uncategorized"
 
+    // Clean the product title
+    const cleanedTitle = cleanProductTitle(productName)
+
     return {
       id: record["ID"] || record["id"] || record["product_id"] || "",
-      name: productName,
+      name: cleanedTitle,
       price: record["Regular price"] || record["regular_price"] || record["price"] || "",
       image: record["Images"] || record["images"] || record["image"] || "",
       description: productDescription,
@@ -682,4 +838,7 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
       additionalImages: [],
     }
   })
+
+  // Apply validation to ensure no duplicates, no blank titles, and no missing data
+  return validateAndCleanProducts(mappedProducts)
 }

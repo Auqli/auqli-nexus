@@ -3,113 +3,122 @@
 import { useState, useEffect, useMemo } from "react"
 import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search } from "lucide-react"
 
-export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
-  // Convert to plain JavaScript without TypeScript annotations
-  const [selectedCategories, setSelectedCategories] = useState({})
-  const [currentProductIndex, setCurrentProductIndex] = useState(0)
-  const [activeTab, setActiveTab] = useState("categories") // 'categories' or 'preview'
-  const [expandedCategory, setExpandedCategory] = useState(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [productSearchQuery, setProductSearchQuery] = useState("")
-  const [categoryPage, setCategoryPage] = useState(1)
-  const categoriesPerPage = 8
+interface CategorySelectionModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSave: (selectedCategories: { [productId: string]: { mainCategory: string; subCategory: string } }) => void
+  unmatchedProducts: Array<{ id: string; name: string; mainCategory: string; subCategory: string }>
+  auqliCategories: Array<{ id: string; name: string; subcategories: Array<{ id: string; name: string }> }>
+}
 
-  const currentProduct = unmatchedProducts[currentProductIndex] || {
-    id: "",
-    name: "",
-    mainCategory: "",
-    subCategory: "",
+export function CategorySelectionModal({
+  isOpen,
+  onClose,
+  onSave,
+  unmatchedProducts,
+  auqliCategories,
+}: CategorySelectionModalProps) {
+  const [selectedCategories, setSelectedCategories] = useState<{
+    [productId: string]: { mainCategory: string; subCategory: string }
+}>(
+{
+}
+)
+const [currentProductIndex, setCurrentProductIndex] = useState(0)
+const [activeTab, setActiveTab] = useState("categories") // 'categories' or 'preview'
+const [expandedCategory, setExpandedCategory] = useState(null)
+const [searchQuery, setSearchQuery] = useState("")
+const [productSearchQuery, setProductSearchQuery] = useState("")
+
+// New state for category pagination
+const [categoryPage, setCategoryPage] = useState(1)
+const categoriesPerPage = 8
+
+const currentProduct = unmatchedProducts[currentProductIndex] || {
+  id: "",
+  name: "",
+  mainCategory: "",
+  subCategory: "",
+}
+
+// Filter products based on search query
+const filteredProducts = useMemo(() => {
+  if (!productSearchQuery.trim()) return unmatchedProducts
+
+  return unmatchedProducts.filter((product) => product.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
+}, [unmatchedProducts, productSearchQuery])
+
+// Filter categories based on search query
+const filteredCategories = useMemo(() => {
+  if (!searchQuery.trim()) return auqliCategories
+
+  return auqliCategories.filter((category) => category.name.toLowerCase().includes(searchQuery.toLowerCase()))
+}, [auqliCategories, searchQuery])
+
+// Paginate categories
+const totalCategoryPages = Math.ceil(filteredCategories.length / categoriesPerPage)
+const displayedCategories = filteredCategories.slice(
+  (categoryPage - 1) * categoriesPerPage,
+  categoryPage * categoriesPerPage,
+)
+
+// Reset state when modal opens or products change
+useEffect(() => {
+  if (isOpen && unmatchedProducts.length > 0) {
+    setCurrentProductIndex(0)
+    setActiveTab("categories")
+    setExpandedCategory(null)
+    setCategoryPage(1)
+    setSearchQuery("")
+    setProductSearchQuery("")
   }
+}, [isOpen, unmatchedProducts])
 
-  // Filter products based on search query
-  const filteredProducts = useMemo(() => {
-    if (!productSearchQuery.trim()) return unmatchedProducts
+const handleMainCategoryChange = (productId: string, mainCategory: string) => {
+  setSelectedCategories((prev) => ({
+    ...prev,
+    [productId]: {
+      mainCategory,
+      subCategory: "", // Reset subcategory when main category changes
+    },
+  }))
+}
 
-    return unmatchedProducts.filter((product) => product.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
-  }, [unmatchedProducts, productSearchQuery])
+const handleSubCategoryChange = (productId: string, subCategory: string) => {
+  setSelectedCategories((prev) => ({
+    ...prev,
+    [productId]: {
+      ...prev[productId],
+      subCategory,
+    },
+  }))
+}
 
-  // Filter categories based on search query
-  const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) return auqliCategories
-
-    return auqliCategories.filter((category) => {
-      // Check if category name matches search
-      const categoryMatches = category.name.toLowerCase().includes(searchQuery.toLowerCase())
-
-      // Check if any subcategory matches search
-      const hasMatchingSubcategory =
-        Array.isArray(category.subcategories) &&
-        category.subcategories.some((subcategory) => subcategory.name.toLowerCase().includes(searchQuery.toLowerCase()))
-
-      // Return true if either category or any subcategory matches
-      return categoryMatches || hasMatchingSubcategory
-    })
-  }, [auqliCategories, searchQuery])
-
-  // Paginate categories
-  const totalCategoryPages = Math.ceil(filteredCategories.length / categoriesPerPage)
-  const displayedCategories = filteredCategories.slice(
-    (categoryPage - 1) * categoriesPerPage,
-    categoryPage * categoriesPerPage,
-  )
-
-  // Reset state when modal opens or products change
-  useEffect(() => {
-    if (isOpen && unmatchedProducts.length > 0) {
-      setCurrentProductIndex(0)
-      setActiveTab("categories")
-      setExpandedCategory(null)
-      setCategoryPage(1)
-      setSearchQuery("")
-      setProductSearchQuery("")
-    }
-  }, [isOpen, unmatchedProducts])
-
-  const handleMainCategoryChange = (productId, mainCategory) => {
-    setSelectedCategories((prev) => ({
-      ...prev,
-      [productId]: {
-        mainCategory,
-        subCategory: "", // Reset subcategory when main category changes
-      },
-    }))
+const handleNextProduct = () => {
+  if (currentProductIndex < unmatchedProducts.length - 1) {
+    setCurrentProductIndex(currentProductIndex + 1)
+    setExpandedCategory(null) // Close any expanded category when moving to next product
   }
+}
 
-  const handleSubCategoryChange = (productId, subCategory) => {
-    setSelectedCategories((prev) => ({
-      ...prev,
-      [productId]: {
-        ...prev[productId],
-        subCategory,
-      },
-    }))
+// Category pagination handlers
+const handlePrevCategoryPage = () => {
+  if (categoryPage > 1) {
+    setCategoryPage(categoryPage - 1)
   }
+}
 
-  const handleNextProduct = () => {
-    if (currentProductIndex < unmatchedProducts.length - 1) {
-      setCurrentProductIndex(currentProductIndex + 1)
-      setExpandedCategory(null) // Close any expanded category when moving to next product
-    }
+const handleNextCategoryPage = () => {
+  if (categoryPage < totalCategoryPages) {
+    setCategoryPage(categoryPage + 1)
   }
+}
 
-  // Category pagination handlers
-  const handlePrevCategoryPage = () => {
-    if (categoryPage > 1) {
-      setCategoryPage(categoryPage - 1)
-    }
-  }
+const handleSaveAll = () => {
+  onSave(selectedCategories)
+}
 
-  const handleNextCategoryPage = () => {
-    if (categoryPage < totalCategoryPages) {
-      setCategoryPage(categoryPage + 1)
-    }
-  }
-
-  const handleSaveAll = () => {
-    onSave(selectedCategories)
-  }
-
-  const toggleCategory = (categoryName) => {
+const toggleCategory = (categoryName: string) => {
     if (expandedCategory === categoryName) {
       setExpandedCategory(null)
     } else {
@@ -117,17 +126,14 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
     }
   }
 
-  const getProductCategoryStatus = (product) => {
+const getProductCategoryStatus = (product: { id: string; mainCategory: string; subCategory: string }) => {
     const selected = selectedCategories[product.id]
 
     if (!selected) {
-      if (product.mainCategory?.includes("Uncategorized") || !product.mainCategory) {
+      if (product.mainCategory.includes("Uncategorized") || !product.mainCategory) {
         return { mainMissing: true, subMissing: true }
       }
-      return {
-        mainMissing: false,
-        subMissing: product.subCategory?.includes("Uncategorized") || !product.subCategory,
-      }
+      return { mainMissing: false, subMissing: product.subCategory.includes("Uncategorized") || !product.subCategory }
     }
 
     return {
@@ -136,12 +142,12 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
     }
   }
 
-  // Calculate progress
-  const categorizedCount = Object.keys(selectedCategories).length
+// Calculate progress
+const categorizedCount = Object.keys(selectedCategories).length
 
-  if (!isOpen) return null
+if (!isOpen) return null
 
-  return (
+return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
       <div className="relative w-[90vw] max-w-4xl max-h-[90vh] bg-[#0c1322] rounded-lg overflow-hidden text-white">
         {/* Close button */}
@@ -197,7 +203,7 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
 
             {/* Scrollable products list */}
             <div className="overflow-y-auto flex-1" style={{ maxHeight: "calc(90vh - 340px)" }}>
-              {filteredProducts.map((product) => {
+              {filteredProducts.map((product, index) => {
                 const status = getProductCategoryStatus(product)
                 const isSelected = currentProduct.id === product.id
                 const mainCategory = selectedCategories[product.id]?.mainCategory || product.mainCategory
@@ -310,25 +316,24 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
 
                           {expandedCategory === category.name && (
                             <div className="mt-2 space-y-1 pl-4">
-                              {category.subcategories &&
-                                category.subcategories.map((subcategory) => {
-                                  const isSubcategorySelected =
-                                    selectedCategories[currentProduct.id]?.subCategory === subcategory.name
+                              {category.subcategories.map((subcategory) => {
+                                const isSubcategorySelected =
+                                  selectedCategories[currentProduct.id]?.subCategory === subcategory.name
 
-                                  return (
-                                    <button
-                                      key={subcategory.id}
-                                      className={`w-full text-left p-2 rounded-md ${
-                                        isSubcategorySelected
-                                          ? "bg-[#16783a] text-white"
-                                          : "bg-[#111827] hover:bg-[#1a2235]"
-                                      }`}
-                                      onClick={() => handleSubCategoryChange(currentProduct.id, subcategory.name)}
-                                    >
-                                      {subcategory.name}
-                                    </button>
-                                  )
-                                })}
+                                return (
+                                  <button
+                                    key={subcategory.id}
+                                    className={`w-full text-left p-2 rounded-md ${
+                                      isSubcategorySelected
+                                        ? "bg-[#16783a] text-white"
+                                        : "bg-[#111827] hover:bg-[#1a2235]"
+                                    }`}
+                                    onClick={() => handleSubCategoryChange(currentProduct.id, subcategory.name)}
+                                  >
+                                    {subcategory.name}
+                                  </button>
+                                )
+                              })}
                             </div>
                           )}
                         </div>
