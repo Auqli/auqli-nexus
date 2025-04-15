@@ -46,9 +46,7 @@ export const ImageGenerationConfig = {
     general: "Masterful composition, photorealistic, 8k resolution",
     product: "Clean studio shot, detailed textures, professional lighting",
     social: "Engaging, vibrant colors, trending style",
-    // Add an index signature to allow any string key\
-    [key: string]: string,
-  },
+  } as Record<string, string>,
   toneOptions: [
     { value: "none", label: "None", promptAddition: "" },
     { value: "vibrant", label: "Vibrant", promptAddition: "Vibrant colors" },
@@ -99,7 +97,7 @@ export function expandMinimalPrompt(prompt: string, useCase: string, productCate
 
   // Add product-specific details
   if (productCategory && productCategory !== "none") {
-    const categoryDetails = {
+    const categoryDetails: Record<string, string> = {
       clothing: "with visible fabric texture, stitching details, and proper fit. Natural lighting to show true colors.",
       electronics: "with clean design, visible features, and proper scale. Studio lighting to highlight details.",
       beauty:
@@ -108,8 +106,8 @@ export function expandMinimalPrompt(prompt: string, useCase: string, productCate
       food: "with appetizing presentation, vibrant colors, and proper styling. Professional food photography lighting.",
     }
 
-    if (categoryDetails[productCategory as keyof typeof categoryDetails]) {
-      expandedPrompt += `. ${categoryDetails[productCategory as keyof typeof categoryDetails]}`
+    if (categoryDetails[productCategory]) {
+      expandedPrompt += `. ${categoryDetails[productCategory]}`
     }
   }
 
