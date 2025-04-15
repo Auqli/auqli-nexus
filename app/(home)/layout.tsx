@@ -1,2 +1,4 @@
-// If this file exists and includes SiteHeader, remove it
-// since it's already included in the root layout
+import type React from "react"
+export default function HomeLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
+}

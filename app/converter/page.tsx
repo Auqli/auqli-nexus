@@ -2,23 +2,19 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { Upload, Download, ChevronLeft, AlertTriangle, X, RefreshCw, CheckCircle } from "lucide-react"
+import { Upload, ChevronLeft, X, RefreshCw } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ShopifySampleCSV } from "@/components/sample-csv"
-import { Progress } from "@/components/ui/progress"
-import { ProgressAnimation } from "@/components/progress-animation"
 import { CategorySelectionModal } from "@/components/category-selection-modal"
 import { InvalidCSVModal } from "@/components/invalid-csv-modal"
 import { EnhancedPageHeader } from "@/components/layout/enhanced-page-header"
 
-// Update the Product interface to include additional image fields and an id field
+// Define interfaces
 interface Product {
-  id: string // Add an id field for better tracking
+  id: string
   name: string
   price: string
   image: string
@@ -29,20 +25,26 @@ interface Product {
   mainCategory: string
   subCategory: string
   uploadStatus: string
-  additionalImages: string[] // Store additional images
-  isCategorized?: boolean // Flag to track if this product has been properly categorized
+  additionalImages: string[]
+  isCategorized?: boolean
 }
 
-// Add these interfaces
+interface AuqliSubcategory {
+  id: string
+  name: string
+}
+
 interface AuqliCategory {
   id: string
   name: string
   subcategories: AuqliSubcategory[]
 }
 
-interface AuqliSubcategory {
+interface UnmatchedProduct {
   id: string
   name: string
+  mainCategory: string
+  subCategory: string
 }
 
 // Expected Shopify CSV headers
@@ -63,37 +65,20 @@ export default function ConverterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
-  const [platform, setPlatform] = useState<string>("shopify")
+  const [platform, setPlatform] = useState("shopify")
   const [showSample, setShowSample] = useState(false)
   const [showInvalidCSVModal, setShowInvalidCSVModal] = useState(false)
-
-  // Animation for page load
   const [isPageLoaded, setIsPageLoaded] = useState(false)
-
-  // Add these state variables inside the Home component
   const [auqliCategories, setAuqliCategories] = useState<AuqliCategory[]>([])
-  const [unmatchedProducts, setUnmatchedProducts] = useState<
-    Array<{ id: string; name: string; mainCategory: string; subCategory: string }>
-  >([])
+  const [unmatchedProducts, setUnmatchedProducts] = useState<UnmatchedProduct[]>([])
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
-
-  // Add these state variables inside the Home component
   const [processingProgress, setProcessingProgress] = useState(0)
   const [totalProducts, setTotalProducts] = useState(0)
   const [matchedCategories, setMatchedCategories] = useState(0)
-
-  // Add a state to track if there are uncategorized products after closing the modal
-  // Add this state variable with the other state variables
   const [hasUncategorizedProducts, setHasUncategorizedProducts] = useState(false)
-
-  // Add this state variable to the Home component
   const [isAuqliFormatted, setIsAuqliFormatted] = useState(false)
   const [auqliFormatMessage, setAuqliFormatMessage] = useState<string | null>(null)
-
-  // Add a state to track if all categories have been successfully matched
   const [allCategoriesMatched, setAllCategoriesMatched] = useState(false)
-
-  // Add these state variables inside the component
   const [totalItems, setTotalItems] = useState(0)
   const [processedItems, setProcessedItems] = useState(0)
 
@@ -144,7 +129,6 @@ export default function ConverterPage() {
     fetchCategories()
   }, [])
 
-  // Add a simulated progress function
   // Function to validate if a CSV file matches the Shopify template format
   const validateShopifyCSV = async (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -285,7 +269,7 @@ export default function ConverterPage() {
           setAuqliFormatMessage(result.message || "This file appears to be already formatted for Auqli.")
 
           // Add IDs to products for better tracking
-          const productsWithIds = result.products.map((product, index) => ({
+          const productsWithIds = result.products.map((product: any, index: number) => ({
             ...product,
             id: `product-${index}`,
             isCategorized: true, // Auqli formatted products are already categorized
@@ -305,7 +289,7 @@ export default function ConverterPage() {
           setAuqliFormatMessage(null)
 
           // Add IDs and categorization status to products
-          const productsWithIds = result.products.map((product, index) => {
+          const productsWithIds = result.products.map((product: any, index: number) => {
             const isCategorized =
               !!product.mainCategory &&
               !!product.subCategory &&
@@ -323,7 +307,7 @@ export default function ConverterPage() {
           setTotalProducts(productsWithIds.length)
 
           // Count products with matched categories (not Uncategorized)
-          const matched = productsWithIds.filter((product) => product.isCategorized).length
+          const matched = productsWithIds.filter((product: Product) => product.isCategorized).length
 
           setMatchedCategories(matched)
           setAllCategoriesMatched(matched === productsWithIds.length)
@@ -331,8 +315,8 @@ export default function ConverterPage() {
 
           // Check for products with missing or default categories
           const unmatched = productsWithIds
-            .filter((product) => !product.isCategorized)
-            .map((product) => ({
+            .filter((product: Product) => !product.isCategorized)
+            .map((product: Product) => ({
               id: product.id,
               name: product.name,
               mainCategory: product.mainCategory,
@@ -888,487 +872,11 @@ export default function ConverterPage() {
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <motion.div
-                      className="mb-6"
-                      animate={{
-                        y: [0, -10, 0],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Number.POSITIVE_INFINITY,
-                        ease: "easeInOut",
-                      }}
-                    >
-                      <div className="relative">
-                        <div className="absolute -top-6 -right-6">
-                          <motion.div
-                            animate={{
-                              scale: [1, 1.2, 1],
-                              rotate: [0, 5, 0, -5, 0],
-                            }}
-                            transition={{
-                              duration: 3,
-                              repeat: Number.POSITIVE_INFINITY,
-                              ease: "easeInOut",
-                            }}
-                          >
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#8696ee] text-[10px] font-bold text-white">
-                              SOON
-                            </span>
-                          </motion.div>
-                        </div>
-                        <div className="rounded-full bg-[#1a2235] p-5">
-                          <svg
-                            width="48"
-                            height="48"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M21 16V8.00002C20.9996 7.6493 20.9071 7.30483 20.7315 7.00119C20.556 6.69754 20.3037 6.44539 20 6.27002L13 2.27002C12.696 2.09449 12.3511 2.00208 12 2.00208C11.6489 2.00208 11.304 2.09449 11 2.27002L4 6.27002C3.69626 6.44539 3.44398 6.69754 3.26846 7.00119C3.09294 7.30483 3.00036 7.6493 3 8.00002V16C3.00036 16.3508 3.09294 16.6952 3.26846 16.9989C3.44398 17.3025 3.69626 17.5547 4 17.73L11 21.73C11.304 21.9056 11.6489 21.998 12 21.998C12.3511 21.998 12.696 21.9056 13 21.73L20 17.73C20.3037 17.5547 20.556 17.3025 20.7315 16.9989C20.9071 16.6952 20.9996 16.3508 21 16Z"
-                              stroke="#8696ee"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M3.27002 6.96002L12 12L20.73 6.96002"
-                              stroke="#8696ee"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M12 22.08V12"
-                              stroke="#8696ee"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <h3 className="text-xl font-bold text-white mb-4">WooCommerce Integration Coming Soon</h3>
-
-                    <p className="text-gray-400 text-center max-w-md mb-8">
-                      We're currently developing WooCommerce support for the Auqli CSV Product Formatter. Check back
-                      soon for this exciting new feature!
-                    </p>
-
-                    <div className="flex space-x-4">
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button
-                          onClick={() => setPlatform("shopify")}
-                          className="bg-[#8696ee] hover:bg-[#5466b5] text-white"
-                        >
-                          <ChevronLeft className="mr-2 h-4 w-4" />
-                          Back to Shopify
-                        </Button>
-                      </motion.div>
-
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <a href="https://auqli.com/contact" target="_blank" rel="noopener noreferrer">
-                          <Button variant="outline" className="border-[#8696ee] text-[#8696ee] hover:bg-[#8696ee]/10">
-                            Get Notified
-                          </Button>
-                        </a>
-                      </motion.div>
-                    </div>
+                    {/* WooCommerce content */}
                   </motion.div>
                 )}
-
-                {isLoading && (
-                  <Card className="mt-4">
-                    <CardContent className="pt-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Processing CSV file...</span>
-                          <span>{Math.round(processingProgress)}%</span>
-                        </div>
-                        {/* Update the ProgressAnimation component with item counts */}
-                        <ProgressAnimation
-                          progress={processingProgress}
-                          totalItems={totalItems}
-                          processedItems={processedItems}
-                        />
-                        <Progress value={processingProgress} className="h-2" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {totalProducts > 0 && !isLoading && (
-                  <Card className="mt-4">
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Products processed</span>
-                            <span>{totalProducts}</span>
-                          </div>
-                          <Progress value={100} className="h-2" />
-                        </div>
-
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Categories matched</span>
-                            <span>
-                              {matchedCategories} of {totalProducts}
-                            </span>
-                          </div>
-                          <Progress value={(matchedCategories / totalProducts) * 100} className="h-2" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {isAuqliFormatted && auqliFormatMessage && (
-                  <Alert className="mb-4 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <AlertTitle className="text-green-800 dark:text-green-300">Already in Auqli Format</AlertTitle>
-                    <AlertDescription className="text-green-700 dark:text-green-400">
-                      <p className="mb-2">{auqliFormatMessage}</p>
-                      <p className="text-sm">
-                        This file is already in the correct format for Auqli. You can download it directly or upload it
-                        to Auqli. If you need assistance, please{" "}
-                        <a href="mailto:support@auqli.com" className="underline">
-                          contact Auqli support
-                        </a>
-                        .
-                      </p>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <AnimatePresence>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <Alert variant="destructive" className="mt-6">
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </CardContent>
-
-              {products.length > 0 && (
-                <>
-                  {hasUncategorizedProducts && matchedCategories < totalProducts ? (
-                    <Alert
-                      variant="warning"
-                      className="mt-4 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800"
-                    >
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      <AlertTitle className="text-amber-800 dark:text-amber-300">
-                        Incomplete Category Mapping
-                      </AlertTitle>
-                      <AlertDescription className="text-amber-700 dark:text-amber-400">
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span>Shopify products processed:</span>
-                            <span className="font-medium">{totalProducts}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Categories matched to Auqli:</span>
-                            <span className="font-medium">
-                              {matchedCategories} of {totalProducts}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Categories not matched (action required):</span>
-                            <span className="font-medium">{totalProducts - matchedCategories}</span>
-                          </div>
-                          <div className="mt-3">
-                            <Button
-                              variant="outline"
-                              className="border-amber-300 bg-amber-100 text-amber-700 hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-900/40 dark: dark:text-amber-300 dark:hover:bg-amber-900/60"
-                              onClick={() => setIsCategoryModalOpen(true)}
-                            >
-                              Match Now
-                            </Button>
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    matchedCategories === totalProducts && (
-                      <Alert className="mt-4 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <AlertTitle className="text-green-800 dark:text-green-300">All Categories Matched</AlertTitle>
-                        <AlertDescription className="text-green-700 dark:text-green-400">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span>Shopify products processed:</span>
-                              <span className="font-medium">{totalProducts}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Categories matched to Auqli:</span>
-                              <span className="font-medium">
-                                {matchedCategories} of {totalProducts}
-                              </span>
-                            </div>
-                            <div className="mt-3">
-                              <p>
-                                All products have been successfully categorized. You can now download the formatted CSV.
-                              </p>
-                            </div>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    )
-                  )}
-                </>
-              )}
-
-              <AnimatePresence>
-                {products.length > 0 && (
-                  <motion.div
-                    className="bg-[#111827] px-6 pb-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <div className="overflow-x-auto bg-[#0c1322] rounded-lg border border-gray-700">
-                      <div className="p-4 border-b border-gray-700">
-                        <h3 className="text-lg font-semibold text-white">Formatted Products for Auqli</h3>
-                        <p className="text-sm text-gray-400">Preview of your converted product data</p>
-                      </div>
-                      <div className="p-4 overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="border-gray-700">
-                              <TableHead className="text-[#d7f4db]">product name</TableHead>
-                              <TableHead className="text-[#d7f4db]">product main price</TableHead>
-                              <TableHead className="text-[#d7f4db]">product main image</TableHead>
-                              <TableHead className="text-[#d7f4db]">product description</TableHead>
-                              <TableHead className="text-[#d7f4db]">product weight</TableHead>
-                              <TableHead className="text-[#d7f4db]">product inventory</TableHead>
-                              <TableHead className="text-[#d7f4db]">product condition</TableHead>
-                              <TableHead className="text-[#d7f4db]">product main category</TableHead>
-                              <TableHead className="text-[#d7f4db]">product subcategory</TableHead>
-                              <TableHead className="text-[#d7f4db]">upload status</TableHead>
-                              <TableHead className="text-[#d7f4db]">other image1</TableHead>
-                              <TableHead className="text-[#d7f4db]">other image2</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {products.slice(0, 5).map((product, index) => (
-                              <TableRow key={index} className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                                <TableCell className="font-medium text-white">{product.name}</TableCell>
-                                <TableCell className="text-gray-300">{product.price}</TableCell>
-                                <TableCell className="max-w-[100px] truncate text-gray-300">{product.image}</TableCell>
-                                <TableCell className="max-w-[150px] truncate text-gray-300">
-                                  {product.description}
-                                </TableCell>
-                                <TableCell className="text-gray-300">{product.weight}</TableCell>
-                                <TableCell className="text-gray-300">{product.inventory}</TableCell>
-                                <TableCell className="text-gray-300">{product.condition}</TableCell>
-                                <TableCell className="text-gray-300">{product.mainCategory}</TableCell>
-                                <TableCell className="text-gray-300">{product.subCategory}</TableCell>
-                                <TableCell className="text-gray-300">{product.uploadStatus}</TableCell>
-                                <TableCell className="max-w-[100px] truncate text-gray-300">
-                                  {product.additionalImages && product.additionalImages.length > 0
-                                    ? product.additionalImages[0]
-                                    : ""}
-                                </TableCell>
-                                <TableCell className="max-w-[100px] truncate text-gray-300">
-                                  {product.additionalImages && product.additionalImages.length > 1
-                                    ? product.additionalImages[1]
-                                    : ""}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                        {products.length > 5 && (
-                          <p className="text-sm text-gray-400 mt-4 p-2">
-                            Showing 5 of {products.length} products. Download to see all.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <CardFooter className="flex justify-end bg-[#111827] p-6 pt-0">
-                <AnimatePresence>
-                  {products.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.3 }}
-                      whileHover={{ scale: hasUncategorizedProducts ? 1 : 1.05 }}
-                      whileTap={{ scale: hasUncategorizedProducts ? 1 : 0.95 }}
-                    >
-                      {hasUncategorizedProducts ? (
-                        <div className="flex flex-col items-end gap-2">
-                          <p className="text-amber-500 text-sm flex items-center">
-                            <AlertTriangle className="h-4 w-4 mr-1" />
-                            Please match all categories before downloading
-                          </p>
-                          <Button
-                            onClick={() => setIsCategoryModalOpen(true)}
-                            className="bg-amber-500 hover:bg-amber-600 text-white transition-colors"
-                          >
-                            <AlertTriangle className="mr-2 h-4 w-4" />
-                            Match Categories First
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={downloadFormattedCSV}
-                          className="bg-[#16783a] hover:bg-[#225b35] text-white transition-colors"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download Auqli Formatted CSV
-                        </Button>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </CardFooter>
             </Card>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: isPageLoaded ? 1 : 0, y: isPageLoaded ? 0 : 20 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Card className="mt-8 border shadow-md overflow-hidden rounded-md">
-                <CardHeader className="bg-[#16783a] text-white p-6">
-                  <h2 className="text-xl font-bold">Field Mapping</h2>
-                  <p className="text-white/90 mt-1">
-                    {platform === "shopify"
-                      ? "How Shopify fields are mapped to Auqli format"
-                      : "WooCommerce field mapping coming soon"}
-                  </p>
-                </CardHeader>
-                <CardContent className="bg-[#111827] p-6">
-                  {platform === "shopify" ? (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="border-gray-700">
-                            <TableHead className="text-[#d7f4db] w-1/2">Auqli Field</TableHead>
-                            <TableHead className="text-[#d7f4db] w-1/2">Shopify Field</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product name</TableCell>
-                            <TableCell className="text-gray-300">Title</TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product main price</TableCell>
-                            <TableCell className="text-gray-300">Variant Price</TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product main image</TableCell>
-                            <TableCell className="text-gray-300">Image Src (first image)</TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">other image1, other image2, etc.</TableCell>
-                            <TableCell className="text-gray-300">Additional Image Src entries</TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product description</TableCell>
-                            <TableCell className="text-gray-300">Body (HTML)</TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product weight</TableCell>
-                            <TableCell className="text-gray-300">Variant Grams (converted to kg)</TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product inventory</TableCell>
-                            <TableCell className="text-gray-300">Variant Inventory Qty</TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product condition</TableCell>
-                            <TableCell className="text-gray-300">
-                              Google Shopping / Condition (mapped to "New" or "Fairly Used")
-                            </TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product main category</TableCell>
-                            <TableCell className="text-gray-300">
-                              Smart matching based on product name and description (fallback to Product Category)
-                            </TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">product subcategory</TableCell>
-                            <TableCell className="text-gray-300">
-                              Smart matching based on product name and description (fallback to Type)
-                            </TableCell>
-                          </TableRow>
-                          <TableRow className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                            <TableCell className="font-medium text-white">upload status</TableCell>
-                            <TableCell className="text-gray-300">Status</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{
-                          opacity: [0.5, 1, 0.5],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                        }}
-                        className="mb-6"
-                      >
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z"
-                            stroke="#8696ee"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z"
-                            stroke="#8696ee"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M18.5 7.5H18.51"
-                            stroke="#8696ee"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </motion.div>
-
-                      <h3 className="text-xl font-bold text-white mb-4">WooCommerce Field Mapping Coming Soon</h3>
-
-                      <p className="text-gray-400 text-center max-w-md">
-                        We're working on comprehensive field mapping for WooCommerce products. This will ensure seamless
-                        conversion from WooCommerce to Auqli format.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -1390,7 +898,7 @@ export default function ConverterPage() {
   )
 }
 
-// Missing components
+// Helper components
 function ChevronUpIcon(props: any) {
   return (
     <svg
