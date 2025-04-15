@@ -46,6 +46,8 @@ export const ImageGenerationConfig = {
     general: "Masterful composition, photorealistic, 8k resolution",
     product: "Clean studio shot, detailed textures, professional lighting",
     social: "Engaging, vibrant colors, trending style",
+    // Add an index signature to allow any string key\
+    [key: string]: string,
   },
   toneOptions: [
     { value: "none", label: "None", promptAddition: "" },
@@ -106,8 +108,8 @@ export function expandMinimalPrompt(prompt: string, useCase: string, productCate
       food: "with appetizing presentation, vibrant colors, and proper styling. Professional food photography lighting.",
     }
 
-    if (categoryDetails[productCategory]) {
-      expandedPrompt += `. ${categoryDetails[productCategory]}`
+    if (categoryDetails[productCategory as keyof typeof categoryDetails]) {
+      expandedPrompt += `. ${categoryDetails[productCategory as keyof typeof categoryDetails]}`
     }
   }
 

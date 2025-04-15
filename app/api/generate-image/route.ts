@@ -98,7 +98,11 @@ export async function POST(request: Request) {
 
     // Get the prompt enhancer for this use case
     const promptEnhancerType = useCaseConfig.promptEnhancer || "general"
-    const promptEnhancer = ImageGenerationConfig.promptEnhancers[promptEnhancerType]
+
+    // Fix: Use type assertion to tell TypeScript this is a valid key
+    const promptEnhancer =
+      ImageGenerationConfig.promptEnhancers[promptEnhancerType as keyof typeof ImageGenerationConfig.promptEnhancers] ||
+      ImageGenerationConfig.promptEnhancers.general
 
     // Get tone addition if specified
     const toneAddition =
@@ -115,7 +119,7 @@ export async function POST(request: Request) {
     if (mode === "text-to-image") {
       // For text-to-image mode
       enhancedPrompt = `${useCaseConfig.promptTemplate} ${prompt}. 
-    ${promptEnhancer} ${toneAddition} ${creativityLevel} ${modelConfig.promptEnhancement}`.trim()
+   ${promptEnhancer} ${toneAddition} ${creativityLevel} ${modelConfig.promptEnhancement}`.trim()
 
       // Add brand-specific enhancements if brands are detected
       enhancedPrompt = enhancePromptWithBrandDetails(enhancedPrompt, ImageGenerationConfig)
@@ -127,7 +131,7 @@ export async function POST(request: Request) {
     } else {
       // For image-remix mode
       enhancedPrompt = `Remix the uploaded image to create ${prompt}. 
-        ${promptEnhancer} ${toneAddition} ${creativityLevel} ${modelConfig.promptEnhancement}`.trim()
+       ${promptEnhancer} ${toneAddition} ${creativityLevel} ${modelConfig.promptEnhancement}`.trim()
     }
 
     console.log("Enhanced prompt:", enhancedPrompt)

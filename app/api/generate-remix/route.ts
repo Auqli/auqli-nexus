@@ -56,7 +56,11 @@ export async function POST(request: Request) {
 
     // Get the prompt enhancer for this use case
     const promptEnhancerType = useCaseConfig.promptEnhancer || "general"
-    const promptEnhancer = ImageGenerationConfig.promptEnhancers[promptEnhancerType]
+
+    // Fix: Use type assertion to tell TypeScript this is a valid key
+    const promptEnhancer =
+      ImageGenerationConfig.promptEnhancers[promptEnhancerType as keyof typeof ImageGenerationConfig.promptEnhancers] ||
+      ImageGenerationConfig.promptEnhancers.general
 
     // Get tone addition if specified
     const toneAddition =
@@ -69,7 +73,7 @@ export async function POST(request: Request) {
 
     // Build the enhanced prompt for remix
     const enhancedPrompt = `Remix the uploaded images to create: ${prompt}. 
-      ${promptEnhancer} ${toneAddition} ${creativityLevel} ${modelConfig.promptEnhancement}`.trim()
+     ${promptEnhancer} ${toneAddition} ${creativityLevel} ${modelConfig.promptEnhancement}`.trim()
 
     console.log("Enhanced remix prompt:", enhancedPrompt)
 
