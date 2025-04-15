@@ -19,6 +19,68 @@ const AUQLI_REQUIRED_HEADERS = [
   "product subcategory",
 ]
 
+// 1. Enhance the apparelMappings object with more comprehensive terms
+const apparelMappings = {
+  // Keep existing mappings
+  // Add or enhance these mappings:
+  hat: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+  cap: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+  beanie: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+  headwear: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+  bucket: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
+  baseball: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
+  cadet: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
+  snapback: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+  fedora: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+  visor: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+  beret: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+
+  // Enhance other apparel categories
+  shirt: { category: "Apparel & Accessories", subcategory: "Shirts", weight: 90 },
+  tshirt: { category: "Apparel & Accessories", subcategory: "Shirts", weight: 90 },
+  tee: { category: "Apparel & Accessories", subcategory: "Shirts", weight: 90 },
+  polo: { category: "Apparel & Accessories", subcategory: "Shirts", weight: 90 },
+  hoodie: { category: "Apparel & Accessories", subcategory: "Hoodies & Sweatshirts", weight: 90 },
+  sweatshirt: { category: "Apparel & Accessories", subcategory: "Hoodies & Sweatshirts", weight: 90 },
+  sweater: { category: "Apparel & Accessories", subcategory: "Sweaters", weight: 90 },
+  jacket: { category: "Apparel & Accessories", subcategory: "Jackets & Coats", weight: 90 },
+  coat: { category: "Apparel & Accessories", subcategory: "Jackets & Coats", weight: 90 },
+  pant: { category: "Apparel & Accessories", subcategory: "Pants", weight: 90 },
+  trouser: { category: "Apparel & Accessories", subcategory: "Pants", weight: 90 },
+  jean: { category: "Apparel & Accessories", subcategory: "Jeans", weight: 90 },
+  short: { category: "Apparel & Accessories", subcategory: "Shorts", weight: 90 },
+  skirt: { category: "Apparel & Accessories", subcategory: "Skirts", weight: 90 },
+  dress: { category: "Apparel & Accessories", subcategory: "Dresses", weight: 90 },
+  sock: { category: "Apparel & Accessories", subcategory: "Socks", weight: 90 },
+  underwear: { category: "Apparel & Accessories", subcategory: "Underwear", weight: 90 },
+  glove: { category: "Apparel & Accessories", subcategory: "Gloves", weight: 90 },
+  scarf: { category: "Apparel & Accessories", subcategory: "Scarves", weight: 90 },
+  tie: { category: "Apparel & Accessories", subcategory: "Ties", weight: 90 },
+  belt: { category: "Apparel & Accessories", subcategory: "Belts", weight: 90 },
+
+  // Add footwear mappings
+  shoe: { category: "Apparel & Accessories", subcategory: "Shoes", weight: 90 },
+  sneaker: { category: "Apparel & Accessories", subcategory: "Shoes", weight: 90 },
+  boot: { category: "Apparel & Accessories", subcategory: "Boots", weight: 90 },
+  sandal: { category: "Apparel & Accessories", subcategory: "Sandals", weight: 90 },
+  slipper: { category: "Apparel & Accessories", subcategory: "Slippers", weight: 90 },
+
+  // Add jewelry and accessory mappings
+  necklace: { category: "Apparel & Accessories", subcategory: "Necklaces", weight: 90 },
+  bracelet: { category: "Apparel & Accessories", subcategory: "Bracelets", weight: 90 },
+  earring: { category: "Apparel & Accessories", subcategory: "Earrings", weight: 90 },
+  ring: { category: "Apparel & Accessories", subcategory: "Rings", weight: 90 },
+  watch: { category: "Apparel & Accessories", subcategory: "Watches", weight: 90 },
+  wallet: { category: "Apparel & Accessories", subcategory: "Wallets", weight: 90 },
+  bag: { category: "Apparel & Accessories", subcategory: "Bags", weight: 90 },
+  backpack: { category: "Apparel & Accessories", subcategory: "Backpacks", weight: 90 },
+  purse: { category: "Apparel & Accessories", subcategory: "Purses", weight: 90 },
+  handbag: { category: "Apparel & Accessories", subcategory: "Handbags", weight: 90 },
+  sunglasses: { category: "Apparel & Accessories", subcategory: "Sunglasses", weight: 90 },
+  eyewear: { category: "Apparel & Accessories", subcategory: "Eyewear", weight: 90 },
+  glasses: { category: "Apparel & Accessories", subcategory: "Eyewear", weight: 90 },
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -161,124 +223,10 @@ function validateAndCleanProducts(products) {
   return validatedProducts
 }
 
-// Add this helper function to the route file
-function improveApparelCategorization(product: Product): Product {
-  // Normalize product name for better matching
-  const normalizedName = product.name.toLowerCase()
-
-  // Check for specific patterns in clothing items
-
-  // Men's clothing patterns
-  if (/\bmen'?s?\b|\bman'?s?\b|\bmale\b/i.test(normalizedName)) {
-    // If we already have Apparel & Accessories as main category
-    if (product.mainCategory === "Apparel & Accessories") {
-      // But subcategory is missing or generic
-      if (!product.subCategory || product.subCategory === "Uncategorized") {
-        // Try to determine specific subcategory
-        if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-          product.subCategory = "Men's T-Shirts"
-        } else if (/\bpolo\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Polo Shirts"
-        } else if (/\bhenley\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Casual Shirts"
-        } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Jeans"
-        } else if (/\bshort\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Shorts"
-        } else {
-          // Default to Men's Clothing if we can't determine specific type
-          product.subCategory = "Men's Clothing"
-        }
-      }
-    } else {
-      // If main category isn't set to Apparel yet
-      product.mainCategory = "Apparel & Accessories"
-
-      // Try to determine specific subcategory
-      if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-        product.subCategory = "Men's T-Shirts"
-      } else if (/\bpolo\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Polo Shirts"
-      } else if (/\bhenley\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Casual Shirts"
-      } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Jeans"
-      } else if (/\bshort\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Shorts"
-      } else {
-        // Default to Men's Clothing if we can't determine specific type
-        product.subCategory = "Men's Clothing"
-      }
-    }
-  }
-
-  // Women's clothing patterns
-  else if (/\bwomen'?s?\b|\bwoman'?s?\b|\bfemale\b|\bladies\b/i.test(normalizedName)) {
-    // If we already have Apparel & Accessories as main category
-    if (product.mainCategory === "Apparel & Accessories") {
-      // But subcategory is missing or generic
-      if (!product.subCategory || product.subCategory === "Uncategorized") {
-        // Try to determine specific subcategory
-        if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-          product.subCategory = "Women's T-Shirts"
-        } else if (/\bdress\b/i.test(normalizedName)) {
-          product.subCategory = "Dresses"
-        } else if (/\bskirt\b/i.test(normalizedName)) {
-          product.subCategory = "Skirts"
-        } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-          product.subCategory = "Women's Jeans"
-        } else if (/\bshort\b/i.test(normalizedName)) {
-          product.subCategory = "Women's Shorts"
-        } else if (/\bblouse\b/i.test(normalizedName)) {
-          product.subCategory = "Blouses & Shirts"
-        } else {
-          // Default to Women's Clothing if we can't determine specific type
-          product.subCategory = "Women's Clothing"
-        }
-      }
-    } else {
-      // If main category isn't set to Apparel yet
-      product.mainCategory = "Apparel & Accessories"
-
-      // Try to determine specific subcategory
-      if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-        product.subCategory = "Women's T-Shirts"
-      } else if (/\bdress\b/i.test(normalizedName)) {
-        product.subCategory = "Dresses"
-      } else if (/\bskirt\b/i.test(normalizedName)) {
-        product.subCategory = "Skirts"
-      } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-        product.subCategory = "Women's Jeans"
-      } else if (/\bshort\b/i.test(normalizedName)) {
-        product.subCategory = "Women's Shorts"
-      } else if (/\bblouse\b/i.test(normalizedName)) {
-        product.subCategory = "Blouses & Shirts"
-      } else {
-        // Default to Women's Clothing if we can't determine specific type
-        product.subCategory = "Women's Clothing"
-      }
-    }
-  }
-
-  // Generic clothing items without gender specification
-  else if (/\btee\b|\bt-?shirt\b|\bpolo\b|\bhenley\b|\bjean\b|\bdenim\b|\bshort\b/i.test(normalizedName)) {
-    product.mainCategory = "Apparel & Accessories"
-
-    // Try to determine specific subcategory
-    if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-      product.subCategory = "T-Shirts"
-    } else if (/\bpolo\b/i.test(normalizedName)) {
-      product.subCategory = "Polo Shirts"
-    } else if (/\bhenley\b/i.test(normalizedName)) {
-      product.subCategory = "Casual Shirts"
-    } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-      product.subCategory = "Jeans"
-    } else if (/\bshort\b/i.test(normalizedName)) {
-      product.subCategory = "Shorts"
-    }
-  }
-
-  return product
+// Add this helper function to check if a product name contains specific terms
+function containsProductTerms(productName: string, terms: string[]): boolean {
+  const normalizedName = productName.toLowerCase()
+  return terms.some((term) => normalizedName.includes(term))
 }
 
 // Update the findMatchingCategory function to be more sophisticated (same as in actions.ts)
@@ -377,6 +325,19 @@ function findMatchingCategory(
     makeup: { category: "Health & Beauty", subcategory: "Makeup", weight: 90 },
     hair: { category: "Health & Beauty", subcategory: "Hair Care", weight: 90 },
     fragrance: { category: "Health & Beauty", subcategory: "Fragrances", weight: 90 },
+
+    // Headwear specific mappings
+    hat: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    cap: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    beanie: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    bucket: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    baseball: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
+    cadet: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
+    fedora: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    snapback: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    trucker: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    visor: { category: "Apparel & Accessories", subcategory: "Hats", weight: 90 },
+    headwear: { category: "Apparel & Accessories", subcategory: "Hats", weight: 85 },
   }
 
   // Initialize scores for each category and subcategory
@@ -582,11 +543,233 @@ function findMatchingCategory(
     }
   }
 
+  // Special case for hats - if product name contains hat-related terms but we didn't find a direct match
+  if (
+    containsProductTerms(normalizedProductName, [
+      "hat",
+      "cap",
+      "beanie",
+      "bucket",
+      "baseball",
+      "cadet",
+      "fedora",
+      "snapback",
+      "trucker",
+      "visor",
+      "headwear",
+    ]) &&
+    scores[0].categoryName !== "Apparel & Accessories"
+  ) {
+    return {
+      mainCategory: "Apparel & Accessories",
+      subCategory: "Hats",
+      confidence: 90, // High confidence for this special case
+    }
+  }
+
   return {
     mainCategory: scores[0].categoryName,
     subCategory: scores[0].subcategoryName || "",
     confidence: confidence,
   }
+}
+
+// Add this helper function to the route file
+function improveApparelCategorization(product: Product): Product {
+  // Normalize product name for better matching
+  const normalizedName = product.name.toLowerCase()
+
+  // 2. Add this function or enhance an existing similar function:
+  function enhancedCategoryMatching(product, normalizedName) {
+    // Start with existing matching logic
+
+    // Add pattern matching for hats and caps
+    if (
+      /\bhat\b|\bcap\b|\bbeanie\b|\bbucket\b|\bsnapback\b|\bfedora\b|\bvisor\b|\bberet\b|\bcadet\b/i.test(
+        normalizedName,
+      )
+    ) {
+      return {
+        mainCategory: "Apparel & Accessories",
+        subCategory: "Hats",
+        confidence: 0.9,
+      }
+    }
+
+    // Add pattern matching for shirts and tops
+    if (/\bshirt\b|\btshirt\b|\bt-shirt\b|\btee\b|\bpolo\b/i.test(normalizedName)) {
+      return {
+        mainCategory: "Apparel & Accessories",
+        subCategory: "Shirts",
+        confidence: 0.9,
+      }
+    }
+
+    // Add pattern matching for hoodies and sweatshirts
+    if (/\bhoodie\b|\bsweatshirt\b|\bsweater\b/i.test(normalizedName)) {
+      return {
+        mainCategory: "Apparel & Accessories",
+        subCategory: "Hoodies & Sweatshirts",
+        confidence: 0.9,
+      }
+    }
+
+    // Add pattern matching for pants and bottoms
+    if (/\bpant\b|\btrouser\b|\bjean\b|\bshort\b|\bskirt\b/i.test(normalizedName)) {
+      return {
+        mainCategory: "Apparel & Accessories",
+        subCategory: normalizedName.includes("jean")
+          ? "Jeans"
+          : normalizedName.includes("short")
+            ? "Shorts"
+            : normalizedName.includes("skirt")
+              ? "Skirts"
+              : "Pants",
+        confidence: 0.9,
+      }
+    }
+
+    // Add pattern matching for footwear
+    if (/\bshoe\b|\bsneaker\b|\bboot\b|\bsandal\b|\bslipper\b/i.test(normalizedName)) {
+      return {
+        mainCategory: "Apparel & Accessories",
+        subCategory: normalizedName.includes("boot")
+          ? "Boots"
+          : normalizedName.includes("sandal")
+            ? "Sandals"
+            : normalizedName.includes("slipper")
+              ? "Slippers"
+              : "Shoes",
+        confidence: 0.9,
+      }
+    }
+
+    // Continue with existing logic for other categories
+    return null // Return null if no pattern match found
+  }
+
+  // 3. In the main categorization function, add this code:
+  const enhancedMatch = enhancedCategoryMatching(product, normalizedName)
+  if (enhancedMatch) {
+    product.mainCategory = enhancedMatch.mainCategory
+    product.subCategory = enhancedMatch.subCategory
+    // product.confidence = enhancedMatch.confidence; // Don't overwrite the confidence from findMatchingCategory
+    return // Skip further processing if we have a high-confidence match
+  }
+
+  // Check for specific patterns in clothing items
+
+  // Men's clothing patterns
+  if (/\bmen'?s?\b|\bman'?s?\b|\bmale\b/i.test(normalizedName)) {
+    // If we already have Apparel & Accessories as main category
+    if (product.mainCategory === "Apparel & Accessories") {
+      // But subcategory is missing or generic
+      if (!product.subCategory || product.subCategory === "Uncategorized") {
+        // Try to determine specific subcategory
+        if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+          product.subCategory = "Men's T-Shirts"
+        } else if (/\bpolo\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Polo Shirts"
+        } else if (/\bhenley\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Casual Shirts"
+        } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Jeans"
+        } else if (/\bshort\b/i.test(normalizedName)) {
+          product.subCategory = "Men's Shorts"
+        } else {
+          // Default to Men's Clothing if we can't determine specific type
+          product.subCategory = "Men's Clothing"
+        }
+      }
+    } else {
+      // If main category isn't set to Apparel yet
+      product.mainCategory = "Apparel & Accessories"
+
+      // Try to determine specific subcategory
+      if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+        product.subCategory = "Men's T-Shirts"
+      } else if (/\bpolo\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Polo Shirts"
+      } else if (/\bhenley\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Casual Shirts"
+      } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Jeans"
+      } else if (/\bshort\b/i.test(normalizedName)) {
+        product.subCategory = "Men's Shorts"
+      } else {
+        // Default to Men's Clothing if we can't determine specific type
+        product.subCategory = "Men's Clothing"
+      }
+    }
+  }
+
+  // Women's clothing patterns
+  else if (/\bwomen'?s?\b|\bwoman'?s?\b|\bfemale\b|\bladies\b/i.test(normalizedName)) {
+    // If we already have Apparel & Accessories as main category
+    if (product.mainCategory === "Apparel & Accessories") {
+      // But subcategory is missing or generic
+      if (!product.subCategory || product.subCategory === "Uncategorized") {
+        // Try to determine specific subcategory
+        if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+          product.subCategory = "Women's T-Shirts"
+        } else if (/\bdress\b/i.test(normalizedName)) {
+          product.subCategory = "Dresses"
+        } else if (/\bskirt\b/i.test(normalizedName)) {
+          product.subCategory = "Skirts"
+        } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+          product.subCategory = "Women's Jeans"
+        } else if (/\bshort\b/i.test(normalizedName)) {
+          product.subCategory = "Women's Shorts"
+        } else if (/\bblouse\b/i.test(normalizedName)) {
+          product.subCategory = "Blouses & Shirts"
+        } else {
+          // Default to Women's Clothing if we can't determine specific type
+          product.subCategory = "Women's Clothing"
+        }
+      }
+    } else {
+      // If main category isn't set to Apparel yet
+      product.mainCategory = "Apparel & Accessories"
+
+      // Try to determine specific subcategory
+      if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+        product.subCategory = "Women's T-Shirts"
+      } else if (/\bdress\b/i.test(normalizedName)) {
+        product.subCategory = "Dresses"
+      } else if (/\bskirt\b/i.test(normalizedName)) {
+        product.subCategory = "Skirts"
+      } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+        product.subCategory = "Women's Jeans"
+      } else if (/\bshort\b/i.test(normalizedName)) {
+        product.subCategory = "Women's Shorts"
+      } else if (/\bblouse\b/i.test(normalizedName)) {
+        product.subCategory = "Blouses & Shirts"
+      } else {
+        // Default to Women's Clothing if we can't determine specific type
+        product.subCategory = "Women's Clothing"
+      }
+    }
+  }
+
+  // Generic clothing items without gender specification
+  else if (/\btee\b|\bt-?shirt\b|\bpolo\b|\bhenley\b|\bjean\b|\bdenim\b|\bshort\b/i.test(normalizedName)) {
+    product.mainCategory = "Apparel & Accessories"
+
+    // Try to determine specific subcategory
+    if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
+      product.subCategory = "T-Shirts"
+    } else if (/\bpolo\b/i.test(normalizedName)) {
+      product.subCategory = "Polo Shirts"
+    } else if (/\bhenley\b/i.test(normalizedName)) {
+      product.subCategory = "Casual Shirts"
+    } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
+      product.subCategory = "Jeans"
+    } else if (/\bshort\b/i.test(normalizedName)) {
+      product.subCategory = "Shorts"
+    }
+  }
+
+  return product
 }
 
 // Update the mapShopifyToAuqli function to handle the new requirements
@@ -666,8 +849,12 @@ async function mapShopifyToAuqli(records, auqliCategories) {
         auqliCategories,
       )
 
+      // 4. Lower the confidence threshold for category matching
+      // Find where the confidence threshold is defined and adjust it
+      const CONFIDENCE_THRESHOLD = 0.65 // Lower from whatever it was before (likely 0.7 or 0.8)
+
       // Only use the matched category if confidence is above threshold
-      const confidenceThreshold = 60
+      const confidenceThreshold = CONFIDENCE_THRESHOLD
       const finalMainCategory =
         confidence >= confidenceThreshold
           ? mainCategory
@@ -757,7 +944,7 @@ async function mapShopifyToAuqli(records, auqliCategories) {
         )
 
         // Only use the matched category if confidence is above threshold
-        const confidenceThreshold = 60
+        const confidenceThreshold = CONFIDENCE_THRESHOLD
         const finalMainCategory =
           confidence >= confidenceThreshold
             ? mainCategory
@@ -812,7 +999,7 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
 
     // Only use the matched category if confidence is above threshold
     // With our improved matching, we can use a higher threshold
-    const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
+    const CONFIDENCE_THRESHOLD = 60 // Increased from 40 to 60 due to better matching
     const finalMainCategory =
       confidence >= confidenceThreshold
         ? mainCategory
