@@ -19,6 +19,9 @@ const AUQLI_REQUIRED_HEADERS = [
   "product subcategory",
 ]
 
+// Define the confidence threshold for category matching
+const CONFIDENCE_THRESHOLD = 65 // Set this to a reasonable value (0-100)
+
 // 1. Enhance the apparelMappings object with more comprehensive terms
 const apparelMappings = {
   // Keep existing mappings
@@ -138,7 +141,28 @@ export async function POST(request: NextRequest) {
     if (categoriesResponse.ok) {
       const data = await categoriesResponse.json()
       if (Array.isArray(data)) {
-        auqliCategories = data
+        // Transform the API response to match our expected structure
+        const validatedCategories = data.map((category) => {
+          // Check if the category has subcategories or subCategories (handle both formats)
+          const subCats = category.subcategories || category.subCategories || []
+
+          return {
+            id: category.id || `cat-${Math.random().toString(36).substr(2, 9)}`,
+            name: category.name || "Unnamed Category",
+            subcategories: Array.isArray(subCats)
+              ? subCats.map((sub) => ({
+                  id: sub.id || `subcat-${Math.random().toString(36).substr(2, 9)}`,
+                  name: sub.name || "Unnamed Subcategory",
+                }))
+              : [],
+          }
+        })
+
+        console.log("Processed categories:", validatedCategories)
+        auqliCategories = validatedCategories
+      } else {
+        console.error("Invalid categories data format:", data)
+        auqliCategories = []
       }
     }
 
@@ -654,7 +678,7 @@ function improveApparelCategorization(product: Product): Product {
     product.mainCategory = enhancedMatch.mainCategory
     product.subCategory = enhancedMatch.subCategory
     // product.confidence = enhancedMatch.confidence; // Don't overwrite the confidence from findMatchingCategory
-    return // Skip further processing if we have a high-confidence match
+    return product // Skip further processing if we have a high-confidence match
   }
 
   // Check for specific patterns in clothing items
@@ -849,10 +873,6 @@ async function mapShopifyToAuqli(records, auqliCategories) {
         auqliCategories,
       )
 
-      // 4. Lower the confidence threshold for category matching
-      // Find where the confidence threshold is defined and adjust it
-      const CONFIDENCE_THRESHOLD = 0.65 // Lower from whatever it was before (likely 0.7 or 0.8)
-
       // Only use the matched category if confidence is above threshold
       const confidenceThreshold = CONFIDENCE_THRESHOLD
       const finalMainCategory =
@@ -998,8 +1018,7 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
     )
 
     // Only use the matched category if confidence is above threshold
-    // With our improved matching, we can use a higher threshold
-    const CONFIDENCE_THRESHOLD = 60 // Increased from 40 to 60 due to better matching
+    const confidenceThreshold = CONFIDENCE_THRESHOLD
     const finalMainCategory =
       confidence >= confidenceThreshold
         ? mainCategory
