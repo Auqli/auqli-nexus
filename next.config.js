@@ -6,13 +6,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  swcMinify: true, // Re-enable SWC minification since we're removing Babel
+  swcMinify: false,
   output: "standalone",
   images: {
     unoptimized: true,
   },
   experimental: {
     esmExternals: "loose",
+    fontLoaders: [], // Explicitly disable font loaders
   },
   webpack: (config) => {
     config.resolve.fallback = {
