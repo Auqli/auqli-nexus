@@ -1,19 +1,27 @@
-export interface AuqliCategory {
-  id: string
-  name: string
-  subcategories?: AuqliCategory[]
-}
+/**
+ * @typedef {Object} AuqliCategory
+ * @property {string} id
+ * @property {string} name
+ * @property {AuqliCategory[]} [subcategories]
+ */
 
-export interface Product {
-  name: string
-  price: string
-  image: string
-  description: string
-  weight: string
-  inventory: string
-  condition: string
-  mainCategory: string
-  subCategory: string
-  uploadStatus: string
-  additionalImages: string[]
+/**
+ * @typedef {Object} Product
+ * @property {string} name
+ * @property {string} price
+ * @property {string} image
+ * @property {string} description
+ * @property {string} weight
+ * @property {string} inventory
+ * @property {string} condition
+ * @property {string} mainCategory
+ * @property {string} subCategory
+ * @property {string} uploadStatus
+ * @property {string[]} additionalImages
+ */
+
+// Export the types for documentation purposes
+export const types = {
+  AuqliCategory: "AuqliCategory",
+  Product: "Product",
 }

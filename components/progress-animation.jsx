@@ -1,14 +1,16 @@
 "use client"
 
 import { motion } from "framer-motion"
+import PropTypes from "prop-types"
 
-interface ProgressAnimationProps {
-  progress: number
-  totalItems: number
-  processedItems: number
-}
-
-export function ProgressAnimation({ progress, totalItems, processedItems }: ProgressAnimationProps) {
+/**
+ * Progress animation component
+ * @param {Object} props - Component props
+ * @param {number} props.progress - Progress percentage
+ * @param {number} props.totalItems - Total number of items
+ * @param {number} props.processedItems - Number of processed items
+ */
+export function ProgressAnimation({ progress, totalItems, processedItems }) {
   return (
     <div className="space-y-2">
       {totalItems > 0 && (
@@ -37,4 +39,11 @@ export function ProgressAnimation({ progress, totalItems, processedItems }: Prog
       </div>
     </div>
   )
+}
+
+// Add PropTypes validation
+ProgressAnimation.propTypes = {
+  progress: PropTypes.number.isRequired,
+  totalItems: PropTypes.number.isRequired,
+  processedItems: PropTypes.number.isRequired,
 }

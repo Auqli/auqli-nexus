@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search } from "lucide-react"
+import PropTypes from "prop-types"
 
 export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
   // Convert to plain JavaScript without TypeScript annotations
@@ -420,4 +421,13 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
       </div>
     </div>
   )
+}
+
+// Add PropTypes validation
+CategorySelectionModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  onSave: PropTypes.func,
+  unmatchedProducts: PropTypes.array,
+  auqliCategories: PropTypes.array,
 }

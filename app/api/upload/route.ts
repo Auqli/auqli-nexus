@@ -1,10 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { parse } from "csv-parse/sync"
-import type { AuqliCategory, Product } from "@/types"
 
-// Import necessary utility functions
-import { htmlToText } from "@/lib/utils"
-import { extractMainCategory, convertToKg, mapCondition } from "@/lib/utils"
+// Define types inline if they're not properly imported
+/**
+ * @typedef {Object} AuqliCategory
+ * @property {string} id
+ * @property {string} name
+ * @property {AuqliCategory[]} [subcategories]
+ */
+
+/**
+ * @typedef {Object} Product
+ * @property {string} name
+ * @property {string} price
+ * @property {string} image
+ * @property {string} description
+ * @property {string} weight
+ * @property {string} inventory
+ * @property {string} condition
+ * @property {string} mainCategory
+ * @property {string} subCategory
+ * @property {string} uploadStatus
+ * @property {string[]} additionalImages
+ * @property {string} sku
+ */
+
+// Import utility functions
+import { htmlToText, extractMainCategory, convertToKg, mapCondition } from "@/lib/utils"
 
 // Define the expected Auqli CSV headers
 const AUQLI_REQUIRED_HEADERS = [
@@ -72,7 +94,7 @@ export async function POST(request: NextRequest) {
       cache: "no-store",
     })
 
-    let auqliCategories: AuqliCategory[] = []
+    let auqliCategories: any[] = []
     if (categoriesResponse.ok) {
       const data = await categoriesResponse.json()
       if (Array.isArray(data)) {
@@ -81,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Map CSV columns to Auqli format based on platform
-    let products = []
+    let products: Product[] = []
 
     if (platform === "shopify") {
       products = await mapShopifyToAuqli(records, auqliCategories)
@@ -129,9 +151,9 @@ function cleanProductTitle(title) {
 }
 
 // Function to validate and clean the final product list
-function validateAndCleanProducts(products) {
+function validateAndCleanProducts(products: Product[]) {
   const seenTitles = new Set()
-  const validatedProducts = []
+  const validatedProducts: Product[] = []
 
   for (const product of products) {
     // Clean the title
@@ -285,7 +307,7 @@ function improveApparelCategorization(product: Product): Product {
 function findMatchingCategory(
   productName: string,
   productDescription: string,
-  categories: AuqliCategory[],
+  categories: any[],
 ): { mainCategory: string; subCategory: string; confidence: number } {
   if (!categories || categories.length === 0) {
     return { mainCategory: "", subCategory: "", confidence: 0 }
@@ -590,7 +612,7 @@ function findMatchingCategory(
 }
 
 // Update the mapShopifyToAuqli function to handle the new requirements
-async function mapShopifyToAuqli(records, auqliCategories) {
+async function mapShopifyToAuqli(records: any[], auqliCategories: any[]): Promise<Product[]> {
   // Group records by Handle to handle variants and collect images
   const productGroups = {}
   const productImages = {}
@@ -622,7 +644,7 @@ async function mapShopifyToAuqli(records, auqliCategories) {
   })
 
   // Process each product group
-  const products = []
+  const products: Product[] = []
 
   Object.keys(productGroups).forEach((handle) => {
     const group = productGroups[handle]
@@ -798,7 +820,7 @@ async function mapShopifyToAuqli(records, auqliCategories) {
 }
 
 // Update the mapWooCommerceToAuqli function to use the improved matching
-async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCategory[]): Promise<Product[]> {
+async function mapWooCommerceToAuqli(records: any[], auqliCategories: any[]): Promise<Product[]> {
   const mappedProducts = records.map((record) => {
     const productName = record["Name"] || record["name"] || record["product_name"] || ""
     const productDescription = htmlToText(record["Description"] || record["description"] || "")
@@ -836,6 +858,7 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
       subCategory: finalSubCategory,
       uploadStatus: record["Status"] || record["status"] || "active",
       additionalImages: [],
+      sku: record["sku"] || "",
     }
   })
 

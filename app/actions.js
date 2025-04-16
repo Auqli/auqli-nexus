@@ -1,29 +1,39 @@
 import { parse } from "csv-parse/sync"
 
-// Define the AuqliCategory type
-interface AuqliCategory {
-  id: string
-  name: string
-  subcategories?: AuqliCategory[]
-}
+// Fix TypeScript syntax in JavaScript file
+// Change TypeScript interface declarations to JSDoc comments
 
-// Define the Product type
-interface Product {
-  name: string
-  price: string
-  image: string
-  description: string
-  weight: string
-  inventory: string
-  condition: string
-  mainCategory: string
-  subCategory: string
-  uploadStatus: string
-  additionalImages: string[]
-}
+/**
+ * @typedef {Object} AuqliCategory
+ * @property {string} id
+ * @property {string} name
+ * @property {AuqliCategory[]} [subcategories]
+ */
 
-// Function to convert HTML to plain text
-function htmlToText(html: string): string {
+/**
+ * @typedef {Object} Product
+ * @property {string} name
+ * @property {string} price
+ * @property {string} image
+ * @property {string} description
+ * @property {string} weight
+ * @property {string} inventory
+ * @property {string} condition
+ * @property {string} mainCategory
+ * @property {string} subCategory
+ * @property {string} uploadStatus
+ * @property {string[]} additionalImages
+ */
+
+// Replace TypeScript interface declarations with JSDoc comments
+// Remove TypeScript type annotations from function parameters
+
+/**
+ * Function to convert HTML to plain text
+ * @param {string} html - HTML string to convert
+ * @returns {string} Plain text
+ */
+function htmlToText(html) {
   // Remove HTML tags and convert HTML entities
   let text = html.replace(/<[^>]*>/g, "")
   text = text.replace(/&nbsp;/g, " ")
@@ -36,7 +46,12 @@ function htmlToText(html: string): string {
 }
 
 // Function to extract main category from a string
-function extractMainCategory(categoryString: string): string {
+/**
+ * Extract main category from a string
+ * @param {string} categoryString - Category string
+ * @returns {string} Main category
+ */
+function extractMainCategory(categoryString) {
   if (!categoryString) return ""
 
   // Split the category string by delimiters like '>', '/', or ','
@@ -54,7 +69,13 @@ function extractMainCategory(categoryString: string): string {
 }
 
 // Function to convert weight to kg
-function convertToKg(weightValue: string, weightUnit: string): string {
+/**
+ * Convert weight to kg
+ * @param {string} weightValue - Weight value
+ * @param {string} weightUnit - Weight unit
+ * @returns {string} Weight in kg
+ */
+function convertToKg(weightValue, weightUnit) {
   const weight = Number.parseFloat(weightValue)
   if (isNaN(weight)) return "0"
 
@@ -72,7 +93,12 @@ function convertToKg(weightValue: string, weightUnit: string): string {
 }
 
 // Function to map condition
-function mapCondition(condition: string): string {
+/**
+ * Map condition string to standardized condition
+ * @param {string} condition - Condition string
+ * @returns {string} Standardized condition
+ */
+function mapCondition(condition) {
   const lowerCaseCondition = condition.toLowerCase()
 
   if (lowerCaseCondition.includes("new")) {
@@ -83,17 +109,20 @@ function mapCondition(condition: string): string {
 }
 
 // Update the findMatchingCategory function to be more sophisticated
-function findMatchingCategory(
-  productName: string,
-  productDescription: string,
-  categories: AuqliCategory[],
-): { mainCategory: string; subCategory: string; confidence: number } {
+/**
+ * Find matching category based on product name and description
+ * @param {string} productName - Product name
+ * @param {string} productDescription - Product description
+ * @param {Array} categories - Categories array
+ * @returns {Object} Matching category info
+ */
+function findMatchingCategory(productName, productDescription, categories) {
   if (!categories || categories.length === 0) {
     return { mainCategory: "", subCategory: "", confidence: 0 }
   }
 
   // Normalize input text for better matching
-  const normalizeText = (text: string) => {
+  const normalizeText = (text) => {
     return text
       .toLowerCase()
       .replace(/[^\w\s]/g, " ") // Replace non-alphanumeric with spaces
@@ -111,7 +140,7 @@ function findMatchingCategory(
   const productTerms = normalizedProductName.split(" ").filter((term) => term.length > 2)
 
   // Common tech product terms and their category mappings
-  const techTermMappings: { [key: string]: { category: string; subcategory?: string; weight: number } } = {
+  const techTermMappings = {
     // Tablets and related terms
     ipad: { category: "Tablets", subcategory: "iPad", weight: 100 },
     tablet: { category: "Tablets", weight: 80 },
@@ -181,7 +210,7 @@ function findMatchingCategory(
   }
 
   // Apparel & Clothing specific mappings
-  const apparelMappings: { [key: string]: { category: string; subcategory?: string; weight: number } } = {
+  const apparelMappings = {
     // Men's clothing
     men: { category: "Apparel & Accessories", subcategory: "Men's Clothing", weight: 70 },
     mens: { category: "Apparel & Accessories", subcategory: "Men's Clothing", weight: 70 },
@@ -244,14 +273,7 @@ function findMatchingCategory(
   }
 
   // Initialize scores for each category and subcategory
-  const scores: {
-    categoryId: string
-    categoryName: string
-    score: number
-    subcategoryId?: string
-    subcategoryName?: string
-    subcategoryScore?: number
-  }[] = []
+  const scores = []
 
   // First, check for direct matches with tech term mappings
   let directMatchFound = false
@@ -564,7 +586,7 @@ function findMatchingCategory(
 }
 
 // Make sure the fetchAuqliCategories function is properly exported
-async function fetchAuqliCategories(): Promise<AuqliCategory[]> {
+async function fetchAuqliCategories() {
   try {
     const response = await fetch("https://auqliserver-8xr8zvib.b4a.run/api/public/categories", {
       cache: "no-store", // Ensure we get fresh data
@@ -607,10 +629,10 @@ async function fetchAuqliCategories(): Promise<AuqliCategory[]> {
 }
 
 // Update the mapShopifyToAuqli function to ensure weight conversion is happening correctly
-async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[]): Promise<Product[]> {
+async function mapShopifyToAuqli(records, auqliCategories) {
   // Group records by Handle to handle variants and collect images
-  const productGroups: { [key: string]: any[] } = {}
-  const productImages: { [key: string]: Array<{ url: string; position: number }> } = {}
+  const productGroups = {}
+  const productImages = {}
 
   records.forEach((record) => {
     const handle = record.Handle
@@ -705,7 +727,7 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: AuqliCategory[
 }
 
 // Update the mapWooCommerceToAuqli function to use the improved matching
-async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCategory[]): Promise<Product[]> {
+async function mapWooCommerceToAuqli(records, auqliCategories) {
   return records.map((record) => {
     const productName = record["Name"] || record["name"] || record["product_name"] || ""
     const productDescription = htmlToText(record["Description"] || record["description"] || "")
@@ -744,10 +766,15 @@ async function mapWooCommerceToAuqli(records: any[], auqliCategories: AuqliCateg
 }
 
 // Make sure the processCSV function is properly exported
-export async function processCSV(formData: FormData) {
+/**
+ * Process CSV file from form data
+ * @param {FormData} formData - Form data containing the CSV file and platform
+ * @returns {Promise<Object>} Object containing processed products or an error message
+ */
+export async function processCSV(formData) {
   try {
-    const file = formData.get("file") as File
-    const platform = (formData.get("platform") as string) || "shopify"
+    const file = formData.get("file")
+    const platform = formData.get("platform") || "shopify"
 
     if (!file) {
       console.error("No file provided in formData")
@@ -786,7 +813,7 @@ export async function processCSV(formData: FormData) {
     const auqliCategories = await fetchAuqliCategories()
 
     // Map CSV columns to Auqli format based on platform
-    let products: Product[] = []
+    let products = []
 
     if (platform === "shopify") {
       products = await mapShopifyToAuqli(records, auqliCategories)

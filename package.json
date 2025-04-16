@@ -62,7 +62,8 @@
     "framer-motion": "latest",
     "react-markdown": "latest",
     "remark-gfm": "latest",
-    "csv-parse": "latest"
+    "csv-parse": "latest",
+    "prop-types": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
