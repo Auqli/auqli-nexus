@@ -1,49 +1,29 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { Upload, Download, ChevronLeft, AlertTriangle, X, RefreshCw, CheckCircle } from "lucide-react"
+import {
+  Upload,
+  ChevronLeft,
+  AlertTriangle,
+  X,
+  RefreshCw,
+  CheckCircle,
+  Download,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { ShopifySampleCSV } from "@/components/sample-csv"
 import { Progress } from "@/components/ui/progress"
 import { ProgressAnimation } from "@/components/progress-animation"
-import { CategorySelectionModal } from "@/components/category-selection-modal"
-import { InvalidCSVModal } from "@/components/invalid-csv-modal"
 import { EnhancedPageHeader } from "@/components/layout/enhanced-page-header"
-
-// Update the Product interface to include additional image fields and an id field
-interface Product {
-  id: string // Add an id field for better tracking
-  name: string
-  price: string
-  image: string
-  description: string
-  weight: string
-  inventory: string
-  condition: string
-  mainCategory: string
-  subCategory: string
-  uploadStatus: string
-  additionalImages: string[] // Store additional images
-  isCategorized?: boolean // Flag to track if this product has been properly categorized
-}
-
-// Add these interfaces
-interface AuqliCategory {
-  id: string
-  name: string
-  subcategories: AuqliSubcategory[]
-}
-
-interface AuqliSubcategory {
-  id: string
-  name: string
-}
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { InvalidCSVModal } from "@/components/invalid-csv-modal"
+import { CategorySelectionModal } from "@/components/category-selection-modal"
 
 // Expected Shopify CSV headers
 const EXPECTED_SHOPIFY_HEADERS = [
@@ -59,7 +39,7 @@ const EXPECTED_SHOPIFY_HEADERS = [
 ]
 
 export default function ConverterPage() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [fileName, setFileName] = useState(null)
@@ -71,92 +51,85 @@ export default function ConverterPage() {
   const [isPageLoaded, setIsPageLoaded] = useState(false)
 
   // Add these state variables inside the Home component
-  const [auqliCategories, setAuqliCategories] = useState<AuqliCategory[]>([])
-  const [unmatchedProducts, setUnmatchedProducts] = useState<
-    Array<{ id: string;
-  name: string
-  mainCategory: string
-  subCategory: string
-}
->
-  >([])
-const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const [auqliCategories, setAuqliCategories] = useState([])
+  const [unmatchedProducts, setUnmatchedProducts] = useState([])
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
 
-// Add these state variables inside the Home component
-const [processingProgress, setProcessingProgress] = useState(0)
-const [totalProducts, setTotalProducts] = useState(0)
-const [matchedCategories, setMatchedCategories] = useState(0)
+  // Add these state variables inside the Home component
+  const [processingProgress, setProcessingProgress] = useState(0)
+  const [totalProducts, setTotalProducts] = useState(0)
+  const [matchedCategories, setMatchedCategories] = useState(0)
 
-// Add a state to track if there are uncategorized products after closing the modal
-// Add this state variable with the other state variables
-const [hasUncategorizedProducts, setHasUncategorizedProducts] = useState(false)
+  // Add a state to track if there are uncategorized products after closing the modal
+  // Add this state variable with the other state variables
+  const [hasUncategorizedProducts, setHasUncategorizedProducts] = useState(false)
 
-// Add this state variable to the Home component
-const [isAuqliFormatted, setIsAuqliFormatted] = useState(false)
-const [auqliFormatMessage, setAuqliFormatMessage] = useState(null)
+  // Add this state variable to the Home component
+  const [isAuqliFormatted, setIsAuqliFormatted] = useState(false)
+  const [auqliFormatMessage, setAuqliFormatMessage] = useState(null)
 
-// Add a state to track if all categories have been successfully matched
-const [allCategoriesMatched, setAllCategoriesMatched] = useState(false)
+  // Add a state to track if all categories have been successfully matched
+  const [allCategoriesMatched, setAllCategoriesMatched] = useState(false)
 
-// Add these state variables inside the component
-const [totalItems, setTotalItems] = useState(0)
-const [processedItems, setProcessedItems] = useState(0)
+  // Add these state variables inside the component
+  const [totalItems, setTotalItems] = useState(0)
+  const [processedItems, setProcessedItems] = useState(0)
 
-useEffect(() => {
-  setIsPageLoaded(true)
-}, [])
+  useEffect(() => {
+    setIsPageLoaded(true)
+  }, [])
 
-// Add this useEffect to fetch Auqli categories when the component mounts
-useEffect(() => {
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch("https://auqliserver-8xr8zvib.b4a.run/api/public/categories")
-      if (response.ok) {
-        const data = await response.json()
+  // Add this useEffect to fetch Auqli categories when the component mounts
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch("https://auqliserver-8xr8zvib.b4a.run/api/public/categories")
+        if (response.ok) {
+          const data = await response.json()
 
-        // Validate the data structure before setting state
-        if (Array.isArray(data)) {
-          // Transform the API response to match our expected structure
-          const validatedCategories = data.map((category) => {
-            // Check if the category has subcategories or subCategories (handle both formats)
-            const subCats = category.subcategories || category.subCategories || []
+          // Validate the data structure before setting state
+          if (Array.isArray(data)) {
+            // Transform the API response to match our expected structure
+            const validatedCategories = data.map((category) => {
+              // Check if the category has subcategories or subCategories (handle both formats)
+              const subCats = category.subcategories || category.subCategories || []
 
-            return {
-              id: category.id || `cat-${Math.random().toString(36).substr(2, 9)}`,
-              name: category.name || "Unnamed Category",
-              subcategories: Array.isArray(subCats)
-                ? subCats.map((sub) => ({
-                    id: sub.id || `subcat-${Math.random().toString(36).substr(2, 9)}`,
-                    name: sub.name || "Unnamed Subcategory",
-                  }))
-                : [],
-            }
-          })
+              return {
+                id: category.id || `cat-${Math.random().toString(36).substr(2, 9)}`,
+                name: category.name || "Unnamed Category",
+                subcategories: Array.isArray(subCats)
+                  ? subCats.map((sub) => ({
+                      id: sub.id || `subcat-${Math.random().toString(36).substr(2, 9)}`,
+                      name: sub.name || "Unnamed Subcategory",
+                    }))
+                  : [],
+              }
+            })
 
-          console.log("Processed categories:", validatedCategories)
-          setAuqliCategories(validatedCategories)
-        } else {
-          console.error("Invalid categories data format:", data)
-          setAuqliCategories([])
+            console.log("Processed categories:", validatedCategories)
+            setAuqliCategories(validatedCategories)
+          } else {
+            console.error("Invalid categories data format:", data)
+            setAuqliCategories([])
+          }
         }
+      } catch (error) {
+        console.error("Failed to fetch Auqli categories:", error)
+        setAuqliCategories([])
       }
-    } catch (error) {
-      console.error("Failed to fetch Auqli categories:", error)
-      setAuqliCategories([])
     }
-  }
 
-  fetchCategories()
-}, [])
+    fetchCategories()
+  }, [])
 
-// Add a simulated progress function
-// Function to validate if a CSV file matches the Shopify template format
-const validateShopifyCSV = async (file: File): Promise<boolean> => {
+  // Add a simulated progress function
+  // Function to validate if a CSV file matches the Shopify template format
+  const validateShopifyCSV = async (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader()
 
       reader.onload = (event) => {
-        const content = event.target?.result as string
+        const content = event.target?.result
         if (!content) {
           resolve(false)
           return
@@ -187,43 +160,40 @@ const validateShopifyCSV = async (file: File): Promise<boolean> => {
     })
   }
 
-// Helper function to check if a product is properly categorized
-const isProductCategorized = useCallback(
-  (product: Product): boolean => {
+  // Helper function to check if a product is properly categorized
+  const isProductCategorized = useCallback((product) => {
     return (
       !!product.mainCategory &&
       !!product.subCategory &&
       !product.mainCategory.includes("Uncategorized") &&
       !product.subCategory.includes("Uncategorized")
     )
-  },
-  [],
-)
+  }, [])
 
-// Helper function to update the categorization status of all products
-const updateCategorizationStatus = useCallback(() => {
-  if (products.length === 0) {
-    setMatchedCategories(0)
-    setTotalProducts(0)
-    setHasUncategorizedProducts(false)
-    setAllCategoriesMatched(false)
-    return
-  }
+  // Helper function to update the categorization status of all products
+  const updateCategorizationStatus = useCallback(() => {
+    if (products.length === 0) {
+      setMatchedCategories(0)
+      setTotalProducts(0)
+      setHasUncategorizedProducts(false)
+      setAllCategoriesMatched(false)
+      return
+    }
 
-  const categorizedProducts = products.filter(isProductCategorized)
-  setMatchedCategories(categorizedProducts.length)
-  setTotalProducts(products.length)
+    const categorizedProducts = products.filter(isProductCategorized)
+    setMatchedCategories(categorizedProducts.length)
+    setTotalProducts(products.length)
 
-  const uncategorized = products.length - categorizedProducts.length
-  setHasUncategorizedProducts(uncategorized > 0)
-  setAllCategoriesMatched(uncategorized === 0)
+    const uncategorized = products.length - categorizedProducts.length
+    setHasUncategorizedProducts(uncategorized > 0)
+    setAllCategoriesMatched(uncategorized === 0)
 
-  console.log(`Categorization status updated: ${categorizedProducts.length}/${products.length} categorized`)
-}, [products, isProductCategorized])
+    console.log(`Categorization status updated: ${categorizedProducts.length}/${products.length} categorized`)
+  }, [products, isProductCategorized])
 
-// Update the handleFileUpload function to validate the CSV format
-// Update the handleFileUpload function to count actual items
-const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Update the handleFileUpload function to validate the CSV format
+  // Update the handleFileUpload function to count actual items
+  const handleFileUpload = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -364,13 +334,13 @@ const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     }
   }
 
-// Add a function to count the actual number of items in the CSV file
-const countCSVItems = async (file: File): Promise<number> => {
+  // Add a function to count the actual number of items in the CSV file
+  const countCSVItems = async (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader()
 
       reader.onload = (event) => {
-        const content = event.target?.result as string
+        const content = event.target?.result
         if (!content) {
           resolve(0)
           return
@@ -392,24 +362,22 @@ const countCSVItems = async (file: File): Promise<number> => {
     })
   }
 
-// Add function to reset the file
-const resetFile = () => {
-  setFileName(null)
-  setProducts([])
-  setProcessingProgress(0)
-  setTotalProducts(0)
-  setMatchedCategories(0)
-  setHasUncategorizedProducts(false)
-  setAllCategoriesMatched(false)
-  setError(null)
-  setTotalItems(0)
-  setProcessedItems(0)
-}
+  // Add function to reset the file
+  const resetFile = () => {
+    setFileName(null)
+    setProducts([])
+    setProcessingProgress(0)
+    setTotalProducts(0)
+    setMatchedCategories(0)
+    setHasUncategorizedProducts(false)
+    setAllCategoriesMatched(false)
+    setError(null)
+    setTotalItems(0)
+    setProcessedItems(0)
+  }
 
-// Add this function to handle category selection from the modal
-const handleCategorySelection = (selectedCategories: {
-    [productId: string]: { mainCategory: string; subCategory: string }
-  }) => {
+  // Add this function to handle category selection from the modal
+  const handleCategorySelection = (selectedCategories) => {
     // Update products with the selected categories
     setProducts((prevProducts) =>
       prevProducts.map((product) => {
@@ -463,134 +431,137 @@ const handleCategorySelection = (selectedCategories: {
     setIsCategoryModalOpen(false)
   }
 
-// Update the downloadFormattedCSV function to properly handle additional images in separate columns
-const downloadFormattedCSV = () => {
-  if (products.length === 0) return
+  // Update the downloadFormattedCSV function to properly handle additional images in separate columns
+  const downloadFormattedCSV = () => {
+    if (products.length === 0) return
 
-  // Find the maximum number of additional images across all products
-  const maxAdditionalImages = products.reduce((max, product) => Math.max(max, product.additionalImages?.length || 0), 0)
+    // Find the maximum number of additional images across all products
+    const maxAdditionalImages = products.reduce(
+      (max, product) => Math.max(max, product.additionalImages?.length || 0),
+      0,
+    )
 
-  // Create headers with exact names as required by Auqli
-  const headers = [
-    "product name",
-    "product main price",
-    "product main image",
-    "product description",
-    "product weight",
-    "product inventory",
-    "product condition",
-    "product main category",
-    "product subcategory",
-    "upload status",
-  ]
+    // Create headers with exact names as required by Auqli
+    const headers = [
+      "product name",
+      "product main price",
+      "product main image",
+      "product description",
+      "product weight",
+      "product inventory",
+      "product condition",
+      "product main category",
+      "product subcategory",
+      "upload status",
+    ]
 
-  // Add headers for additional images if any exist
-  for (let i = 0; i < maxAdditionalImages; i++) {
-    headers.push(`other image${i + 1}`)
-  }
-
-  // Create CSV content
-  const csvContent = [
-    headers.join(","),
-    ...products.map((product) => {
-      // Start with the main fields
-      const row = [
-        `"${(product.name || "").replace(/"/g, '""')}"`,
-        `"${(product.price || "").replace(/"/g, '""')}"`,
-        `"${(product.image || "").replace(/"/g, '""')}"`,
-        `"${(product.description || "").replace(/"/g, '""')}"`,
-        `"${(product.weight || "").replace(/"/g, '""')}"`,
-        `"${(product.inventory || "").replace(/"/g, '""')}"`,
-        `"${(product.condition || "").replace(/"/g, '""')}"`,
-        `"${(product.mainCategory || "").replace(/"/g, '""')}"`,
-        `"${(product.subCategory || "").replace(/"/g, '""')}"`,
-        `"${(product.uploadStatus || "").replace(/"/g, '""')}"`,
-      ]
-
-      // Add additional images in separate columns
-      for (let i = 0; i < maxAdditionalImages; i++) {
-        const additionalImage =
-          product.additionalImages && i < product.additionalImages.length ? product.additionalImages[i] : ""
-        row.push(`"${additionalImage.replace(/"/g, '""')}"`)
-      }
-
-      return row.join(",")
-    }),
-  ].join("\n")
-
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.setAttribute("href", url)
-  link.setAttribute("download", `auqli_formatted_${fileName || "products"}.csv`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
-const toggleSampleVisibility = () => {
-  setShowSample(!showSample)
-}
-
-// Add this to the existing handleUploadSuccess function in app/page.tsx
-const handleUploadSuccess = (products: Product[], isAuqliFormatted = false) => {
-  // Add IDs to products for better tracking
-  const productsWithIds = products.map((product, index) => {
-    const isCategorized =
-      !!product.mainCategory &&
-      !!product.subCategory &&
-      !product.mainCategory.includes("Uncategorized") &&
-      !product.subCategory.includes("Uncategorized")
-
-    return {
-      ...product,
-      id: `product-${index}`,
-      isCategorized,
+    // Add headers for additional images if any exist
+    for (let i = 0; i < maxAdditionalImages; i++) {
+      headers.push(`other image${i + 1}`)
     }
-  })
 
-  setProducts(productsWithIds)
-  setError(null)
+    // Create CSV content
+    const csvContent = [
+      headers.join(","),
+      ...products.map((product) => {
+        // Start with the main fields
+        const row = [
+          `"${(product.name || "").replace(/"/g, '""')}"`,
+          `"${(product.price || "").replace(/"/g, '""')}"`,
+          `"${(product.image || "").replace(/"/g, '""')}"`,
+          `"${(product.description || "").replace(/"/g, '""')}"`,
+          `"${(product.weight || "").replace(/"/g, '""')}"`,
+          `"${(product.inventory || "").replace(/"/g, '""')}"`,
+          `"${(product.condition || "").replace(/"/g, '""')}"`,
+          `"${(product.mainCategory || "").replace(/"/g, '""')}"`,
+          `"${(product.subCategory || "").replace(/"/g, '""')}"`,
+          `"${(product.uploadStatus || "").replace(/"/g, '""')}"`,
+        ]
 
-  // If the file is already in Auqli format, we don't need to check for categories
-  if (isAuqliFormatted) {
+        // Add additional images in separate columns
+        for (let i = 0; i < maxAdditionalImages; i++) {
+          const additionalImage =
+            product.additionalImages && i < product.additionalImages.length ? product.additionalImages[i] : ""
+          row.push(`"${additionalImage.replace(/"/g, '""')}"`)
+        }
+
+        return row.join(",")
+      }),
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `auqli_formatted_${fileName || "products"}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const toggleSampleVisibility = () => {
+    setShowSample(!showSample)
+  }
+
+  // Add this to the existing handleUploadSuccess function in app/page.tsx
+  const handleUploadSuccess = (products, isAuqliFormatted = false) => {
+    // Add IDs to products for better tracking
+    const productsWithIds = products.map((product, index) => {
+      const isCategorized =
+        !!product.mainCategory &&
+        !!product.subCategory &&
+        !product.mainCategory.includes("Uncategorized") &&
+        !product.subCategory.includes("Uncategorized")
+
+      return {
+        ...product,
+        id: `product-${index}`,
+        isCategorized,
+      }
+    })
+
+    setProducts(productsWithIds)
+    setError(null)
+
+    // If the file is already in Auqli format, we don't need to check for categories
+    if (isAuqliFormatted) {
+      setTotalProducts(productsWithIds.length)
+      setMatchedCategories(productsWithIds.length) // All products are considered categorized
+      setHasUncategorizedProducts(false)
+      setAllCategoriesMatched(true)
+      return
+    }
+
+    // Count products with matched categories (not Uncategorized)
+    const matched = productsWithIds.filter((product) => product.isCategorized).length
+
+    setMatchedCategories(matched)
     setTotalProducts(productsWithIds.length)
-    setMatchedCategories(productsWithIds.length) // All products are considered categorized
-    setHasUncategorizedProducts(false)
-    setAllCategoriesMatched(true)
-    return
+    setAllCategoriesMatched(matched === productsWithIds.length)
+    setHasUncategorizedProducts(matched < productsWithIds.length)
+
+    // Check for products with missing or default categories
+    const unmatched = productsWithIds
+      .filter((product) => !product.isCategorized)
+      .map((product) => ({
+        id: product.id,
+        name: product.name,
+        mainCategory: product.mainCategory,
+        subCategory: product.subCategory,
+      }))
+
+    if (unmatched.length > 0) {
+      setUnmatchedProducts(unmatched)
+      setIsCategoryModalOpen(true)
+    }
   }
 
-  // Count products with matched categories (not Uncategorized)
-  const matched = productsWithIds.filter((product) => product.isCategorized).length
+  // Effect to update categorization status whenever products change
+  useEffect(() => {
+    updateCategorizationStatus()
+  }, [products, updateCategorizationStatus])
 
-  setMatchedCategories(matched)
-  setTotalProducts(productsWithIds.length)
-  setAllCategoriesMatched(matched === productsWithIds.length)
-  setHasUncategorizedProducts(matched < productsWithIds.length)
-
-  // Check for products with missing or default categories
-  const unmatched = productsWithIds
-    .filter((product) => !product.isCategorized)
-    .map((product) => ({
-      id: product.id,
-      name: product.name,
-      mainCategory: product.mainCategory,
-      subCategory: product.subCategory,
-    }))
-
-  if (unmatched.length > 0) {
-    setUnmatchedProducts(unmatched)
-    setIsCategoryModalOpen(true)
-  }
-}
-
-// Effect to update categorization status whenever products change
-useEffect(() => {
-  updateCategorizationStatus()
-}, [products, updateCategorizationStatus])
-
-return (
+  return (
     <>
       <EnhancedPageHeader
         title="CSV Product Formatter"
@@ -656,9 +627,9 @@ return (
                         >
                           {showSample ? "Hide Sample" : "Show Sample"}
                           {showSample ? (
-                            <ChevronUpIcon className="ml-1 h-4 w-4" />
+                            <ChevronUp className="ml-1 h-4 w-4" />
                           ) : (
-                            <ChevronDownIcon className="ml-1 h-4 w-4" />
+                            <ChevronDown className="ml-1 h-4 w-4" />
                           )}
                         </button>
                       </div>
@@ -750,7 +721,7 @@ return (
                         transition={{ delay: 0.2, duration: 0.5 }}
                       >
                         WooCommerce Integration Coming Soon
-                      </motion.h3
+                      </motion.h3>
 
                       <motion.p
                         className="text-gray-400 text-center max-w-md mb-6"
@@ -1340,7 +1311,7 @@ return (
                       >
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path
-                            d="M9 22H15C20 22 22 20 22 15V9C22 4 22 20 2 15H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z"
+                            d="M9 22H15C20 22 22 20 22 15V9C22 4 22 20 2 22 2 15H9C4 2 2 2 4 2 9V15C2 20 4 22 9 22Z"
                             stroke="#8696ee"
                             strokeWidth="1.5"
                             strokeLinecap="round"
@@ -1392,44 +1363,5 @@ return (
         auqliCategories={auqliCategories}
       />
     </>
-  )
-}
-
-// Missing components
-function ChevronUpIcon(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  )
-}
-
-function ChevronDownIcon(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
   )
 }
