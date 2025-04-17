@@ -4,6 +4,17 @@ import { useState, useEffect, useMemo } from "react"
 import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search } from "lucide-react"
 import PropTypes from "prop-types"
 
+// Add custom animation for the AI button glow effect
+const glowKeyframes = `
+@keyframes glow {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-glow {
+  animation: glow 3s infinite linear;
+}
+`
+
 export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
   // Convert to plain JavaScript without TypeScript annotations
   const [selectedCategories, setSelectedCategories] = useState({})
@@ -14,6 +25,7 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
   const [productSearchQuery, setProductSearchQuery] = useState("")
   const [categoryPage, setCategoryPage] = useState(1)
   const categoriesPerPage = 8
+  const [isGlowStyleCreated, setIsGlowStyleCreated] = useState(false)
 
   const currentProduct = unmatchedProducts[currentProductIndex] || {
     id: "",
@@ -139,6 +151,25 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
 
   // Calculate progress
   const categorizedCount = Object.keys(selectedCategories).length
+
+  // Add the useEffect for glow animation style here, before the conditional return
+  useEffect(() => {
+    // Create style element if it doesn't exist
+    if (isOpen && !isGlowStyleCreated) {
+      const styleEl = document.createElement("style")
+      styleEl.id = "glow-animation-style"
+      styleEl.innerHTML = glowKeyframes
+      document.head.appendChild(styleEl)
+      setIsGlowStyleCreated(true)
+    }
+
+    return () => {
+      const existingStyle = document.getElementById("glow-animation-style")
+      if (existingStyle) {
+        document.head.removeChild(existingStyle)
+      }
+    }
+  }, [isOpen, isGlowStyleCreated])
 
   if (!isOpen) return null
 
@@ -406,6 +437,36 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
           <div className="flex space-x-3">
             <button onClick={onClose} className="px-6 py-2 bg-[#1a2235] hover:bg-[#222d42] rounded-md text-white">
               Cancel
+            </button>
+            <button
+              onClick={() => {
+                /* Smart match functionality will go here */
+              }}
+              className="relative px-6 py-2 bg-gradient-to-r from-[#5466b5] to-[#7b5dd6] hover:from-[#4355a4] hover:to-[#6a4ec5] rounded-md text-white overflow-hidden group transition-all duration-300"
+            >
+              {/* Glowing effect */}
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#5466b5]/0 via-[#8a7ce8]/30 to-[#5466b5]/0 opacity-0 group-hover:opacity-100 animate-glow transition-opacity duration-700"></div>
+
+              {/* Subtle circuit pattern overlay */}
+              <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMC41Ij48cGF0aCBkPSJNMjAgMHYxME0zMCAwdjEwTTEwIDB2MTBNMCAxMGgxME0wIDIwaDEwTTAgMzBoMTBNMTAgNDBoMTBNMjAgNDBoMTBNMzAgNDBoMTBNNDAgMTBoLTEwTTQwIDIwaC0xME00MCAzMGgtMTBNMTAgMTB2MTBNMCA0MGg0ME00MCAwdjQwIi8+PC9nPjwvc3ZnPg==')]"></div>
+
+              <div className="relative flex items-center justify-center">
+                {/* Pulsing dot */}
+                <span className="absolute left-0 w-2 h-2 rounded-full bg-blue-300 mr-2 animate-pulse"></span>
+
+                <span className="ml-4">Smart Match With NexAI</span>
+
+                {/* AI icon */}
+                <svg className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <path d="M8 9H16M8 12H16M8 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M16 16L19 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </div>
             </button>
             <button
               onClick={handleNextProduct}
