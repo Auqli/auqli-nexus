@@ -15,6 +15,100 @@ const glowKeyframes = `
 }
 `
 
+/**
+ * Calls DeepInfra's Llama-4 model to match a product to a category
+ * @param {string} productName - The name of the product to match
+ * @param {Array} categories - Available Auqli categories
+ * @returns {Promise<{mainCategory: string, subCategory: string}>}
+ */
+async function smartMatchWithAI(productName, categories) {
+  // Prepare the category list for the prompt
+  const categoryList = []
+
+  for (const category of categories) {
+    if (!category || !category.name) continue
+
+    const subcategories = Array.isArray(category.subcategories) ? category.subcategories : []
+    for (const subcategory of subcategories) {
+      if (!subcategory || !subcategory.name) continue
+      categoryList.push(`${category.name} > ${subcategory.name}`)
+    }
+  }
+
+  // Build the prompt for the AI
+  const prompt = buildAIPrompt(productName, categoryList)
+
+  try {
+    // Call DeepInfra API
+    const response = await fetch("https://api.deepinfra.com/v1/openai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.DEEPINFRA_API_KEY || "xBOQQT8SaRfCCIgafgbqa9eDrpdobBgr"}`,
+      },
+      body: JSON.stringify({
+        model: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        temperature: 0.1,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const content = data.choices[0].message.content
+
+    // Parse the JSON response
+    try {
+      const result = JSON.parse(content)
+      return {
+        mainCategory: result.main_category,
+        subCategory: result.subcategory,
+      }
+    } catch (e) {
+      console.error("Failed to parse AI response:", content)
+      return null
+    }
+  } catch (error) {
+    console.error("Error calling DeepInfra API:", error)
+    throw error
+  }
+}
+
+/**
+ * Builds a prompt for the AI to match a product to a category
+ * @param {string} productName - The name of the product to match
+ * @param {Array} categoryList - List of available categories
+ * @returns {string} - The prompt for the AI
+ */
+function buildAIPrompt(productName, categoryList) {
+  const categories = categoryList.map((cat) => `- ${cat}`).join("\n")
+
+  return `
+You are an AI product classifier for an e-commerce platform called Auqli.
+Classify the product below into the best available category.
+
+Title: ${productName}
+
+Available Categories:
+${categories}
+
+Respond ONLY in this JSON format:
+{
+  "main_category": "...",
+  "subcategory": "...",
+  "confidence": 0.0
+}
+`
+}
+
 export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
   // Convert to plain JavaScript without TypeScript annotations
   const [selectedCategories, setSelectedCategories] = useState({})
@@ -439,8 +533,34 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
               Cancel
             </button>
             <button
-              onClick={() => {
-                /* Smart match functionality will go here */
+              onClick={async () => {
+                // Show loading state
+                const productId = currentProduct.id
+                const productName = currentProduct.name
+
+                try {
+                  // Call AI to get category match
+                  const result = await smartMatchWithAI(productName, auqliCategories)
+
+                  if (result?.mainCategory && result?.subCategory) {
+                    // Update the selected categories with AI result
+                    setSelectedCategories((prev) => ({
+                      ...prev,
+                      [productId]: {
+                        mainCategory: result.mainCategory,
+                        subCategory: result.subCategory,
+                      },
+                    }))
+
+                    // Find and expand the matched category
+                    setExpandedCategory(result.mainCategory)
+
+                    // Show success message
+                    console.log(`AI matched "${productName}" to ${result.mainCategory} > ${result.subCategory}`)
+                  }
+                } catch (error) {
+                  console.error("Error during AI matching:", error)
+                }
               }}
               className="relative px-6 py-2 bg-gradient-to-r from-[#5466b5] to-[#7b5dd6] hover:from-[#4355a4] hover:to-[#6a4ec5] rounded-md text-white overflow-hidden group transition-all duration-300"
             >
