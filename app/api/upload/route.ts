@@ -25,8 +25,8 @@ import { parse } from "csv-parse/sync"
  * @property {string} sku
  */
 
-// Import utility functions
-import { htmlToText, extractMainCategory, convertToKg, mapCondition } from "@/lib/utils"
+// Import the smartMatchCategories at the top of the file
+import { htmlToText, extractMainCategory, convertToKg, mapCondition, smartMatchCategories } from "@/lib/utils"
 
 // Define the expected Auqli CSV headers
 const AUQLI_REQUIRED_HEADERS = [
@@ -303,7 +303,9 @@ function improveApparelCategorization(product: Product): Product {
   return product
 }
 
-// Update the findMatchingCategory function to be more sophisticated (same as in actions.ts)
+// Find the findMatchingCategory function and update it to use our expanded dictionary
+
+// Replace the findMatchingCategory function with this enhanced version
 function findMatchingCategory(
   productName: string,
   productDescription: string,
@@ -331,6 +333,143 @@ function findMatchingCategory(
   // Extract key terms from product name (more weight on product name)
   const productTerms = normalizedProductName.split(" ").filter((term) => term.length > 2)
 
+  // First, try matching against our expanded dictionary
+  let bestCategoryMatch = ""
+  let bestCategoryScore = 0
+
+  // Check each category in our expanded dictionary
+  for (const [category, terms] of Object.entries(smartMatchCategories)) {
+    let categoryScore = 0
+
+    // Check for exact matches in product name (highest weight)
+    for (const term of terms) {
+      // Multi-word terms
+      if (term.includes(" ")) {
+        if (normalizedProductName.includes(term)) {
+          categoryScore += term.length * 4 // Higher weight for multi-word matches
+        } else if (searchText.includes(term)) {
+          categoryScore += term.length * 2
+        }
+      }
+      // Single word terms
+      else if (term.length > 2) {
+        // Exact word match in product name
+        const wordRegex = new RegExp(`\\b${term}\\b`, "i")
+        if (wordRegex.test(normalizedProductName)) {
+          categoryScore += term.length * 3
+        }
+        // Partial match in product name
+        else if (normalizedProductName.includes(term)) {
+          categoryScore += term.length * 2
+        }
+        // Match in search text
+        else if (searchText.includes(term)) {
+          categoryScore += term.length
+        }
+      }
+    }
+
+    // Brand name detection - give extra weight to brand names
+    const brandTerms = [
+      "nike",
+      "adidas",
+      "zara",
+      "h&m",
+      "gucci",
+      "louis",
+      "puma",
+      "reebok",
+      "levi",
+      "samsung",
+      "apple",
+      "sony",
+      "lg",
+      "xiaomi",
+      "huawei",
+      "asus",
+      "dell",
+      "hp",
+    ]
+    for (const brand of brandTerms) {
+      if (normalizedProductName.includes(brand)) {
+        categoryScore += 10 // Bonus for brand names
+      }
+    }
+
+    // Update best match if this category has a higher score
+    if (categoryScore > bestCategoryScore) {
+      bestCategoryScore = categoryScore
+      bestCategoryMatch = category
+    }
+  }
+
+  // If we found a good match in our dictionary, try to find it in Auqli categories
+  if (bestCategoryMatch && bestCategoryScore > 10) {
+    // Find the matching Auqli category
+    for (const category of categories) {
+      if (!category || !category.name) continue
+
+      // Check for exact or similar category name match
+      if (
+        category.name === bestCategoryMatch ||
+        category.name.toLowerCase().includes(bestCategoryMatch.toLowerCase()) ||
+        bestCategoryMatch.toLowerCase().includes(category.name.toLowerCase())
+      ) {
+        // Find best matching subcategory
+        let bestSubcategory = { id: "", name: "", score: 0 }
+        const subcategories = Array.isArray(category.subcategories) ? category.subcategories : []
+
+        for (const subcategory of subcategories) {
+          if (!subcategory || !subcategory.name) continue
+
+          const subcategoryName = subcategory.name.toLowerCase()
+          let subcategoryScore = 0
+
+          // Check for matches in product name and description
+          if (normalizedProductName.includes(subcategoryName)) {
+            subcategoryScore += subcategoryName.length * 3
+          } else if (searchText.includes(subcategoryName)) {
+            subcategoryScore += subcategoryName.length
+          }
+
+          // Special case for clothing sizes
+          const sizeRegex = /\b(xs|s|m|l|xl|xxl|xxxl|2xl|3xl|4xl|5xl|small|medium|large|extra large)\b/i
+          const sizeMatch = normalizedProductName.match(sizeRegex)
+          if (sizeMatch && subcategoryName.includes(sizeMatch[0].toLowerCase())) {
+            subcategoryScore += 15 // Bonus for size matches
+          }
+
+          // Special case for colors
+          const colorRegex =
+            /\b(black|white|red|blue|green|yellow|purple|pink|orange|brown|grey|gray|navy|beige|gold|silver)\b/i
+          const colorMatch = normalizedProductName.match(colorRegex)
+          if (colorMatch && subcategoryName.includes(colorMatch[0].toLowerCase())) {
+            subcategoryScore += 10 // Bonus for color matches
+          }
+
+          if (subcategoryScore > bestSubcategory.score) {
+            bestSubcategory = {
+              id: subcategory.id || "",
+              name: subcategory.name,
+              score: subcategoryScore,
+            }
+          }
+        }
+
+        // Calculate confidence based on category and subcategory scores
+        const maxPossibleScore = productName.length * 3
+        const confidence = Math.min(100, Math.round((bestCategoryScore / maxPossibleScore) * 100))
+
+        return {
+          mainCategory: category.name,
+          subCategory: bestSubcategory.name || "",
+          confidence: confidence,
+        }
+      }
+    }
+  }
+
+  // If no match found with our dictionary, fall back to the original algorithm
   // Common tech product terms and their category mappings
   const techTermMappings: { [key: string]: { category: string; subcategory?: string; weight: number } } = {
     // Tablets and related terms
@@ -347,10 +486,10 @@ function findMatchingCategory(
     phone: { category: "Mobile Phones", weight: 70 },
 
     // Laptops
-    macbook: { category: "Laptops", subcategory: "Apple", weight: 100 },
-    laptop: { category: "Laptops", weight: 80 },
-    notebook: { category: "Laptops", weight: 70 },
-    chromebook: { category: "Laptops", subcategory: "Chrome OS", weight: 90 },
+    macbook: { category: "Computing", subcategory: "Apple", weight: 100 },
+    laptop: { category: "Computing", weight: 80 },
+    notebook: { category: "Computing", weight: 70 },
+    chromebook: { category: "Computing", subcategory: "Chrome OS", weight: 90 },
 
     // Accessories
     case: { category: "Accessories", weight: 60 },
@@ -379,37 +518,47 @@ function findMatchingCategory(
     gaming: { category: "Gaming", weight: 70 },
 
     // PC Components
-    gpu: { category: "PC Gaming", subcategory: "Graphics Cards", weight: 100 },
-    "graphics card": { category: "PC Gaming", subcategory: "Graphics Cards", weight: 100 },
-    cpu: { category: "PC Gaming", subcategory: "Processors", weight: 100 },
-    processor: { category: "PC Gaming", subcategory: "Processors", weight: 90 },
-    ram: { category: "PC Gaming", subcategory: "Memory", weight: 90 },
-    ssd: { category: "Data Storage", subcategory: "SSD", weight: 100 },
-    hdd: { category: "Data Storage", subcategory: "HDD", weight: 100 },
-    "hard drive": { category: "Data Storage", weight: 90 },
+    gpu: { category: "Computing", subcategory: "Graphics Cards", weight: 100 },
+    "graphics card": { category: "Computing", subcategory: "Graphics Cards", weight: 100 },
+    cpu: { category: "Computing", subcategory: "Processors", weight: 100 },
+    processor: { category: "Computing", subcategory: "Processors", weight: 90 },
+    ram: { category: "Computing", subcategory: "Memory", weight: 90 },
+    ssd: { category: "Computing", subcategory: "SSD", weight: 100 },
+    hdd: { category: "Computing", subcategory: "HDD", weight: 100 },
+    "hard drive": { category: "Computing", weight: 90 },
 
     // Kitchen
-    blender: { category: "Kitchen & Dining", subcategory: "Small Appliances", weight: 90 },
-    mixer: { category: "Kitchen & Dining", subcategory: "Small Appliances", weight: 90 },
-    toaster: { category: "Kitchen & Dining", subcategory: "Small Appliances", weight: 90 },
-    coffee: { category: "Kitchen & Dining", subcategory: "Coffee & Tea", weight: 90 },
+    blender: { category: "Home & Living", subcategory: "Small Appliances", weight: 90 },
+    mixer: { category: "Home & Living", subcategory: "Small Appliances", weight: 90 },
+    toaster: { category: "Home & Living", subcategory: "Small Appliances", weight: 90 },
+    coffee: { category: "Home & Living", subcategory: "Coffee & Tea", weight: 90 },
 
     // Health & Beauty
     skincare: { category: "Health & Beauty", subcategory: "Skin Care", weight: 90 },
     makeup: { category: "Health & Beauty", subcategory: "Makeup", weight: 90 },
     hair: { category: "Health & Beauty", subcategory: "Hair Care", weight: 90 },
     fragrance: { category: "Health & Beauty", subcategory: "Fragrances", weight: 90 },
+
+    // Fashion
+    shirt: { category: "Fashion", subcategory: "Shirts", weight: 90 },
+    tshirt: { category: "Fashion", subcategory: "T-Shirts", weight: 90 },
+    "t-shirt": { category: "Fashion", subcategory: "T-Shirts", weight: 90 },
+    jacket: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
+    coat: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
+    puffer: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
+    overcoat: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
+    jeans: { category: "Fashion", subcategory: "Jeans", weight: 90 },
+    pants: { category: "Fashion", subcategory: "Pants", weight: 90 },
+    shorts: { category: "Fashion", subcategory: "Shorts", weight: 90 },
+    hat: { category: "Fashion", subcategory: "Hats", weight: 90 },
+    beanie: { category: "Fashion", subcategory: "Hats", weight: 90 },
+    "bucket hat": { category: "Fashion", subcategory: "Hats", weight: 90 },
+    headband: { category: "Fashion", subcategory: "Hair Accessories", weight: 90 },
+    tube: { category: "Fashion", subcategory: "Accessories", weight: 80 },
   }
 
   // Initialize scores for each category and subcategory
-  const scores: {
-    categoryId: string
-    categoryName: string
-    score: number
-    subcategoryId?: string
-    subcategoryName?: string
-    subcategoryScore?: number
-  }[] = []
+  const scores = []
 
   // First, check for direct matches with tech term mappings
   let directMatchFound = false
