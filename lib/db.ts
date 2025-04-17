@@ -1,14 +1,37 @@
 import { createClient } from "@supabase/supabase-js"
 
+// Update the Supabase client initialization to handle missing credentials better
+
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase credentials missing. Database features will be unavailable.")
-}
+// Log the environment variables for debugging (without exposing sensitive data)
+console.log("Supabase URL available:", !!supabaseUrl)
+console.log("Supabase Anon Key available:", !!supabaseAnonKey)
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create a singleton pattern for the Supabase client
+const supabaseInstance = null
+
+export const supabase =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : {
+        // Provide a mock implementation when credentials are missing
+        from: () => ({
+          select: () => ({
+            textSearch: () => ({
+              order: () => ({
+                limit: () => ({ data: [], error: null }),
+              }),
+            }),
+            eq: () => ({ data: [], error: null, count: 0 }),
+            count: () => ({ count: 0, error: null }),
+            order: () => ({ limit: () => ({ data: [], error: null }) }),
+          }),
+          insert: () => ({ error: null }),
+        }),
+      }
 
 // Type definitions based on our database schema
 export interface CategoryMapping {

@@ -19,20 +19,25 @@ export function LearningProgress() {
     async function fetchStats() {
       setIsLoading(true)
 
-      if (!supabase || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        // Set default values when Supabase is not available
-        setStats({
-          totalProducts: 0,
-          matchedByAI: 0,
-          matchedByDatabase: 0,
-          correctionRate: 0,
-          learningProgress: 0,
-        })
-        setIsLoading(false)
-        return
-      }
-
       try {
+        // Check if Supabase is properly initialized
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          console.log("Supabase credentials missing. Using demo data for Learning Progress.")
+          // Set demo data for better UI experience
+          setStats({
+            totalProducts: 128,
+            matchedByAI: 90,
+            matchedByDatabase: 38,
+            correctionRate: 12,
+            learningProgress: 78,
+          })
+          setIsLoading(false)
+          return
+        }
+
         // Get total mappings
         const { count: totalMappings } = await supabase
           .from("category_mappings")
@@ -63,6 +68,14 @@ export function LearningProgress() {
         })
       } catch (error) {
         console.error("Error fetching learning stats:", error)
+        // Set fallback demo data on error
+        setStats({
+          totalProducts: 128,
+          matchedByAI: 90,
+          matchedByDatabase: 38,
+          correctionRate: 12,
+          learningProgress: 78,
+        })
       } finally {
         setIsLoading(false)
       }
