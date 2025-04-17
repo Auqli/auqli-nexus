@@ -1,28 +1,100 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X, ExternalLink } from "lucide-react"
+import { Menu, X, ExternalLink, ChevronDown, ChevronUp } from "lucide-react"
 import { usePathname } from "next/navigation"
+import { Button } from "@/components/ui/button"
+
+// Tool data for dropdown menu
+const tools = [
+  {
+    name: "CSV Converter",
+    href: "/converter",
+    description: "Convert and prepare product CSVs for bulk uploads",
+    color: "bg-emerald-500",
+    isAvailable: true,
+  },
+  {
+    name: "ImageGen AI",
+    href: "/imagegen",
+    description: "Generate high-quality product photos and visuals",
+    color: "bg-purple-500",
+    isAvailable: true,
+  },
+  {
+    name: "CopyGen AI",
+    href: "/copygen",
+    description: "Create powerful product titles and descriptions",
+    color: "bg-blue-500",
+    isAvailable: true,
+  },
+  {
+    name: "BlogGen AI",
+    href: "/bloggen",
+    description: "Generate SEO-optimized blog articles",
+    color: "bg-amber-500",
+    isAvailable: true,
+  },
+  {
+    name: "CaptionGen AI",
+    href: "/captiongen",
+    description: "Auto-generate subtitles for videos in multiple languages",
+    color: "bg-orange-500",
+    isAvailable: false,
+  },
+  {
+    name: "VoiceBlog AI",
+    href: "/voiceblog",
+    description: "Turn voice notes into full blog posts",
+    color: "bg-red-700",
+    isAvailable: false,
+  },
+  {
+    name: "ClipSlash AI",
+    href: "/clipslash",
+    description: "Cut long videos into viral clips automatically",
+    color: "bg-red-500",
+    isAvailable: false,
+  },
+  {
+    name: "IdeaSpark AI",
+    href: "/ideaspark",
+    description: "Generate video ideas, hooks, and shot lists",
+    color: "bg-yellow-500",
+    isAvailable: false,
+  },
+  {
+    name: "CVBoost AI",
+    href: "/cvboost",
+    description: "Optimize your CV and generate cover letters",
+    color: "bg-purple-600",
+    isAvailable: false,
+  },
+  {
+    name: "ThreadGen AI",
+    href: "/threadgen",
+    description: "Convert content into Twitter/X threads",
+    color: "bg-blue-600",
+    isAvailable: false,
+  },
+  {
+    name: "FlexGen AI",
+    href: "/flexgen",
+    description: "Generate WhatsApp bios and matching profile pics",
+    color: "bg-red-700",
+    isAvailable: false,
+  },
+]
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isToolsOpen, setIsToolsOpen] = useState(false)
   const pathname = usePathname()
-  const [shouldRender, setShouldRender] = useState(true)
-
-  useEffect(() => {
-    if (pathname?.startsWith("/auqli-tools")) {
-      setShouldRender(false)
-    } else {
-      setShouldRender(true)
-    }
-
-    // Log for debugging
-    console.log("Current path:", pathname, "Should render header:", pathname?.startsWith("/auqli-tools") ? false : true)
-  }, [pathname])
+  const toolsDropdownRef = useRef<HTMLDivElement>(null)
 
   // Handle scroll event to make navbar sticky
   useEffect(() => {
@@ -33,12 +105,22 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(event.target as Node)) {
+        setIsToolsOpen(false)
+      }
+    }
 
-  // Skip rendering this header for auqli-tools routes
-  if (!shouldRender) {
-    return null
-  }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+  const toggleToolsDropdown = () => setIsToolsOpen(!isToolsOpen)
 
   return (
     <motion.header
@@ -55,7 +137,7 @@ export function SiteHeader() {
           <Link href="/" className="flex items-center z-10">
             <div className="flex items-center">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MARK-rlaHxgk2H2Z1pLvKYo7HsSBa801gp4.png"
+                src="/images/auqli-symbol.png"
                 alt="Auqli Logo"
                 width={36}
                 height={36}
@@ -68,22 +150,17 @@ export function SiteHeader() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/pricing" className="text-gray-300 hover:text-white transition-colors">
-              Pricing
-            </Link>
-            <Link href="/converter" className="flex items-center text-gray-300 hover:text-white transition-colors">
-              <span>CSV Converter</span>
-            </Link>
-            <Link href="/imagegen" className="flex items-center text-gray-300 hover:text-white transition-colors">
-              <span>ImageGen AI</span>
-            </Link>
-            <Link href="/copygen" className="flex items-center text-gray-300 hover:text-white transition-colors">
-              <span>CopyGen AI</span>
-            </Link>
-            <Link href="/bloggen" className="flex items-center text-gray-300 hover:text-white transition-colors">
-              <span>BlogGen AI</span>
-            </Link>
-            <Link
+            <a
+              href="https://auqli.live/about"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center text-gray-300 hover:text-white transition-colors"
+            >
+              <span>About</span>
+              <ExternalLink className="ml-1 h-3.5 w-3.5" />
+            </a>
+
+            <a
               href="https://auqli.live/blog"
               target="_blank"
               rel="noopener noreferrer"
@@ -91,11 +168,70 @@ export function SiteHeader() {
             >
               <span>Blog</span>
               <ExternalLink className="ml-1 h-3.5 w-3.5" />
+            </a>
+
+            <Link href="/pricing" className="text-gray-300 hover:text-white transition-colors">
+              Pricing
             </Link>
+
+            {/* Tools Dropdown */}
+            <div className="relative" ref={toolsDropdownRef}>
+              <button
+                onClick={toggleToolsDropdown}
+                className="flex items-center text-gray-300 hover:text-white transition-colors"
+              >
+                <span>Tools</span>
+                {isToolsOpen ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />}
+              </button>
+
+              {/* Tools Dropdown Menu */}
+              <AnimatePresence>
+                {isToolsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-80 bg-[#111827] border border-gray-700 rounded-lg shadow-lg overflow-hidden z-50"
+                  >
+                    <div className="max-h-[70vh] overflow-y-auto py-2">
+                      {tools.map((tool, index) => (
+                        <Link
+                          key={index}
+                          href={tool.href}
+                          className="flex items-start px-4 py-3 hover:bg-gray-800 transition-colors"
+                          onClick={() => setIsToolsOpen(false)}
+                        >
+                          <div className={`${tool.color} rounded-full p-2 mr-3 flex-shrink-0`}>
+                            <div className="w-3 h-3 bg-white rounded-full"></div>
+                          </div>
+                          <div>
+                            <div className="flex items-center">
+                              <span className="font-medium text-white">{tool.name}</span>
+                              {!tool.isAvailable && (
+                                <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">
+                                  Coming Soon
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-400 mt-0.5">{tool.description}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </nav>
 
-          {/* Desktop CTA Button */}
-          <div className="hidden md:block"></div>
+          {/* Auth Buttons */}
+          <div className="hidden md:flex items-center space-x-3">
+            <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+              Sign Up
+            </Button>
+            <Button className="bg-[#16783a] hover:bg-[#225b35] text-white">Login</Button>
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -120,47 +256,18 @@ export function SiteHeader() {
           >
             <div className="container mx-auto px-4 py-4">
               <nav className="flex flex-col space-y-4">
-                <Link
-                  href="/pricing"
+                <a
+                  href="https://auqli.live/about"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => setIsMenuOpen(false)}
                   className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
                 >
-                  <span className="font-medium">Pricing</span>
-                </Link>
+                  <span className="font-medium">About</span>
+                  <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                </a>
 
-                <Link
-                  href="/converter"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
-                >
-                  <span className="font-medium">CSV Converter</span>
-                </Link>
-
-                <Link
-                  href="/imagegen"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
-                >
-                  <span className="font-medium">ImageGen AI</span>
-                </Link>
-
-                <Link
-                  href="/copygen"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
-                >
-                  <span className="font-medium">CopyGen AI</span>
-                </Link>
-
-                <Link
-                  href="/bloggen"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
-                >
-                  <span className="font-medium">BlogGen AI</span>
-                </Link>
-
-                <Link
+                <a
                   href="https://auqli.live/blog"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -169,10 +276,50 @@ export function SiteHeader() {
                 >
                   <span className="font-medium">Blog</span>
                   <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                </Link>
-              </nav>
+                </a>
 
-              {/* Mobile CTA Button */}
+                <Link
+                  href="/pricing"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                >
+                  <span className="font-medium">Pricing</span>
+                </Link>
+
+                {/* Mobile Tools Dropdown */}
+                <div className="space-y-2">
+                  <div className="px-3 py-2.5 text-gray-300 font-medium">Tools</div>
+                  <div className="pl-3 space-y-1">
+                    {tools.map((tool, index) => (
+                      <Link
+                        key={index}
+                        href={tool.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center px-3 py-2 text-gray-400 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                      >
+                        <div className={`${tool.color} w-2 h-2 rounded-full mr-2`}></div>
+                        <span>{tool.name}</span>
+                        {!tool.isAvailable && (
+                          <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded-full">
+                            Soon
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mobile Auth Buttons */}
+                <div className="pt-2 flex flex-col space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  >
+                    Sign Up
+                  </Button>
+                  <Button className="w-full bg-[#16783a] hover:bg-[#225b35] text-white">Login</Button>
+                </div>
+              </nav>
             </div>
           </motion.div>
         )}
