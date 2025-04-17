@@ -1,206 +1,268 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { motion } from "framer-motion"
-import { Sparkles, ImageIcon, FileText, BookOpen, ArrowRight } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useAuth } from "@/components/auth/auth-provider"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Loader2 } from "lucide-react"
+
+interface UserProfile {
+  name: string | null
+  email: string | null
+  company_name: string | null
+  created_at: string | null
+}
 
 export default function Dashboard() {
-  const [isLoaded, setIsLoaded] = useState(false)
+  const { user } = useAuth()
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setIsLoaded(true)
-  }, [])
+    async function loadProfile() {
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
-  const tools = [
-    {
-      id: "imagegen",
-      name: "ImageGen AI",
-      description: "Generate high-quality product images with AI",
-      icon: ImageIcon,
-      href: "/imagegen",
-      buttonText: "Open ImageGen",
-      color: "from-purple-500/20 to-indigo-500/20",
-      borderColor: "border-purple-500/30",
-      gradientClass: "bg-gradient-to-r from-purple-600 to-indigo-600",
-    },
-    {
-      id: "copygen",
-      name: "CopyGen AI",
-      description: "AI-powered product descriptions and collection copy",
-      icon: FileText,
-      href: "/copygen",
-      buttonText: "Open CopyGen",
-      color: "from-emerald-500/20 to-teal-500/20",
-      borderColor: "border-emerald-500/30",
-      gradientClass: "bg-gradient-to-r from-emerald-600 to-teal-600",
-    },
-    {
-      id: "bloggen",
-      name: "BlogGen AI",
-      description: "Create SEO blog posts for your store",
-      icon: BookOpen,
-      href: "/bloggen",
-      buttonText: "Open BlogGen",
-      color: "from-orange-500/20 to-amber-500/20",
-      borderColor: "border-orange-500/30",
-      gradientClass: "bg-gradient-to-r from-orange-600 to-amber-600",
-      isAvailable: true,
-    },
-  ]
+      try {
+        // Try to fetch the profile
+        const { data, error } = await supabase
+          .from("user_profiles")
+          .select("name, email, company_name, created_at")
+          .eq("user_id", user.id)
+          .maybeSingle() // Use maybeSingle instead of single to avoid errors
 
-  // Mock usage data
-  const [usage, setUsage] = useState({
-    copyGen: 12,
-    imageGen: 8,
-    blogGen: 5,
-    total: 25,
-  })
+        if (error) {
+          console.error("Error fetching profile:", error)
+          setError(error.message)
+        } else {
+          // Profile found or null
+          setProfile(
+            data || {
+              name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+              email: user.email,
+              company_name: user.user_metadata?.company_name || null,
+              created_at: new Date().toISOString(),
+            },
+          )
+        }
+      } catch (err: any) {
+        console.error("Unexpected error:", err)
+        setError(err.message || "An unexpected error occurred")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProfile()
+  }, [user, supabase])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Required</CardTitle>
+            <CardDescription>You need to be logged in to view this page</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => router.push("/auth/login")}>Log In</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      {/* Welcome section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
-        <div className="bg-gradient-to-r from-[#1A1D24] to-[#1A1D24]/70 rounded-xl p-6 md:p-8 border border-gray-800 shadow-saas relative overflow-hidden">
-          {/* Animated gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 opacity-60"></div>
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Welcome to Auqli Nexus</h1>
-              <p className="text-gray-400 mb-4">Your AI-powered toolkit for success.</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
-                <Sparkles className="h-4 w-4 mr-2" />
-                <span>AI-Powered Tools</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <Button variant="outline" onClick={handleSignOut}>
+          Sign Out
+        </Button>
+      </div>
 
-      {/* Tool cards */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4">Quick Access Tools</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tools.map((tool, index) => (
-            <motion.div
-              key={tool.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={!tool.isFuture ? { y: -8, scale: 1.02 } : {}}
-              className="group"
-            >
-              <div
-                className={`bg-[#1A1D24] rounded-xl overflow-hidden border ${
-                  tool.borderColor
-                } shadow-saas hover:shadow-hover transition-all duration-300 h-full ${tool.isFuture ? "opacity-70" : ""}`}
-              >
-                <div className={`bg-gradient-to-r ${tool.color} p-6 relative overflow-hidden`}>
-                  {/* Animated gradient overlay */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-r from-white/5 via-white/10 to-white/5"></div>
+      {error && (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <p className="text-red-700">Error: {error}</p>
+            <p className="text-sm text-red-600 mt-2">
+              Please try refreshing the page or contact support if the issue persists.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-                  <div className="flex items-center mb-4">
-                    <div
-                      className={`w-12 h-12 rounded-xl ${tool.gradientClass} flex items-center justify-center mr-3 shadow-md`}
-                    >
-                      <tool.icon className="h-6 w-6 text-white" />
+      <Tabs defaultValue="overview">
+        <TabsList className="mb-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="tools">My Tools</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome, {profile?.name || user.email?.split("@")[0] || "User"}!</CardTitle>
+                <CardDescription>
+                  You've been a member since{" "}
+                  {profile?.created_at
+                    ? new Date(profile.created_at).toLocaleDateString()
+                    : new Date().toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p>
+                    <strong>Email:</strong> {profile?.email || user.email || "Not available"}
+                  </p>
+                  {profile?.company_name && (
+                    <p>
+                      <strong>Company:</strong> {profile.company_name}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Your recent actions and tool usage</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500 italic">No recent activity to display.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Getting Started</CardTitle>
+                <CardDescription>Quick steps to make the most of Auqli AI</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-start">
+                    <div className="bg-primary/10 p-2 rounded-full mr-3">
+                      <span className="text-primary font-bold">1</span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white">{tool.name}</h3>
-                      <div className="flex items-center">
-                        <span className="bg-black/30 text-white text-xs font-medium px-2 py-0.5 rounded-full flex items-center">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          AI Powered
-                        </span>
-                        {tool.isFuture && (
-                          <span className="ml-2 text-xs bg-gray-800 text-gray-300 font-medium px-2 py-0.5 rounded-full">
-                            Coming Soon
-                          </span>
-                        )}
-                      </div>
+                      <h3 className="font-medium">Explore our AI tools</h3>
+                      <p className="text-sm text-gray-500">
+                        Check out our suite of AI tools designed to help with product categorization and content
+                        generation.
+                      </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-300 mb-6 text-sm">{tool.description}</p>
+                  <div className="flex items-start">
+                    <div className="bg-primary/10 p-2 rounded-full mr-3">
+                      <span className="text-primary font-bold">2</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Upload your first CSV</h3>
+                      <p className="text-sm text-gray-500">
+                        Use our CSV Converter to prepare your product data for categorization.
+                      </p>
+                    </div>
+                  </div>
 
-                  {tool.isAvailable ? (
-                    <Link href={tool.href}>
-                      <button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center justify-center group-hover:shadow-md transition-all duration-300">
-                        {tool.buttonText}
-                        <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                      </button>
-                    </Link>
-                  ) : (
-                    <button
-                      disabled
-                      className="w-full bg-gray-800/50 text-gray-400 px-4 py-2 rounded-lg flex items-center justify-center cursor-not-allowed"
-                    >
-                      {tool.buttonText}
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </button>
-                  )}
+                  <div className="flex items-start">
+                    <div className="bg-primary/10 p-2 rounded-full mr-3">
+                      <span className="text-primary font-bold">3</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Generate your first AI content</h3>
+                      <p className="text-sm text-gray-500">
+                        Try CopyGen AI to create compelling product descriptions or ImageGen AI for product visuals.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tools">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Tools</CardTitle>
+              <CardDescription>Tools you've recently used</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="bg-emerald-500 rounded-full p-2 w-fit mb-3">
+                    <div className="w-4 h-4"></div>
+                  </div>
+                  <h3 className="font-medium">CSV Converter</h3>
+                  <p className="text-sm text-gray-500 mt-1">Convert and prepare product CSVs for bulk uploads</p>
+                  <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => router.push("/converter")}>
+                    Launch
+                  </Button>
+                </div>
+
+                <div className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="bg-blue-500 rounded-full p-2 w-fit mb-3">
+                    <div className="w-4 h-4"></div>
+                  </div>
+                  <h3 className="font-medium">CopyGen AI</h3>
+                  <p className="text-sm text-gray-500 mt-1">Create powerful product titles and descriptions</p>
+                  <Button variant="outline" size="sm" className="mt-3 w-full">
+                    Launch
+                  </Button>
+                </div>
+
+                <div className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="bg-purple-500 rounded-full p-2 w-fit mb-3">
+                    <div className="w-4 h-4"></div>
+                  </div>
+                  <h3 className="font-medium">ImageGen AI</h3>
+                  <p className="text-sm text-gray-500 mt-1">Generate high-quality product photos and visuals</p>
+                  <Button variant="outline" size="sm" className="mt-3 w-full">
+                    Launch
+                  </Button>
                 </div>
               </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Usage metrics */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="mb-8"
-      >
-        <h2 className="text-xl font-semibold text-white mb-4">Usage Metrics</h2>
-        <div className="bg-[#1A1D24] rounded-xl p-6 border border-gray-800 shadow-saas">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-lg p-4 border border-emerald-500/20">
-              <div className="flex items-center mb-2">
-                <FileText className="h-5 w-5 text-emerald-400 mr-2" />
-                <h3 className="text-white font-medium">CopyGen AI</h3>
-              </div>
-              <p className="text-2xl font-bold text-white">{usage.copyGen}</p>
-              <p className="text-gray-400 text-sm">Copies generated this week</p>
-            </div>
-
-            <div className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
-              <div className="flex items-center mb-2">
-                <ImageIcon className="h-5 w-5 text-purple-400 mr-2" />
-                <h3 className="text-white font-medium">ImageGen AI</h3>
-              </div>
-              <p className="text-2xl font-bold text-white">{usage.imageGen}</p>
-              <p className="text-gray-400 text-sm">Images generated this week</p>
-            </div>
-
-            <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-lg p-4 border border-orange-500/20">
-              <div className="flex items-center mb-2">
-                <BookOpen className="h-5 w-5 text-orange-400 mr-2" />
-                <h3 className="text-white font-medium">BlogGen AI</h3>
-              </div>
-              <p className="text-2xl font-bold text-white">{usage.blogGen}</p>
-              <p className="text-gray-400 text-sm">Blog posts generated this week</p>
-            </div>
-
-            <div className="col-span-1 md:col-span-3 bg-gradient-to-r from-gray-700/30 to-gray-600/30 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center mb-2">
-                <Sparkles className="h-5 w-5 text-gray-400 mr-2" />
-                <h3 className="text-white font-medium">Total Usage</h3>
-              </div>
-              <p className="text-2xl font-bold text-white">{usage.total}</p>
-              <p className="text-gray-400 text-sm">Total generations this month</p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Settings</CardTitle>
+              <CardDescription>Manage your account preferences</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-500 italic">Account settings will be available soon.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

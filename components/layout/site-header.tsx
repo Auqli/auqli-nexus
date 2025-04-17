@@ -227,10 +227,14 @@ export function SiteHeader() {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-3">
-            <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-              Sign Up
-            </Button>
-            <Button className="bg-[#16783a] hover:bg-[#225b35] text-white">Login</Button>
+            <Link href="/auth/signup">
+              <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                Sign Up
+              </Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button className="bg-[#16783a] hover:bg-[#225b35] text-white">Login</Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -311,13 +315,17 @@ export function SiteHeader() {
 
                 {/* Mobile Auth Buttons */}
                 <div className="pt-2 flex flex-col space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-                  >
-                    Sign Up
-                  </Button>
-                  <Button className="w-full bg-[#16783a] hover:bg-[#225b35] text-white">Login</Button>
+                  <Link href="/auth/signup" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                    >
+                      Sign Up
+                    </Button>
+                  </Link>
+                  <Link href="/auth/login" className="w-full">
+                    <Button className="w-full bg-[#16783a] hover:bg-[#225b35] text-white">Login</Button>
+                  </Link>
                 </div>
               </nav>
             </div>

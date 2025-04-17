@@ -1,26 +1,33 @@
 import type React from "react"
-import type { Metadata } from "next"
 import "./globals.css"
+import { Inter } from "next/font/google"
+import { AuthProvider } from "@/components/auth/auth-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import { SiteHeader } from "@/components/layout/site-header" // Add this import
+// Import the header component
+import Header from "@/components/header"
 
-export const metadata: Metadata = {
-  title: "Auqli Nexus",
-  description: "AI-powered tools for creators and sellers",
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata = {
+  title: "Auqli AI - Product Categorization",
+  description: "AI-powered product categorization for e-commerce",
     generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`bg-[#0a0f1a] text-white min-h-screen`}>
-        <ThemeProvider attribute="class" defaultTheme="dark">
-          <SiteHeader /> {/* Add the SiteHeader component here */}
-          {children}
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          <AuthProvider>
+            {/* Include the Header component */}
+            <Header />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
