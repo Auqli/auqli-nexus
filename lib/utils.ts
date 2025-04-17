@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 // Add the import for the enhanced fashion category matcher
-import { matchFashionCategory } from "./enhanced-category-matcher"
+import { matchFashionCategory } from "./enhanced-category-matcher.js"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

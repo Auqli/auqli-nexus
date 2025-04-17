@@ -1,10 +1,12 @@
+"use server"
+
 // Add the smartMatchCategories import at the top of the file
 // (Make sure this is added near other imports)
 import { smartMatchCategories } from "@/lib/utils"
 import { parse } from "csv-parse"
 
 // Add the import for the enhanced fashion category matcher
-import { matchFashionCategory } from "../lib/enhanced-category-matcher"
+import { matchFashionCategory } from "../lib/enhanced-category-matcher.js"
 
 // Fix TypeScript syntax in JavaScript file
 // Change TypeScript interface declarations to JSDoc comments
@@ -1172,5 +1174,111 @@ export async function processCSV(formData) {
   } catch (error) {
     console.error("Error processing CSV:", error)
     return { error: `Failed to process the CSV file: ${error instanceof Error ? error.message : "Unknown error"}` }
+  }
+}
+
+import { enhancedSmartMatch } from "@/lib/enhanced-category-matcher"
+import { saveCategoryMapping } from "@/lib/db"
+
+/**
+ * Server action to match a product category using database-enhanced matching
+ */
+export async function matchProductCategory(productName, productDescription, auqliCategories) {
+  try {
+    // Use the enhanced matching that combines AI and database
+    const result = await enhancedSmartMatch(productName, productDescription, auqliCategories)
+
+    return {
+      success: true,
+      ...result,
+    }
+  } catch (error) {
+    console.error("Error matching product category:", error)
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * Server action to save user feedback on category matches
+ */
+export async function saveUserFeedback(productName, productDescription, mainCategory, subCategory, wasCorrect) {
+  try {
+    // Save this as a user-verified mapping
+    await saveCategoryMapping(
+      productName,
+      productDescription,
+      mainCategory,
+      subCategory,
+      1.0, // High confidence since user verified
+      true, // User verified
+    )
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error saving user feedback:", error)
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+}
+
+// Update the getCategorySuggestions function to handle missing Supabase connection
+
+// Modify the getCategorySuggestions function:
+export async function getCategorySuggestions(productName) {
+  try {
+    // Check if Supabase is available
+    if (!process.env.SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return {
+        success: false,
+        error: "Database connection not available",
+        suggestions: [],
+      }
+    }
+
+    // This would use the database to find similar products
+    const { findSimilarProductCategories } = await import("@/lib/db")
+    const similarProducts = await findSimilarProductCategories(productName)
+
+    // Group by category and count occurrences
+    const suggestions = {}
+
+    similarProducts.forEach((product) => {
+      const key = `${product.main_category}|${product.sub_category}`
+      if (!suggestions[key]) {
+        suggestions[key] = {
+          mainCategory: product.main_category,
+          subCategory: product.sub_category,
+          count: 0,
+          confidence: 0,
+        }
+      }
+
+      suggestions[key].count += 1
+      suggestions[key].confidence += product.confidence_score || 0.5
+    })
+
+    // Convert to array and sort by count
+    const result = Object.values(suggestions)
+      .map((item) => ({
+        ...item,
+        confidence: item.confidence / item.count, // Average confidence
+      }))
+      .sort((a, b) => b.count - a.count)
+
+    return {
+      success: true,
+      suggestions: result,
+    }
+  } catch (error) {
+    console.error("Error getting category suggestions:", error)
+    return {
+      success: false,
+      error: error.message,
+    }
   }
 }

@@ -24,6 +24,13 @@ import { EnhancedPageHeader } from "@/components/layout/enhanced-page-header"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { InvalidCSVModal } from "@/components/invalid-csv-modal"
 import { CategorySelectionModal } from "@/components/category-selection-modal"
+import { useToast } from "@/components/ui/use-toast"
+
+// Add these imports at the top of the file
+import { DatabaseInsights } from "@/components/database-insights"
+import { CategorySuggestions } from "@/components/category-suggestions"
+import { LearningProgress } from "@/components/learning-progress"
+import { matchProductCategory, saveUserFeedback } from "@/app/actions"
 
 // Expected Shopify CSV headers
 const EXPECTED_SHOPIFY_HEADERS = [
@@ -74,6 +81,10 @@ export default function ConverterPage() {
   // Add these state variables inside the component
   const [totalItems, setTotalItems] = useState(0)
   const [processedItems, setProcessedItems] = useState(0)
+
+  const [activeTab, setActiveTab] = useState("categories")
+
+  const { toast } = useToast()
 
   useEffect(() => {
     setIsPageLoaded(true)
@@ -190,6 +201,65 @@ export default function ConverterPage() {
 
     console.log(`Categorization status updated: ${categorizedProducts.length}/${products.length} categorized`)
   }, [products, isProductCategorized])
+
+  // Add these components to the page layout, after the main converter card
+  // For example, before the closing </motion.div> tag at the end of the page
+  // Inside the ConverterPage component, add this function
+  const handleSmartMatch = async (productName, productDescription) => {
+    setIsLoading(true)
+    try {
+      const result = await matchProductCategory(productName, productDescription, auqliCategories)
+
+      if (result.success) {
+        // Update the product with the matched category
+        setProducts((prevProducts) =>
+          prevProducts.map((product) =>
+            product.name === productName
+              ? {
+                  ...product,
+                  mainCategory: result.mainCategory,
+                  subCategory: result.subCategory,
+                  matchSource: result.source,
+                  confidence: result.confidence,
+                  isCategorized: true,
+                }
+              : product,
+          ),
+        )
+
+        // Update categorization stats
+        updateCategorizationStatus()
+      }
+    } catch (error) {
+      console.error("Error in smart matching:", error)
+      setError("Failed to match category. Please try again or select manually.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Add this  Please try again or select manually.")
+  // Add this function to handle user feedback on category matches
+  const handleCategoryFeedback = async (productName, mainCategory, subCategory, wasCorrect) => {
+    try {
+      await saveUserFeedback(
+        productName,
+        products.find((p) => p.name === productName)?.description || "",
+        mainCategory,
+        subCategory,
+        wasCorrect,
+      )
+
+      // Show feedback confirmation to user
+      toast({
+        title: "Thank you for your feedback",
+        description: "Your input helps our system learn and improve.",
+        variant: "success",
+      })
+    } catch (error) {
+      console.error("Error saving feedback:", error)
+    }
+  }
 
   // Update the handleFileUpload function to validate the CSV format
   // Update the handleFileUpload function to count actual items
@@ -560,6 +630,47 @@ export default function ConverterPage() {
   useEffect(() => {
     updateCategorizationStatus()
   }, [products, updateCategorizationStatus])
+
+  // Find the line where currentProduct is defined and update it with a proper default value
+  // Replace:
+  // const currentProduct = unmatchedProducts[currentProductIndex] || {
+  //   id: "",
+  //   name: "",
+  //   mainCategory: "",
+  //   subCategory: "",
+  // }
+
+  // With:
+  const [currentProduct, setCurrentProduct] = useState(null)
+  const [currentProductIndex, setCurrentProductIndex] = useState(0)
+
+  // Then add this useEffect to update currentProduct safely when unmatchedProducts or currentProductIndex changes
+  useEffect(() => {
+    if (unmatchedProducts && unmatchedProducts.length > 0 && currentProductIndex < unmatchedProducts.length) {
+      setCurrentProduct(unmatchedProducts[currentProductIndex])
+    } else {
+      setCurrentProduct({
+        id: "",
+        name: "",
+        mainCategory: "",
+        subCategory: "",
+      })
+    }
+  }, [unmatchedProducts, currentProductIndex])
+
+  const handleMainCategoryChange = (productId, newMainCategory) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === productId ? { ...product, mainCategory: newMainCategory } : product,
+      ),
+    )
+  }
+
+  const handleSubCategoryChange = (productId, newSubCategory) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) => (product.id === productId ? { ...product, subCategory: newSubCategory } : product)),
+    )
+  }
 
   return (
     <>
@@ -1345,6 +1456,28 @@ export default function ConverterPage() {
                 </CardContent>
               </Card>
             </motion.div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+              <DatabaseInsights />
+              <LearningProgress />
+            </div>
+
+            {currentProduct && currentProduct.name && (
+              <div className="mt-6">
+                <CategorySuggestions
+                  productName={currentProduct.name}
+                  onSelectCategory={(main, sub) => {
+                    handleCategorySelection({
+                      [currentProduct.id]: {
+                        mainCategory: main,
+                        subCategory: sub,
+                      },
+                    })
+                    handleCategoryFeedback(currentProduct.name, main, sub, true)
+                  }}
+                />
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
@@ -1361,7 +1494,21 @@ export default function ConverterPage() {
         onSave={handleCategorySelection}
         unmatchedProducts={unmatchedProducts}
         auqliCategories={auqliCategories}
-      />
+      >
+        {activeTab === "categories" && currentProduct && currentProduct.name && (
+          <div className="mb-4">
+            <h4 className="text-sm text-gray-400 mb-2">Database Suggestions:</h4>
+            <CategorySuggestions
+              productName={currentProduct.name}
+              onSelectCategory={(main, sub) => {
+                handleMainCategoryChange(currentProduct.id, main)
+                handleSubCategoryChange(currentProduct.id, sub)
+                handleCategoryFeedback(currentProduct.name, main, sub, true)
+              }}
+            />
+          </div>
+        )}
+      </CategorySelectionModal>
     </>
   )
 }

@@ -2,24 +2,20 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search } from "lucide-react"
-import PropTypes from "prop-types"
 
 // Add custom animation for the AI button glow effect
 const glowKeyframes = `
 @keyframes glow {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+ 0% { transform: translateX(-100%); }
+ 100% { transform: translateX(100%); }
 }
 .animate-glow {
-  animation: glow 3s infinite linear;
+ animation: glow 3s infinite linear;
 }
 `
 
 /**
  * Calls DeepInfra's Llama-4 model to match a product to a category
- * @param {string} productName - The name of the product to match
- * @param {Array} categories - Available Auqli categories
- * @returns {Promise<{mainCategory: string, subCategory: string}>}
  */
 async function smartMatchWithAI(productName, categories) {
   // Prepare the category list for the prompt
@@ -65,16 +61,38 @@ async function smartMatchWithAI(productName, categories) {
     const data = await response.json()
     const content = data.choices[0].message.content
 
-    // Parse the JSON response
-    try {
-      const result = JSON.parse(content)
-      return {
-        mainCategory: result.main_category,
-        subCategory: result.subcategory,
+    // Extract JSON from the response
+    // Look for JSON object between curly braces
+    const jsonMatch = content.match(/\{[\s\S]*?\}/m)
+
+    if (jsonMatch) {
+      try {
+        const jsonStr = jsonMatch[0]
+        const result = JSON.parse(jsonStr)
+
+        // Check if the AI couldn't find a match
+        if (result.no_match === true || result.confidence < 0.3) {
+          return {
+            mainCategory: "Uncategorized",
+            subCategory: "Uncategorized",
+            confidence: result.confidence || 0,
+            noMatch: true,
+          }
+        }
+
+        return {
+          mainCategory: result.main_category,
+          subCategory: result.subcategory,
+          confidence: result.confidence || 0.5,
+          noMatch: false,
+        }
+      } catch (e) {
+        console.error("Failed to parse extracted JSON:", jsonMatch[0])
+        throw new Error("Failed to parse JSON from AI response")
       }
-    } catch (e) {
-      console.error("Failed to parse AI response:", content)
-      return null
+    } else {
+      console.error("No JSON found in AI response:", content)
+      throw new Error("No JSON found in AI response")
     }
   } catch (error) {
     console.error("Error calling DeepInfra API:", error)
@@ -84,9 +102,6 @@ async function smartMatchWithAI(productName, categories) {
 
 /**
  * Builds a prompt for the AI to match a product to a category
- * @param {string} productName - The name of the product to match
- * @param {Array} categoryList - List of available categories
- * @returns {string} - The prompt for the AI
  */
 function buildAIPrompt(productName, categoryList) {
   const categories = categoryList.map((cat) => `- ${cat}`).join("\n")
@@ -100,16 +115,173 @@ Title: ${productName}
 Available Categories:
 ${categories}
 
-Respond ONLY in this JSON format:
+IMPORTANT: 
+1. If the product name doesn't seem like a real product or doesn't match any category, set "no_match" to true.
+2. Include a confidence score between 0 and 1 indicating how confident you are in the match.
+3. You MUST respond with ONLY a JSON object and nothing else. No explanations, no text before or after the JSON.
+
+The JSON must follow this exact format:
 {
-  "main_category": "...",
-  "subcategory": "...",
-  "confidence": 0.0
+ "main_category": "...",
+ "subcategory": "...",
+ "confidence": 0.0,
+ "no_match": false
+}
+
+If no match is found, respond with:
+{
+ "main_category": "Uncategorized",
+ "subcategory": "Uncategorized",
+ "confidence": 0.0,
+ "no_match": true
 }
 `
 }
 
-export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
+// Function to handle auto-matching
+async function startAutoMatching(
+  setIsAutoMatching,
+  setMatchingStatus,
+  setCurrentMatchingIndex,
+  unmatchedProducts,
+  setCurrentProductIndex,
+  smartMatchWithAI,
+  auqliCategories,
+  setConfidenceScores,
+  setSelectedCategories,
+  setExpandedCategory,
+) {
+  setIsAutoMatching(true)
+  setMatchingStatus("matching")
+  setCurrentMatchingIndex(0)
+
+  // Start with the first product
+  await matchNextProduct(
+    0,
+    setIsAutoMatching,
+    setMatchingStatus,
+    setCurrentMatchingIndex,
+    unmatchedProducts,
+    setCurrentProductIndex,
+    smartMatchWithAI,
+    auqliCategories,
+    setConfidenceScores,
+    setSelectedCategories,
+    setExpandedCategory,
+  )
+}
+
+// Function to match the next product
+async function matchNextProduct(
+  index,
+  setIsAutoMatching,
+  setMatchingStatus,
+  setCurrentMatchingIndex,
+  unmatchedProducts,
+  setCurrentProductIndex,
+  smartMatchWithAI,
+  auqliCategories,
+  setConfidenceScores,
+  setSelectedCategories,
+  setExpandedCategory,
+) {
+  if (index >= unmatchedProducts.length) {
+    // We've matched all products
+    setMatchingStatus("complete")
+    setIsAutoMatching(false)
+    return
+  }
+
+  setCurrentMatchingIndex(index)
+  setCurrentProductIndex(index)
+
+  const product = unmatchedProducts[index]
+
+  try {
+    // Call AI to get category match
+    const result = await smartMatchWithAI(product.name, auqliCategories)
+
+    // Store the confidence score
+    setConfidenceScores((prev) => ({
+      ...prev,
+      [product.id]: result.confidence,
+    }))
+
+    // Update the selected categories with AI result
+    setSelectedCategories((prev) => ({
+      ...prev,
+      [product.id]: {
+        mainCategory: result.mainCategory,
+        subCategory: result.subCategory,
+        noMatch: result.noMatch,
+      },
+    }))
+
+    // Find and expand the matched category if it's not a no-match
+    if (!result.noMatch) {
+      setExpandedCategory(result.mainCategory)
+    }
+
+    // Log the match
+    console.log(
+      `AI matched "${product.name}" to ${result.mainCategory} > ${result.subCategory} (confidence: ${result.confidence})`,
+    )
+
+    // Wait a short delay before moving to the next product
+    setTimeout(() => {
+      matchNextProduct(
+        index + 1,
+        setIsAutoMatching,
+        setMatchingStatus,
+        setCurrentMatchingIndex,
+        unmatchedProducts,
+        setCurrentProductIndex,
+        smartMatchWithAI,
+        auqliCategories,
+        setConfidenceScores,
+        setSelectedCategories,
+        setExpandedCategory,
+      )
+    }, 500)
+  } catch (error) {
+    console.error(`Error matching product ${product.name}:`, error)
+
+    // Continue with the next product even if there's an error
+    setTimeout(() => {
+      matchNextProduct(
+        index + 1,
+        setIsAutoMatching,
+        setMatchingStatus,
+        setCurrentMatchingIndex,
+        unmatchedProducts,
+        setCurrentProductIndex,
+        smartMatchWithAI,
+        auqliCategories,
+        setConfidenceScores,
+        setSelectedCategories,
+        setExpandedCategory,
+      )
+    }, 500)
+  }
+}
+
+// Function to get confidence level text
+function getConfidenceLevelText(confidence) {
+  if (confidence === undefined) return ""
+  if (confidence >= 0.8) return "High Confidence"
+  if (confidence >= 0.5) return "Medium Confidence"
+  return "Low Confidence"
+}
+
+// Function to get confidence level color
+function getConfidenceLevelColor(confidence) {
+  if (confidence === undefined) return "text-gray-400"
+  if (confidence >= 0.8) return "text-green-400"
+  if (confidence >= 0.5) return "text-yellow-400"
+  return "text-red-400"
+}
+
+export default function CategoryModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
   // Convert to plain JavaScript without TypeScript annotations
   const [selectedCategories, setSelectedCategories] = useState({})
   const [currentProductIndex, setCurrentProductIndex] = useState(0)
@@ -120,6 +292,11 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
   const [categoryPage, setCategoryPage] = useState(1)
   const categoriesPerPage = 8
   const [isGlowStyleCreated, setIsGlowStyleCreated] = useState(false)
+  // Add these new state variables at the top of the component
+  const [isAutoMatching, setIsAutoMatching] = useState(false)
+  const [currentMatchingIndex, setCurrentMatchingIndex] = useState(0)
+  const [confidenceScores, setConfidenceScores] = useState({})
+  const [matchingStatus, setMatchingStatus] = useState("idle") // idle, matching, complete
 
   const currentProduct = unmatchedProducts[currentProductIndex] || {
     id: "",
@@ -169,6 +346,9 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
       setCategoryPage(1)
       setSearchQuery("")
       setProductSearchQuery("")
+      setIsAutoMatching(false)
+      setMatchingStatus("idle")
+      setCurrentMatchingIndex(0)
     }
   }, [isOpen, unmatchedProducts])
 
@@ -328,13 +508,17 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
                 const isSelected = currentProduct.id === product.id
                 const mainCategory = selectedCategories[product.id]?.mainCategory || product.mainCategory
                 const subCategory = selectedCategories[product.id]?.subCategory || product.subCategory
+                const isNoMatch = selectedCategories[product.id]?.noMatch
+                const confidence = confidenceScores[product.id]
+                const confidenceText = getConfidenceLevelText(confidence)
+                const confidenceColor = getConfidenceLevelColor(confidence)
 
                 return (
                   <div
                     key={product.id}
                     className={`p-3 border-b border-gray-700 cursor-pointer ${
                       isSelected ? "bg-[#16783a]" : "hover:bg-[#1a2235]"
-                    }`}
+                    } ${isAutoMatching && currentMatchingIndex === unmatchedProducts.findIndex((p) => p.id === product.id) ? "border-l-4 border-l-blue-500" : ""}`}
                     onClick={() => setCurrentProductIndex(unmatchedProducts.findIndex((p) => p.id === product.id))}
                   >
                     <div className={`font-medium ${isSelected ? "text-white" : ""}`}>{product.name}</div>
@@ -342,7 +526,16 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
                       {mainCategory && !mainCategory.includes("Uncategorized") ? mainCategory : "Uncategorized"} &gt;{" "}
                       {subCategory && !subCategory.includes("Uncategorized") ? subCategory : "Uncategorized"}
                     </div>
-                    {(status.mainMissing || status.subMissing) && (
+                    {confidence !== undefined && (
+                      <div className={`text-xs mt-1 ${confidenceColor}`}>{confidenceText}</div>
+                    )}
+                    {isNoMatch && (
+                      <div className="flex items-center mt-1 text-red-500 text-xs">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        No matching category found
+                      </div>
+                    )}
+                    {(status.mainMissing || status.subMissing) && !isNoMatch && (
                       <div className="flex items-center mt-1 text-amber-500 text-xs">
                         <AlertTriangle className="h-3 w-3 mr-1" />
                         {status.mainMissing && status.subMissing
@@ -490,33 +683,77 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
                 <h3 className="font-medium mb-6">{currentProduct.name}</h3>
 
                 <div className="space-y-6">
-                  <div>
-                    <h4 className="text-sm text-gray-400 mb-2">Selected Category</h4>
-                    <div className="p-3 bg-[#1a2235] rounded-md">
-                      {selectedCategories[currentProduct.id]?.mainCategory ||
-                        (currentProduct.mainCategory && !currentProduct.mainCategory.includes("Uncategorized")
-                          ? currentProduct.mainCategory
-                          : "Uncategorized")}
+                  {selectedCategories[currentProduct.id]?.noMatch ? (
+                    <div className="p-4 bg-red-900/20 border border-red-800/30 rounded-md">
+                      <div className="flex items-center text-red-400 mb-2">
+                        <AlertTriangle className="h-5 w-5 mr-2" />
+                        <span className="font-medium">No matching category found</span>
+                      </div>
+                      <p className="text-sm text-gray-300">
+                        This product name doesn't appear to match any available category in Auqli. You may need to
+                        manually select a category or review the product name.
+                      </p>
                     </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm text-gray-400 mb-2">Selected Subcategory</h4>
-                    <div className="p-3 bg-[#1a2235] rounded-md">
-                      {selectedCategories[currentProduct.id]?.subCategory ||
-                        (currentProduct.subCategory && !currentProduct.subCategory.includes("Uncategorized")
-                          ? currentProduct.subCategory
-                          : "Uncategorized")}
-
-                      {(!selectedCategories[currentProduct.id]?.subCategory ||
-                        selectedCategories[currentProduct.id]?.subCategory.includes("Uncategorized")) && (
-                        <div className="flex items-center mt-2 text-amber-500 text-sm">
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          Please select a proper subcategory
+                  ) : (
+                    <>
+                      <div>
+                        <h4 className="text-sm text-gray-400 mb-2">Selected Category</h4>
+                        <div className="p-3 bg-[#1a2235] rounded-md">
+                          {selectedCategories[currentProduct.id]?.mainCategory ||
+                            (currentProduct.mainCategory && !currentProduct.mainCategory.includes("Uncategorized")
+                              ? currentProduct.mainCategory
+                              : "Uncategorized")}
                         </div>
-                      )}
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm text-gray-400 mb-2">Selected Subcategory</h4>
+                        <div className="p-3 bg-[#1a2235] rounded-md">
+                          {selectedCategories[currentProduct.id]?.subCategory ||
+                            (currentProduct.subCategory && !currentProduct.subCategory.includes("Uncategorized")
+                              ? currentProduct.subCategory
+                              : "Uncategorized")}
+
+                          {(!selectedCategories[currentProduct.id]?.subCategory ||
+                            selectedCategories[currentProduct.id]?.subCategory.includes("Uncategorized")) && (
+                            <div className="flex items-center mt-2 text-amber-500 text-sm">
+                              <AlertTriangle className="h-4 w-4 mr-1" />
+                              Please select a proper subcategory
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Confidence score display */}
+                  {confidenceScores[currentProduct.id] !== undefined && (
+                    <div>
+                      <h4 className="text-sm text-gray-400 mb-2">AI Confidence</h4>
+                      <div className="p-3 bg-[#1a2235] rounded-md">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={getConfidenceLevelColor(confidenceScores[currentProduct.id])}>
+                            {getConfidenceLevelText(confidenceScores[currentProduct.id])}
+                          </span>
+                          <span className="text-gray-400 text-sm">
+                            {Math.round(confidenceScores[currentProduct.id] * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${
+                              confidenceScores[currentProduct.id] >= 0.8
+                                ? "bg-green-500"
+                                : confidenceScores[currentProduct.id] >= 0.5
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
+                            }`}
+                            style={{ width: `${confidenceScores[currentProduct.id] * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
@@ -532,37 +769,27 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
             <button onClick={onClose} className="px-6 py-2 bg-[#1a2235] hover:bg-[#222d42] rounded-md text-white">
               Cancel
             </button>
+
+            {/* Auto-match button */}
             <button
-              onClick={async () => {
-                // Show loading state
-                const productId = currentProduct.id
-                const productName = currentProduct.name
-
-                try {
-                  // Call AI to get category match
-                  const result = await smartMatchWithAI(productName, auqliCategories)
-
-                  if (result?.mainCategory && result?.subCategory) {
-                    // Update the selected categories with AI result
-                    setSelectedCategories((prev) => ({
-                      ...prev,
-                      [productId]: {
-                        mainCategory: result.mainCategory,
-                        subCategory: result.subCategory,
-                      },
-                    }))
-
-                    // Find and expand the matched category
-                    setExpandedCategory(result.mainCategory)
-
-                    // Show success message
-                    console.log(`AI matched "${productName}" to ${result.mainCategory} > ${result.subCategory}`)
-                  }
-                } catch (error) {
-                  console.error("Error during AI matching:", error)
-                }
-              }}
-              className="relative px-6 py-2 bg-gradient-to-r from-[#5466b5] to-[#7b5dd6] hover:from-[#4355a4] hover:to-[#6a4ec5] rounded-md text-white overflow-hidden group transition-all duration-300"
+              onClick={() =>
+                startAutoMatching(
+                  setIsAutoMatching,
+                  setMatchingStatus,
+                  setCurrentMatchingIndex,
+                  unmatchedProducts,
+                  setCurrentProductIndex,
+                  smartMatchWithAI,
+                  auqliCategories,
+                  setConfidenceScores,
+                  setSelectedCategories,
+                  setExpandedCategory,
+                )
+              }
+              disabled={isAutoMatching}
+              className={`relative px-6 py-2 bg-gradient-to-r from-[#5466b5] to-[#7b5dd6] hover:from-[#4355a4] hover:to-[#6a4ec5] rounded-md text-white overflow-hidden group transition-all duration-300 ${
+                isAutoMatching ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
               {/* Glowing effect */}
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#5466b5]/0 via-[#8a7ce8]/30 to-[#5466b5]/0 opacity-0 group-hover:opacity-100 animate-glow transition-opacity duration-700"></div>
@@ -574,7 +801,11 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
                 {/* Pulsing dot */}
                 <span className="absolute left-0 w-2 h-2 rounded-full bg-blue-300 mr-2 animate-pulse"></span>
 
-                <span className="ml-4">Smart Match With NexAI</span>
+                <span className="ml-4">
+                  {isAutoMatching
+                    ? `Matching... (${currentMatchingIndex + 1}/${unmatchedProducts.length})`
+                    : "Auto-Match All With NexAI"}
+                </span>
 
                 {/* AI icon */}
                 <svg className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -588,9 +819,13 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
                 </svg>
               </div>
             </button>
+
             <button
               onClick={handleNextProduct}
-              className="px-6 py-2 bg-[#16783a] hover:bg-[#225b35] rounded-md text-white"
+              disabled={isAutoMatching}
+              className={`px-6 py-2 bg-[#16783a] hover:bg-[#225b35] rounded-md text-white ${
+                isAutoMatching ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
               Next Product
             </button>
@@ -602,13 +837,4 @@ export function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProdu
       </div>
     </div>
   )
-}
-
-// Add PropTypes validation
-CategorySelectionModal.propTypes = {
-  isOpen: PropTypes.bool,
-  onClose: PropTypes.func,
-  onSave: PropTypes.func,
-  unmatchedProducts: PropTypes.array,
-  auqliCategories: PropTypes.array,
 }
