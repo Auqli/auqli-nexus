@@ -388,7 +388,9 @@ export default function ConverterPage() {
             }))
 
           if (unmatched.length > 0) {
-            setUnmatchedProducts(unmatched)
+            // Filter out any products that might already be matched
+            const filteredUnmatched = filterMatchedProducts(unmatched, {})
+            setUnmatchedProducts(filteredUnmatched)
             setIsCategoryModalOpen(true)
           }
 
@@ -670,6 +672,26 @@ export default function ConverterPage() {
     setProducts((prevProducts) =>
       prevProducts.map((product) => (product.id === productId ? { ...product, subCategory: newSubCategory } : product)),
     )
+  }
+
+  // Add this function to filter out already matched products
+  const filterMatchedProducts = (products, selectedCategories) => {
+    return products.filter((product) => {
+      const selected = selectedCategories[product.id]
+
+      // Keep products that don't have categories selected yet
+      if (!selected) return true
+
+      // Keep products that have "noMatch" flag
+      if (selected.noMatch) return true
+
+      // Filter out products that have both main category and subcategory properly selected
+      const hasMainCategory = selected.mainCategory && !selected.mainCategory.includes("Uncategorized")
+      const hasSubCategory = selected.subCategory && !selected.subCategory.includes("Uncategorized")
+
+      // Keep only products that are missing either main category or subcategory
+      return !(hasMainCategory && hasSubCategory)
+    })
   }
 
   return (
@@ -1179,7 +1201,20 @@ export default function ConverterPage() {
                             <Button
                               variant="outline"
                               className="border-amber-300 bg-amber-100 text-amber-700 hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-900/40 dark: dark:text-amber-300 dark:hover:bg-amber-900/60"
-                              onClick={() => setIsCategoryModalOpen(true)}
+                              onClick={() => {
+                                // Filter products that still need matching
+                                const productsNeedingMatch = products
+                                  .filter((product) => !isProductCategorized(product))
+                                  .map((product) => ({
+                                    id: product.id,
+                                    name: product.name,
+                                    mainCategory: product.mainCategory,
+                                    subCategory: product.subCategory,
+                                  }))
+
+                                setUnmatchedProducts(productsNeedingMatch)
+                                setIsCategoryModalOpen(true)
+                              }}
                             >
                               Match Now
                             </Button>
@@ -1365,6 +1400,8 @@ export default function ConverterPage() {
         onSave={handleCategorySelection}
         unmatchedProducts={unmatchedProducts}
         auqliCategories={auqliCategories}
+        // Add this prop to filter out already matched products when reopening the modal
+        filterMatchedProducts={true}
       >
         {activeTab === "categories" && currentProduct && currentProduct.name && (
           <div className="mb-4">

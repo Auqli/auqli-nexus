@@ -160,24 +160,70 @@ async function startAutoMatching(
   setConfidenceScores,
   setSelectedCategories,
   setExpandedCategory,
+  autoMatchingState,
+  setAutoMatchingState,
+  selectedCategories, // Pass selectedCategories here
 ) {
   setIsAutoMatching(true)
   setMatchingStatus("matching")
-  setCurrentMatchingIndex(0)
 
-  // Start with the first product
+  // Filter out already matched products
+  const productsToMatch = unmatchedProducts.filter((product) => {
+    const selected = selectedCategories[product.id]
+
+    // Keep products that don't have categories selected yet
+    if (!selected) return true
+
+    // Keep products that have "noMatch" flag
+    if (selected.noMatch) return true
+
+    // Filter out products that have both main category and subcategory properly selected
+    const hasMainCategory = selected.mainCategory && !selected.mainCategory.includes("Uncategorized")
+    const hasSubCategory = selected.subCategory && !selected.subCategory.includes("Uncategorized")
+
+    // Keep only products that are missing either main category or subcategory
+    return !(hasMainCategory && hasSubCategory)
+  })
+
+  console.log(
+    `Filtered ${unmatchedProducts.length - productsToMatch.length} already matched products. Processing ${productsToMatch.length} remaining products.`,
+  )
+
+  // If no products need matching, complete immediately
+  if (productsToMatch.length === 0) {
+    setMatchingStatus("complete")
+    setIsAutoMatching(false)
+    setAutoMatchingState({
+      inProgress: false,
+      lastProcessedIndex: -1,
+    })
+    return
+  }
+
+  // Start from the last processed index + 1 if resuming, otherwise start from 0
+  const startIndex = autoMatchingState.inProgress ? autoMatchingState.lastProcessedIndex + 1 : 0
+  setCurrentMatchingIndex(startIndex)
+
+  // Update auto-matching state
+  setAutoMatchingState({
+    inProgress: true,
+    lastProcessedIndex: startIndex - 1, // Will be updated as matching progresses
+  })
+
+  // Start with the appropriate product
   await matchNextProduct(
-    0,
+    startIndex,
     setIsAutoMatching,
     setMatchingStatus,
     setCurrentMatchingIndex,
-    unmatchedProducts,
+    productsToMatch, // Use the filtered products here
     setCurrentProductIndex,
     smartMatchWithAI,
     auqliCategories,
     setConfidenceScores,
     setSelectedCategories,
     setExpandedCategory,
+    setAutoMatchingState,
   )
 }
 
@@ -194,16 +240,27 @@ async function matchNextProduct(
   setConfidenceScores,
   setSelectedCategories,
   setExpandedCategory,
+  setAutoMatchingState,
 ) {
   if (index >= unmatchedProducts.length) {
     // We've matched all products
     setMatchingStatus("complete")
     setIsAutoMatching(false)
+    setAutoMatchingState({
+      inProgress: false,
+      lastProcessedIndex: -1,
+    })
     return
   }
 
   setCurrentMatchingIndex(index)
   setCurrentProductIndex(index)
+
+  // Update the last processed index
+  setAutoMatchingState((prev) => ({
+    ...prev,
+    lastProcessedIndex: index,
+  }))
 
   const product = unmatchedProducts[index]
 
@@ -251,6 +308,7 @@ async function matchNextProduct(
         setConfidenceScores,
         setSelectedCategories,
         setExpandedCategory,
+        setAutoMatchingState,
       )
     }, 500)
   } catch (error) {
@@ -270,6 +328,7 @@ async function matchNextProduct(
         setConfidenceScores,
         setSelectedCategories,
         setExpandedCategory,
+        setAutoMatchingState,
       )
     }, 500)
   }
@@ -307,6 +366,10 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
   const [currentMatchingIndex, setCurrentMatchingIndex] = useState(0)
   const [confidenceScores, setConfidenceScores] = useState({})
   const [matchingStatus, setMatchingStatus] = useState("idle") // idle, matching, complete
+  const [autoMatchingState, setAutoMatchingState] = useState({
+    inProgress: false,
+    lastProcessedIndex: -1,
+  })
 
   const currentProduct = unmatchedProducts[currentProductIndex] || {
     id: "",
@@ -317,10 +380,31 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
 
   // Filter products based on search query
   const filteredProducts = useMemo(() => {
-    if (!productSearchQuery.trim()) return unmatchedProducts
+    // First apply search filter if any
+    let filtered = !productSearchQuery.trim()
+      ? unmatchedProducts
+      : unmatchedProducts.filter((product) => product.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
 
-    return unmatchedProducts.filter((product) => product.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
-  }, [unmatchedProducts, productSearchQuery])
+    // Then filter out products that have been successfully matched
+    filtered = filtered.filter((product) => {
+      const selected = selectedCategories[product.id]
+
+      // Keep products that don't have categories selected yet
+      if (!selected) return true
+
+      // Keep products that have "noMatch" flag
+      if (selected.noMatch) return true
+
+      // Filter out products that have both main category and subcategory properly selected
+      const hasMainCategory = selected.mainCategory && !selected.mainCategory.includes("Uncategorized")
+      const hasSubCategory = selected.subCategory && !selected.subCategory.includes("Uncategorized")
+
+      // Keep only products that are missing either main category or subcategory
+      return !(hasMainCategory && hasSubCategory)
+    })
+
+    return filtered
+  }, [unmatchedProducts, productSearchQuery, selectedCategories])
 
   // Filter categories based on search query
   const filteredCategories = useMemo(() => {
@@ -487,7 +571,17 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
       <div className="relative w-[90vw] max-w-4xl max-h-[90vh] bg-[#0c1322] rounded-lg overflow-hidden text-white">
         {/* Close button */}
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+        <button
+          onClick={() => {
+            // When closing, preserve the auto-matching state but stop the active matching
+            if (isAutoMatching) {
+              setIsAutoMatching(false)
+              // Keep the autoMatchingState as is to allow resuming
+            }
+            onClose()
+          }}
+          className="absolute top-4 right-4 text-gray-400 hover:text-white"
+        >
           <X className="h-5 w-5" />
         </button>
 
@@ -802,7 +896,17 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
             Product {currentProductIndex + 1} of {unmatchedProducts.length}
           </div>
           <div className="flex space-x-3">
-            <button onClick={onClose} className="px-6 py-2 bg-[#1a2235] hover:bg-[#222d42] rounded-md text-white">
+            <button
+              onClick={() => {
+                // When closing, preserve the auto-matching state but stop the active matching
+                if (isAutoMatching) {
+                  setIsAutoMatching(false)
+                  // Keep the autoMatchingState as is to allow resuming
+                }
+                onClose()
+              }}
+              className="px-6 py-2 bg-[#1a2235] hover:bg-[#222d42] rounded-md text-white"
+            >
               Cancel
             </button>
 
@@ -813,13 +917,16 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
                   setIsAutoMatching,
                   setMatchingStatus,
                   setCurrentMatchingIndex,
-                  unmatchedProducts,
+                  filteredProducts, // Use filteredProducts instead of unmatchedProducts
                   setCurrentProductIndex,
                   smartMatchWithAI,
                   auqliCategories,
                   setConfidenceScores,
                   setSelectedCategories,
                   setExpandedCategory,
+                  autoMatchingState,
+                  setAutoMatchingState,
+                  selectedCategories, // Pass selectedCategories here
                 )
               }
               disabled={isAutoMatching}
@@ -840,7 +947,9 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
                 <span className="ml-4">
                   {isAutoMatching
                     ? `Matching... (${currentMatchingIndex + 1}/${unmatchedProducts.length})`
-                    : "Auto-Match All With NexAI"}
+                    : autoMatchingState.inProgress
+                      ? "Resume Matching with NexAI"
+                      : "Auto-Match All With NexAI"}
                 </span>
 
                 {/* AI icon */}
