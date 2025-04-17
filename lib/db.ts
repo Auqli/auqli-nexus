@@ -77,7 +77,7 @@ export async function findSimilarProductCategories(productName: string, threshol
   return data as CategoryMapping[]
 }
 
-// Function to save a new category mapping
+// Improve the saveCategoryMapping function with better error handling and retry logic
 export async function saveCategoryMapping(
   productName: string,
   productDescription: string | null,
@@ -86,19 +86,83 @@ export async function saveCategoryMapping(
   confidenceScore: number,
   userVerified = false,
 ): Promise<void> {
-  const { error } = await supabase.from("category_mappings").insert([
-    {
-      product_name: productName,
-      product_description: productDescription,
-      main_category: mainCategory,
-      sub_category: subCategory,
-      confidence_score: confidenceScore,
-      user_verified: userVerified,
-    },
-  ])
+  // Maximum retry attempts
+  const MAX_RETRIES = 3
+  let retries = 0
 
-  if (error) {
-    console.error("Error saving category mapping:", error)
+  while (retries < MAX_RETRIES) {
+    try {
+      const { error } = await supabase.from("category_mappings").insert([
+        {
+          product_name: productName,
+          product_description: productDescription,
+          main_category: mainCategory,
+          sub_category: subCategory,
+          confidence_score: confidenceScore,
+          user_verified: userVerified,
+        },
+      ])
+
+      if (error) {
+        console.error(`Error saving category mapping (attempt ${retries + 1}):`, error)
+        retries++
+
+        // Wait longer between each retry
+        await new Promise((resolve) => setTimeout(resolve, 500 * retries))
+      } else {
+        // Success, exit the retry loop
+        return
+      }
+    } catch (error) {
+      console.error(`Exception during save (attempt ${retries + 1}):`, error)
+      retries++
+
+      // Wait longer between each retry
+      await new Promise((resolve) => setTimeout(resolve, 500 * retries))
+    }
+  }
+
+  // If we get here, all retries failed
+  console.error(`Failed to save category mapping for "${productName}" after ${MAX_RETRIES} attempts`)
+}
+
+/**
+ * Batch save multiple category mappings to improve performance
+ * @param mappings - Array of category mappings to save
+ * @returns Promise<void>
+ */
+export async function batchSaveCategoryMappings(
+  mappings: Array<{
+    productName: string
+    productDescription: string | null
+    mainCategory: string
+    subCategory: string
+    confidenceScore: number
+    userVerified: boolean
+  }>,
+): Promise<void> {
+  if (!mappings || mappings.length === 0) return
+
+  // Process in batches of 50 to avoid overwhelming the database
+  const BATCH_SIZE = 50
+
+  for (let i = 0; i < mappings.length; i += BATCH_SIZE) {
+    const batch = mappings.slice(i, i + BATCH_SIZE)
+
+    try {
+      const { error } = await supabase.from("category_mappings").insert(batch)
+
+      if (error) {
+        console.error(`Error batch saving category mappings (batch ${i / BATCH_SIZE + 1}):`, error)
+      }
+    } catch (error) {
+      console.error(`Exception during batch save (batch ${i / BATCH_SIZE + 1}):`, error)
+    }
+
+    // Small delay to prevent rate limiting
+    if (i + BATCH_SIZE < mappings.length) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
   }
 }
 

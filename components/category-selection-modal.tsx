@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search, Database, Check } from "lucide-react"
 import PropTypes from "prop-types"
+import { useToast } from "@/hooks/use-toast"
 
 // Import the database functions
 import { saveCategoryMapping, saveCategoryCorrection } from "@/lib/db"
@@ -163,9 +164,13 @@ async function startAutoMatching(
   autoMatchingState,
   setAutoMatchingState,
   selectedCategories, // Pass selectedCategories here
+  setDbSaveStatus, // Add database save status
+  onDbUpdate, // Add callback for database updates
+  toast, // Add toast for notifications
 ) {
   setIsAutoMatching(true)
   setMatchingStatus("matching")
+  setDbSaveStatus({ saving: false, success: 0, failed: 0 })
 
   // Filter out already matched products
   const productsToMatch = unmatchedProducts.filter((product) => {
@@ -224,6 +229,9 @@ async function startAutoMatching(
     setSelectedCategories,
     setExpandedCategory,
     setAutoMatchingState,
+    setDbSaveStatus, // Add database save status
+    onDbUpdate, // Add callback for database updates
+    toast, // Add toast for notifications
   )
 }
 
@@ -241,6 +249,9 @@ async function matchNextProduct(
   setSelectedCategories,
   setExpandedCategory,
   setAutoMatchingState,
+  setDbSaveStatus, // Add database save status
+  onDbUpdate, // Add callback for database updates
+  toast, // Add toast for notifications
 ) {
   if (index >= unmatchedProducts.length) {
     // We've matched all products
@@ -250,6 +261,19 @@ async function matchNextProduct(
       inProgress: false,
       lastProcessedIndex: -1,
     })
+
+    // Show final database save status
+    setDbSaveStatus((prev) => ({ ...prev, saving: false }))
+
+    // Show success toast if all products were processed
+    if (unmatchedProducts.length > 0) {
+      toast({
+        title: "Auto-matching complete",
+        description: `Processed ${unmatchedProducts.length} products with ${setDbSaveStatus.success} successful database saves.`,
+        variant: "success",
+      })
+    }
+
     return
   }
 
@@ -284,6 +308,51 @@ async function matchNextProduct(
       },
     }))
 
+    // Update database save status to indicate saving
+    setDbSaveStatus((prev) => ({ ...prev, saving: true }))
+
+    // Save this mapping to the database in real-time
+    try {
+      await saveCategoryMapping(
+        product.name,
+        product.description || "",
+        result.mainCategory,
+        result.subCategory,
+        result.confidence,
+        false, // Not user verified
+      )
+
+      // Update database save status to indicate success
+      setDbSaveStatus((prev) => ({
+        saving: false,
+        success: prev.success + 1,
+        failed: prev.failed,
+      }))
+
+      // Trigger the database update callback
+      if (onDbUpdate) onDbUpdate()
+
+      console.log(`Saved mapping for "${product.name}" to database in real-time`)
+    } catch (dbError) {
+      console.error(`Error saving mapping to database for "${product.name}":`, dbError)
+
+      // Update database save status to indicate failure
+      setDbSaveStatus((prev) => ({
+        saving: false,
+        success: prev.success,
+        failed: prev.failed + 1,
+      }))
+
+      // Show error toast
+      toast({
+        title: "Database save failed",
+        description: `Failed to save category for "${product.name}". Will continue processing.`,
+        variant: "destructive",
+      })
+
+      // Continue processing even if database save fails
+    }
+
     // Find and expand the matched category if it's not a no-match
     if (!result.noMatch) {
       setExpandedCategory(result.mainCategory)
@@ -309,10 +378,20 @@ async function matchNextProduct(
         setSelectedCategories,
         setExpandedCategory,
         setAutoMatchingState,
+        setDbSaveStatus,
+        onDbUpdate,
+        toast,
       )
     }, 500)
   } catch (error) {
     console.error(`Error matching product ${product.name}:`, error)
+
+    // Show error toast
+    toast({
+      title: "Matching error",
+      description: `Error matching "${product.name}". Continuing with next product.`,
+      variant: "destructive",
+    })
 
     // Continue with the next product even if there's an error
     setTimeout(() => {
@@ -329,6 +408,9 @@ async function matchNextProduct(
         setSelectedCategories,
         setExpandedCategory,
         setAutoMatchingState,
+        setDbSaveStatus,
+        onDbUpdate,
+        toast,
       )
     }, 500)
   }
@@ -350,7 +432,14 @@ function getConfidenceLevelColor(confidence) {
   return "text-red-400"
 }
 
-function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
+function CategorySelectionModal({
+  isOpen,
+  onClose,
+  onSave,
+  unmatchedProducts = [],
+  auqliCategories = [],
+  onDbUpdate = null,
+}) {
   // Convert to plain JavaScript without TypeScript annotations
   const [selectedCategories, setSelectedCategories] = useState({})
   const [currentProductIndex, setCurrentProductIndex] = useState(0)
@@ -370,6 +459,15 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
     inProgress: false,
     lastProcessedIndex: -1,
   })
+  // Add database save status state
+  const [dbSaveStatus, setDbSaveStatus] = useState({
+    saving: false,
+    success: 0,
+    failed: 0,
+  })
+
+  // Add toast for notifications
+  const { toast } = useToast()
 
   const currentProduct = unmatchedProducts[currentProductIndex] || {
     id: "",
@@ -443,6 +541,7 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
       setIsAutoMatching(false)
       setMatchingStatus("idle")
       setCurrentMatchingIndex(0)
+      setDbSaveStatus({ saving: false, success: 0, failed: 0 })
     }
   }, [isOpen, unmatchedProducts])
 
@@ -461,25 +560,66 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
     const product = unmatchedProducts.find((p) => p.id === productId)
 
     if (product) {
-      // Save this as a user-verified mapping
-      await saveCategoryMapping(
-        product.name,
-        product.description || null,
-        mainCategory,
-        subCategory,
-        1.0, // High confidence since user selected it
-        true, // User verified
-      )
+      // Update database save status to indicate saving
+      setDbSaveStatus((prev) => ({ ...prev, saving: true }))
 
-      // If this is different from the original AI suggestion, save as a correction
-      if (product.mainCategory !== mainCategory || product.subCategory !== subCategory) {
-        await saveCategoryCorrection(
+      try {
+        // Save this as a user-verified mapping
+        await saveCategoryMapping(
           product.name,
-          product.mainCategory || "Uncategorized",
-          product.subCategory || "Uncategorized",
+          product.description || null,
           mainCategory,
           subCategory,
+          1.0, // High confidence since user selected it
+          true, // User verified
         )
+
+        // Update database save status to indicate success
+        setDbSaveStatus((prev) => ({
+          saving: false,
+          success: prev.success + 1,
+          failed: prev.failed,
+        }))
+
+        // Trigger the database update callback
+        if (onDbUpdate) onDbUpdate()
+
+        console.log(`Successfully saved user-verified mapping for "${product.name}" to database`)
+
+        // If this is different from the original AI suggestion, save as a correction
+        if (product.mainCategory !== mainCategory || product.subCategory !== subCategory) {
+          await saveCategoryCorrection(
+            product.name,
+            product.mainCategory || "Uncategorized",
+            product.subCategory || "Uncategorized",
+            mainCategory,
+            subCategory,
+          )
+          console.log(`Saved correction for "${product.name}" to database`)
+        }
+
+        // Show success toast
+        toast({
+          title: "Category saved",
+          description: `Successfully saved category for "${product.name}"`,
+          variant: "success",
+        })
+      } catch (error) {
+        console.error(`Error saving category selection to database for "${product.name}":`, error)
+
+        // Update database save status to indicate failure
+        setDbSaveStatus((prev) => ({
+          saving: false,
+          success: prev.success,
+          failed: prev.failed + 1,
+        }))
+
+        // Show error toast
+        toast({
+          title: "Database save failed",
+          description: `Failed to save category for "${product.name}". Please try again.`,
+          variant: "destructive",
+        })
       }
     }
   }
@@ -514,6 +654,16 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
 
   const handleSaveAll = () => {
     onSave(selectedCategories)
+
+    // Trigger the database update callback
+    if (onDbUpdate) onDbUpdate()
+
+    // Show success toast
+    toast({
+      title: "All categories saved",
+      description: `Successfully saved ${Object.keys(selectedCategories).length} categories`,
+      variant: "success",
+    })
   }
 
   const toggleCategory = (categoryName) => {
@@ -598,6 +748,29 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
             <div className="flex justify-between text-sm mb-1">
               <span>
                 Progress: {categorizedCount} of {unmatchedProducts.length} products categorized
+              </span>
+
+              {/* Database save status indicator */}
+              <span className="flex items-center">
+                {dbSaveStatus.saving ? (
+                  <span className="flex items-center text-blue-400">
+                    <Database className="h-3 w-3 mr-1 animate-pulse" />
+                    Saving to database...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <span className="text-green-400 flex items-center mr-3">
+                      <Check className="h-3 w-3 mr-1" />
+                      {dbSaveStatus.success} saved
+                    </span>
+                    {dbSaveStatus.failed > 0 && (
+                      <span className="text-red-400 flex items-center">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        {dbSaveStatus.failed} failed
+                      </span>
+                    )}
+                  </span>
+                )}
               </span>
             </div>
             <div className="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
@@ -884,6 +1057,32 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
                       </div>
                     </div>
                   )}
+
+                  {/* Database save status */}
+                  <div>
+                    <h4 className="text-sm text-gray-400 mb-2">Database Status</h4>
+                    <div className="p-3 bg-[#1a2235] rounded-md">
+                      {dbSaveStatus.saving ? (
+                        <div className="flex items-center text-blue-400">
+                          <Database className="h-4 w-4 mr-2 animate-pulse" />
+                          <span>Saving to database...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center text-green-400">
+                            <Check className="h-4 w-4 mr-2" />
+                            <span>{dbSaveStatus.success} categories saved successfully</span>
+                          </div>
+                          {dbSaveStatus.failed > 0 && (
+                            <div className="flex items-center text-red-400">
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                              <span>{dbSaveStatus.failed} categories failed to save</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -927,6 +1126,9 @@ function CategorySelectionModal({ isOpen, onClose, onSave, unmatchedProducts = [
                   autoMatchingState,
                   setAutoMatchingState,
                   selectedCategories, // Pass selectedCategories here
+                  setDbSaveStatus, // Add database save status
+                  onDbUpdate, // Add callback for database updates
+                  toast, // Add toast for notifications
                 )
               }
               disabled={isAutoMatching}
@@ -990,6 +1192,7 @@ CategorySelectionModal.propTypes = {
   onSave: PropTypes.func,
   unmatchedProducts: PropTypes.array,
   auqliCategories: PropTypes.array,
+  onDbUpdate: PropTypes.func,
 }
 
 export { CategorySelectionModal }

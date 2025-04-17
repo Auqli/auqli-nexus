@@ -84,6 +84,15 @@ export default function ConverterPage() {
 
   const [activeTab, setActiveTab] = useState("categories")
 
+  // Add a state variable to track database save progress
+  // Add this with the other state variables at the top of the component
+
+  const [databaseSaveProgress, setDatabaseSaveProgress] = useState(0)
+  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false)
+
+  // Add this inside the ConverterPage component, near the other state variables
+  const [dbRefreshTrigger, setDbRefreshTrigger] = useState(0)
+
   const { toast } = useToast()
 
   useEffect(() => {
@@ -674,6 +683,12 @@ export default function ConverterPage() {
     )
   }
 
+  // Add this function inside the ConverterPage component
+  const handleDbUpdate = () => {
+    // Increment the refresh trigger to cause the database components to refresh
+    setDbRefreshTrigger((prev) => prev + 1)
+  }
+
   // Add this function to filter out already matched products
   const filterMatchedProducts = (products, selectedCategories) => {
     return products.filter((product) => {
@@ -1104,6 +1119,19 @@ export default function ConverterPage() {
                           processedItems={processedItems}
                         />
                         <Progress value={processingProgress} className="h-2" />
+
+                        {/* Add database save progress indicator */}
+                        {isSavingToDatabase && (
+                          <div className="mt-4">
+                            <div className="flex justify-between text-sm">
+                              <span>Saving to database...</span>
+                              <span>{Math.round(databaseSaveProgress)}%</span>
+                            </div>
+                            <Progress value={databaseSaveProgress} className="h-2 bg-blue-900/20">
+                              <div className="h-full bg-blue-600" style={{ width: `${databaseSaveProgress}%` }} />
+                            </Progress>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1364,8 +1392,8 @@ export default function ConverterPage() {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-              <DatabaseInsights />
-              <LearningProgress />
+              <DatabaseInsights refreshTrigger={dbRefreshTrigger} />
+              <LearningProgress refreshTrigger={dbRefreshTrigger} />
             </div>
 
             {currentProduct && currentProduct.name && (
@@ -1396,12 +1424,20 @@ export default function ConverterPage() {
         onClose={() => {
           setIsCategoryModalOpen(false)
           updateCategorizationStatus()
+          // Refresh database insights when modal is closed
+          handleDbUpdate()
         }}
-        onSave={handleCategorySelection}
+        onSave={(selectedCategories) => {
+          handleCategorySelection(selectedCategories)
+          // Refresh database insights when categories are saved
+          handleDbUpdate()
+        }}
         unmatchedProducts={unmatchedProducts}
         auqliCategories={auqliCategories}
         // Add this prop to filter out already matched products when reopening the modal
         filterMatchedProducts={true}
+        // Add this prop to trigger database updates
+        onDbUpdate={handleDbUpdate}
       >
         {activeTab === "categories" && currentProduct && currentProduct.name && (
           <div className="mb-4">
@@ -1412,6 +1448,8 @@ export default function ConverterPage() {
                 handleMainCategoryChange(currentProduct.id, main)
                 handleSubCategoryChange(currentProduct.id, sub)
                 handleCategoryFeedback(currentProduct.name, main, sub, true)
+                // Refresh database insights when a category is selected
+                handleDbUpdate()
               }}
             />
           </div>
