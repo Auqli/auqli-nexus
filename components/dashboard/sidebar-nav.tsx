@@ -22,6 +22,7 @@ import {
   FileTextIcon as FileText2,
   Share2,
   LogOut,
+  Mic,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
@@ -79,6 +80,12 @@ export function SidebarNav() {
       title: "CaptionGen AI",
       href: "/captiongen",
       icon: MessageSquare,
+      isAvailable: false,
+    },
+    {
+      title: "VoiceBlog AI",
+      href: "/voiceblog",
+      icon: Mic,
       isAvailable: false,
     },
     {

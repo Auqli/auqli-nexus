@@ -26,6 +26,7 @@ import {
   TrendingUp,
   CheckCircle,
   AlertCircle,
+  Mic,
 } from "lucide-react"
 import {
   BarChart,
@@ -240,6 +241,16 @@ export default function Dashboard() {
       lastUsed: null,
       color: "bg-gradient-to-br from-teal-400 to-teal-600",
       path: "/captiongen",
+      isAvailable: false,
+    },
+    {
+      id: "voiceblog",
+      name: "VoiceBlog AI",
+      icon: <Mic className="h-5 w-5" />,
+      usageCount: 0,
+      lastUsed: null,
+      color: "bg-gradient-to-br from-red-400 to-red-600",
+      path: "/voiceblog",
       isAvailable: false,
     },
     {
