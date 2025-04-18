@@ -1,12 +1,11 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useAuth } from "@/components/auth/auth-provider"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -17,12 +16,10 @@ import {
   Scissors,
   Lightbulb,
   FileUp,
-  Clock,
-  Zap,
   Share2,
   FileTextIcon,
+  Zap,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 
 interface UserProfile {
   name: string | null
@@ -55,100 +52,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Complete list of all tools
-  const [toolsUsage, setToolsUsage] = useState<ToolUsage[]>([
-    {
-      id: "csv-converter",
-      name: "CSV Converter",
-      icon: <FileUp className="h-5 w-5" />,
-      usageCount: 12,
-      lastUsed: "2023-04-15T10:30:00Z",
-      color: "bg-gradient-to-br from-emerald-500 to-emerald-700",
-      path: "/converter",
-      isAvailable: true,
-    },
-    {
-      id: "copygen",
-      name: "CopyGen AI",
-      icon: <FileText className="h-5 w-5" />,
-      usageCount: 8,
-      lastUsed: "2023-04-14T15:45:00Z",
-      color: "bg-gradient-to-br from-blue-500 to-blue-700",
-      path: "/copygen",
-      isAvailable: true,
-    },
-    {
-      id: "imagegen",
-      name: "ImageGen AI",
-      icon: <ImageIcon className="h-5 w-5" />,
-      usageCount: 5,
-      lastUsed: "2023-04-13T09:20:00Z",
-      color: "bg-gradient-to-br from-purple-500 to-purple-700",
-      path: "/imagegen",
-      isAvailable: true,
-    },
-    {
-      id: "bloggen",
-      name: "BlogGen AI",
-      icon: <MessageSquare className="h-5 w-5" />,
-      usageCount: 3,
-      lastUsed: "2023-04-10T14:15:00Z",
-      color: "bg-gradient-to-br from-pink-500 to-pink-700",
-      path: "/bloggen",
-      isAvailable: true,
-    },
-    {
-      id: "clipslash",
-      name: "ClipSlash AI",
-      icon: <Scissors className="h-5 w-5" />,
-      usageCount: 2,
-      lastUsed: "2023-04-08T11:30:00Z",
-      color: "bg-gradient-to-br from-orange-500 to-orange-700",
-      path: "/clipslash",
-      isAvailable: false,
-    },
-    {
-      id: "ideaspark",
-      name: "IdeaSpark AI",
-      icon: <Lightbulb className="h-5 w-5" />,
-      usageCount: 1,
-      lastUsed: "2023-04-05T16:45:00Z",
-      color: "bg-gradient-to-br from-yellow-500 to-yellow-700",
-      path: "/ideaspark",
-      isAvailable: false,
-    },
-    {
-      id: "captiongen",
-      name: "CaptionGen AI",
-      icon: <MessageSquare className="h-5 w-5" />,
-      usageCount: 0,
-      lastUsed: null,
-      color: "bg-gradient-to-br from-teal-500 to-teal-700",
-      path: "/captiongen",
-      isAvailable: false,
-    },
-    {
-      id: "cvboost",
-      name: "CVBoost AI",
-      icon: <FileTextIcon className="h-5 w-5" />,
-      usageCount: 0,
-      lastUsed: null,
-      color: "bg-gradient-to-br from-indigo-500 to-indigo-700",
-      path: "/cvboost",
-      isAvailable: false,
-    },
-    {
-      id: "threadgen",
-      name: "ThreadGen AI",
-      icon: <Share2 className="h-5 w-5" />,
-      usageCount: 0,
-      lastUsed: null,
-      color: "bg-gradient-to-br from-red-500 to-red-700",
-      path: "/threadgen",
-      isAvailable: false,
-    },
-  ])
-
   // Mock data for recent activity
   const [recentActivities, setRecentActivities] = useState([
     { id: 1, tool: "CSV Converter", action: "Processed 'products-spring-2023.csv'", timestamp: "2023-04-15T10:30:00Z" },
@@ -177,7 +80,101 @@ export default function Dashboard() {
   ])
 
   // Calculate total usage
-  const totalUsage = toolsUsage.reduce((sum, tool) => sum + tool.usageCount, 0)
+  const totalUsage = 100 // Mock total usage
+
+  // Mock tool data with new color scheme
+  const toolsUsage: ToolUsage[] = [
+    {
+      id: "csv-converter",
+      name: "CSV Converter",
+      icon: <FileUp className="h-5 w-5" />,
+      usageCount: 12,
+      lastUsed: "2023-04-15T10:30:00Z",
+      color: "bg-gradient-to-br from-green-400 to-green-600", // Updated color
+      path: "/converter",
+      isAvailable: true,
+    },
+    {
+      id: "copygen",
+      name: "CopyGen AI",
+      icon: <FileText className="h-5 w-5" />,
+      usageCount: 8,
+      lastUsed: "2023-04-14T15:45:00Z",
+      color: "bg-gradient-to-br from-blue-400 to-blue-600", // Updated color
+      path: "/copygen",
+      isAvailable: true,
+    },
+    {
+      id: "imagegen",
+      name: "ImageGen AI",
+      icon: <ImageIcon className="h-5 w-5" />,
+      usageCount: 5,
+      lastUsed: "2023-04-13T09:20:00Z",
+      color: "bg-gradient-to-br from-purple-400 to-purple-600", // Updated color
+      path: "/imagegen",
+      isAvailable: true,
+    },
+    {
+      id: "bloggen",
+      name: "BlogGen AI",
+      icon: <MessageSquare className="h-5 w-5" />,
+      usageCount: 3,
+      lastUsed: "2023-04-10T14:15:00Z",
+      color: "bg-gradient-to-br from-pink-400 to-pink-600", // Updated color
+      path: "/bloggen",
+      isAvailable: true,
+    },
+    {
+      id: "clipslash",
+      name: "ClipSlash AI",
+      icon: <Scissors className="h-5 w-5" />,
+      usageCount: 2,
+      lastUsed: "2023-04-08T11:30:00Z",
+      color: "bg-gradient-to-br from-orange-400 to-orange-600", // Updated color
+      path: "/clipslash",
+      isAvailable: false,
+    },
+    {
+      id: "ideaspark",
+      name: "IdeaSpark AI",
+      icon: <Lightbulb className="h-5 w-5" />,
+      usageCount: 1,
+      lastUsed: "2023-04-05T16:45:00Z",
+      color: "bg-gradient-to-br from-yellow-400 to-yellow-600", // Updated color
+      path: "/ideaspark",
+      isAvailable: false,
+    },
+    {
+      id: "captiongen",
+      name: "CaptionGen AI",
+      icon: <MessageSquare className="h-5 w-5" />,
+      usageCount: 0,
+      lastUsed: null,
+      color: "bg-gradient-to-br from-teal-400 to-teal-600", // Updated color
+      path: "/captiongen",
+      isAvailable: false,
+    },
+    {
+      id: "cvboost",
+      name: "CVBoost AI",
+      icon: <FileTextIcon className="h-5 w-5" />,
+      usageCount: 0,
+      lastUsed: null,
+      color: "bg-gradient-to-br from-indigo-400 to-indigo-600", // Updated color
+      path: "/cvboost",
+      isAvailable: false,
+    },
+    {
+      id: "threadgen",
+      name: "ThreadGen AI",
+      icon: <Share2 className="h-5 w-5" />,
+      usageCount: 0,
+      lastUsed: null,
+      color: "bg-gradient-to-br from-red-400 to-red-600", // Updated color
+      path: "/threadgen",
+      isAvailable: false,
+    },
+  ]
 
   // Sort tools by usage count (descending)
   const sortedTools = [...toolsUsage].sort((a, b) => b.usageCount - a.usageCount)
@@ -284,43 +281,25 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="mb-6 bg-gradient-to-r from-[#1a1d24]/80 to-[#1a1d24]/30 p-1 rounded-lg inline-block">
+      <div className="mb-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-[#0f1116]/50 p-1">
+          <TabsList className="bg-[#1e2128] border border-gray-700 rounded-lg p-1 inline-flex">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:text-white"
+              className="text-gray-300 rounded-md px-4 py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4568DC] data-[state=active]:to-[#B06AB3] data-[state=active]:text-white"
             >
               Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="tools"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:text-white"
-            >
-              My Tools
-            </TabsTrigger>
-            <TabsTrigger
-              value="analytics"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:text-white"
-            >
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger
-              value="settings"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:text-white"
-            >
-              Settings
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {/* Welcome Card */}
-              <Card className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
+              <Card className="md:col-span-2 lg:col-span-2 bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-2xl bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
+                      <CardTitle className="text-xl font-bold text-gray-100">
                         Welcome, {profile?.name || user.email?.split("@")[0] || "User"}!
                       </CardTitle>
                       <CardDescription className="text-gray-400">
@@ -330,10 +309,6 @@ export default function Dashboard() {
                           : new Date().toLocaleDateString()}
                       </CardDescription>
                     </div>
-                    <Badge variant="outline" className="px-3 py-1 bg-[#1e2128] border-gray-700">
-                      <Clock className="w-3 h-3 mr-1 text-emerald-400" />
-                      Last login: Today
-                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -347,361 +322,68 @@ export default function Dashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-2xl font-bold text-white">{totalUsage}</span>
-                        <Badge className="bg-green-900/50 text-green-400 hover:bg-green-900/50 border-green-700">
-                          +15% this week
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-300">Usage Quota</span>
-                        <span className="text-sm font-medium text-gray-300">65% used</span>
-                      </div>
-                      <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full"
-                          style={{ width: "65%" }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium text-gray-300 mb-2">Top Tools</h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        {topTools.map((tool) => (
-                          <div
-                            key={tool.id}
-                            className="flex flex-col items-center p-3 bg-[#1e2128] rounded-lg border border-gray-800"
-                          >
-                            <div className={`${tool.color} p-2 rounded-full mb-2`}>{tool.icon}</div>
-                            <span className="text-xs font-medium text-center text-gray-300">{tool.name}</span>
-                            <span className="text-xs text-gray-500">{tool.usageCount} uses</span>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Quick Actions Card */}
-              <Card className="bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
+              {/* Top Tools Used Card */}
+              <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
                 <CardHeader>
-                  <CardTitle className="text-white">Quick Actions</CardTitle>
-                  <CardDescription className="text-gray-400">Frequently used tools</CardDescription>
+                  <CardTitle className="text-xl font-bold text-gray-100">Top Tools Used</CardTitle>
+                  <CardDescription className="text-gray-400">Your most frequently used tools</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-[#1e2128] border-gray-700 hover:bg-gray-800 hover:text-emerald-400"
-                    onClick={() => router.push("/converter")}
-                  >
-                    <FileUp className="mr-2 h-4 w-4 text-emerald-400" />
-                    Upload CSV
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-[#1e2128] border-gray-700 hover:bg-gray-800 hover:text-blue-400"
-                    onClick={() => router.push("/copygen")}
-                  >
-                    <FileText className="mr-2 h-4 w-4 text-blue-400" />
-                    Generate Copy
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-[#1e2128] border-gray-700 hover:bg-gray-800 hover:text-purple-400"
-                    onClick={() => router.push("/imagegen")}
-                  >
-                    <ImageIcon className="mr-2 h-4 w-4 text-purple-400" />
-                    Create Images
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-[#1e2128] border-gray-700 hover:bg-gray-800 hover:text-pink-400"
-                    onClick={() => router.push("/bloggen")}
-                  >
-                    <MessageSquare className="mr-2 h-4 w-4 text-pink-400" />
-                    Write Blog
-                  </Button>
+                <CardContent className="space-y-3">
+                  {topTools.map((tool) => (
+                    <div key={tool.id} className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className={`${tool.color} p-2 rounded-full mr-3`}>{tool.icon}</div>
+                        <div>
+                          <div className="font-medium text-gray-300">{tool.name}</div>
+                          <div className="text-sm text-gray-500">Last used: {formatRelativeTime(tool.lastUsed)}</div>
+                        </div>
+                      </div>
+                      <span className="text-sm text-gray-400">{tool.usageCount} uses</span>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
               {/* Recent Activity Card */}
-              <Card className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
+              <Card className="md:col-span-2 lg:col-span-2 bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
                 <CardHeader>
-                  <CardTitle className="text-white">Recent Activity</CardTitle>
+                  <CardTitle className="text-xl font-bold text-gray-100">Recent Activity</CardTitle>
                   <CardDescription className="text-gray-400">Your recent actions and tool usage</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {recentActivities.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentActivities.map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex items-start pb-4 border-b border-gray-800 last:border-0 last:pb-0"
-                        >
-                          <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full mr-3">
-                            {activity.tool === "CSV Converter" && <FileUp className="h-4 w-4 text-emerald-400" />}
-                            {activity.tool === "CopyGen AI" && <FileText className="h-4 w-4 text-blue-400" />}
-                            {activity.tool === "ImageGen AI" && <ImageIcon className="h-4 w-4 text-purple-400" />}
-                            {activity.tool === "BlogGen AI" && <MessageSquare className="h-4 w-4 text-pink-400" />}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between">
-                              <h3 className="font-medium text-gray-300">{activity.tool}</h3>
-                              <span className="text-xs text-gray-500">{formatRelativeTime(activity.timestamp)}</span>
-                            </div>
-                            <p className="text-sm text-gray-400">{activity.action}</p>
-                          </div>
+                  <div className="space-y-3">
+                    {recentActivities.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className="flex items-start pb-4 border-b border-gray-800 last:border-0 last:pb-0"
+                      >
+                        <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full mr-3">
+                          {activity.tool === "CSV Converter" && <FileUp className="h-4 w-4 text-emerald-400" />}
+                          {activity.tool === "CopyGen AI" && <FileText className="h-4 w-4 text-blue-400" />}
+                          {activity.tool === "ImageGen AI" && <ImageIcon className="h-4 w-4 text-purple-400" />}
+                          {activity.tool === "BlogGen AI" && <MessageSquare className="h-4 w-4 text-pink-400" />}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No recent activity to display.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Usage Stats Card */}
-              <Card className="bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Usage Stats</CardTitle>
-                  <CardDescription className="text-gray-400">Tool usage breakdown</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {sortedTools.slice(0, 4).map((tool) => (
-                      <div key={tool.id} className="space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium text-gray-300">{tool.name}</span>
-                          <span className="text-sm text-gray-400">{tool.usageCount} uses</span>
-                        </div>
-                        <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full"
-                            style={{ width: `${(tool.usageCount / totalUsage) * 100}%` }}
-                          ></div>
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <h3 className="font-medium text-gray-300">{activity.tool}</h3>
+                            <span className="text-xs text-gray-500">
+                              {new Date(activity.timestamp).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-400">{activity.action}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Getting Started Card */}
-              <Card className="md:col-span-2 lg:col-span-3 bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Getting Started</CardTitle>
-                  <CardDescription className="text-gray-400">Quick steps to make the most of Auqli AI</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="bg-[#1e2128] rounded-lg p-4 border border-gray-800">
-                      <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full w-fit mb-3">
-                        <span className="text-emerald-400 font-bold">1</span>
-                      </div>
-                      <h3 className="font-medium text-gray-300">Explore our AI tools</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Check out our suite of AI tools designed to help with product categorization and content
-                        generation.
-                      </p>
-                      <Button variant="link" className="px-0 mt-2 text-emerald-400" size="sm">
-                        Browse tools
-                      </Button>
-                    </div>
-
-                    <div className="bg-[#1e2128] rounded-lg p-4 border border-gray-800">
-                      <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full w-fit mb-3">
-                        <span className="text-emerald-400 font-bold">2</span>
-                      </div>
-                      <h3 className="font-medium text-gray-300">Upload your first CSV</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Use our CSV Converter to prepare your product data for categorization.
-                      </p>
-                      <Button
-                        variant="link"
-                        className="px-0 mt-2 text-emerald-400"
-                        size="sm"
-                        onClick={() => router.push("/converter")}
-                      >
-                        Try CSV Converter
-                      </Button>
-                    </div>
-
-                    <div className="bg-[#1e2128] rounded-lg p-4 border border-gray-800">
-                      <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full w-fit mb-3">
-                        <span className="text-emerald-400 font-bold">3</span>
-                      </div>
-                      <h3 className="font-medium text-gray-300">Generate your first AI content</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Try CopyGen AI to create compelling product descriptions or ImageGen AI for product visuals.
-                      </p>
-                      <Button
-                        variant="link"
-                        className="px-0 mt-2 text-emerald-400"
-                        size="sm"
-                        onClick={() => router.push("/copygen")}
-                      >
-                        Start creating
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="tools">
-            <Card className="bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-white">My Tools</CardTitle>
-                <CardDescription className="text-gray-400">All available AI tools</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {toolsUsage.map((tool) => (
-                    <div
-                      key={tool.id}
-                      className="bg-[#1e2128] border border-gray-800 rounded-lg p-4 hover:shadow-md hover:shadow-emerald-900/10 transition-shadow"
-                    >
-                      <div className={`${tool.color} rounded-full p-2 w-fit mb-3`}>{tool.icon}</div>
-                      <h3 className="font-medium text-gray-300">{tool.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Last used: {tool.lastUsed ? formatRelativeTime(tool.lastUsed) : "Never"}
-                      </p>
-                      <div className="flex items-center mt-2 mb-3">
-                        <span className="text-sm font-medium mr-2 text-gray-400">Usage: {tool.usageCount}</span>
-                        {tool.usageCount > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-emerald-900/30 text-emerald-400 border-emerald-800"
-                          >
-                            Active
-                          </Badge>
-                        )}
-                        {!tool.isAvailable && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-gray-800 text-gray-400 border-gray-700 ml-auto"
-                          >
-                            Coming Soon
-                          </Badge>
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-[#1a1d24] border-gray-700 hover:bg-gray-800 hover:text-emerald-400"
-                        onClick={() => router.push(tool.path)}
-                        disabled={!tool.isAvailable}
-                      >
-                        Launch
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <Card className="bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-white">Usage Analytics</CardTitle>
-                <CardDescription className="text-gray-400">Detailed insights into your tool usage</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4 text-gray-300">Usage Over Time</h3>
-                    <div className="h-64 bg-[#1e2128] rounded-lg flex items-end justify-between p-4 border border-gray-800">
-                      {usageOverTime.map((metric, index) => (
-                        <div key={index} className="flex flex-col items-center">
-                          <div
-                            className="bg-gradient-to-t from-emerald-500 to-blue-500 w-12 rounded-t-md"
-                            style={{ height: `${(metric.count / 15) * 100}%` }}
-                          ></div>
-                          <span className="text-xs mt-2 text-gray-400">{metric.date}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4 text-gray-300">Tool Distribution</h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {toolsUsage.map((tool) => (
-                        <div
-                          key={tool.id}
-                          className="flex items-center p-3 bg-[#1e2128] rounded-lg border border-gray-800"
-                        >
-                          <div className={`${tool.color} p-2 rounded-full mr-3`}>{tool.icon}</div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium text-gray-300">{tool.name}</span>
-                              <span className="text-sm text-gray-400">{tool.usageCount} uses</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full"
-                                style={{ width: `${(tool.usageCount / totalUsage) * 100 || 1}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <Card className="bg-gradient-to-br from-[#1a1d24] to-[#1a1d24]/80 border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-white">Account Settings</CardTitle>
-                <CardDescription className="text-gray-400">Manage your account preferences</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <h3 className="text-sm font-medium text-gray-300">Profile Information</h3>
-                    <div className="grid gap-1">
-                      <div className="flex justify-between py-2 border-b border-gray-800">
-                        <span className="text-gray-500">Name</span>
-                        <span className="font-medium text-gray-300">{profile?.name || "Not set"}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-800">
-                        <span className="text-gray-500">Email</span>
-                        <span className="font-medium text-gray-300">{profile?.email || user.email}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-800">
-                        <span className="text-gray-500">Company</span>
-                        <span className="font-medium text-gray-300">{profile?.company_name || "Not set"}</span>
-                      </div>
-                      <div className="flex justify-between py-2">
-                        <span className="text-gray-500">Member Since</span>
-                        <span className="font-medium text-gray-300">
-                          {profile?.created_at
-                            ? new Date(profile.created_at).toLocaleDateString()
-                            : new Date().toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-[#1e2128] border-gray-700 hover:bg-gray-800 hover:text-emerald-400"
-                  >
-                    Edit Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>

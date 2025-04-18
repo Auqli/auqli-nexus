@@ -43,12 +43,12 @@ export function UserWelcome() {
       transition={{ duration: 0.5 }}
       className="mb-8"
     >
-      <div className="bg-gradient-to-r from-[#1A1D24] to-[#1A1D24]/70 rounded-xl p-6 md:p-8 border border-gray-800 shadow-saas relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#1e2128] to-[#1e2128]/70 rounded-xl p-6 md:p-8 border border-gray-800 shadow-saas relative overflow-hidden">
         {/* Animated gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 opacity-60"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Welcome back, {userName}!</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-100 mb-2">Welcome back, {userName}!</h1>
             <p className="text-gray-400 mb-4">Your AI-powered toolkit is ready to help you succeed.</p>
           </div>
           <div className="mt-4 md:mt-0">

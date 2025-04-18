@@ -27,6 +27,7 @@ import {
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth/auth-provider"
+import { cn } from "@/lib/utils"
 
 interface NavItem {
   title: string
@@ -184,10 +185,17 @@ export function SidebarNav() {
           >
             {!isCollapsed && (
               <Link href="/dashboard" className="flex items-center">
-                <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center mr-2">
-                  <span className="text-white font-bold">A</span>
+                <div className="flex items-center">
+                  <img
+                    src="/images/auqli-symbol.png"
+                    alt="Auqli Logo"
+                    width={36}
+                    height={36}
+                    className="h-9 w-auto"
+                    priority
+                  />
+                  <span className="ml-2 text-xl font-semibold text-white">Auqli Nexus</span>
                 </div>
-                <span className="text-xl font-semibold text-white">Auqli Nexus</span>
               </Link>
             )}
             {isCollapsed && (
@@ -215,21 +223,25 @@ export function SidebarNav() {
                   <li key={item.href}>
                     <Link
                       href={item.isAvailable ? href : "#"}
-                      className={`flex items-center ${
-                        isCollapsed ? "justify-center" : "justify-between"
-                      } px-3 py-2.5 rounded-lg transition-colors ${
-                        isActive
-                          ? "bg-emerald-500/10 text-emerald-500"
-                          : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
-                      } ${!item.isAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                      className={cn(
+                        "flex items-center",
+                        isCollapsed ? "justify-center" : "justify-between",
+                        "px-3 py-2.5 rounded-lg transition-colors",
+                        item.isAvailable ? "hover:bg-gray-800/50 hover:text-white" : "opacity-50 cursor-not-allowed",
+                        isActive ? "bg-emerald-500/10 text-emerald-500" : "text-gray-400",
+                        !item.isAvailable && "opacity-50 cursor-not-allowed",
+                      )}
                       onClick={(e) => !item.isAvailable && e.preventDefault()}
                     >
                       <div className="flex items-center">
-                        <item.icon className={`h-5 w-5 ${isCollapsed ? "" : "mr-3"}`} />
+                        <item.icon className={cn("h-5 w-5", isCollapsed ? "" : "mr-3")} />
                         {!isCollapsed && <span>{item.title}</span>}
                       </div>
                       {!isCollapsed && !item.isAvailable && (
                         <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">Soon</span>
+                      )}
+                      {isActive && (
+                        <span className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-emerald-500 rounded-full"></span>
                       )}
                     </Link>
                   </li>
