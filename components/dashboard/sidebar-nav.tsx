@@ -253,28 +253,6 @@ export function SidebarNav() {
           <div className="p-3 border-t border-gray-800">
             <ul className="space-y-2">
               <li>
-                <Link
-                  href="/dashboard/account"
-                  className={`flex items-center ${
-                    isCollapsed ? "justify-center" : ""
-                  } px-3 py-2.5 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-lg transition-colors`}
-                >
-                  <User className={`h-5 w-5 ${isCollapsed ? "" : "mr-3"}`} />
-                  {!isCollapsed && <span>Account</span>}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/dashboard/settings"
-                  className={`flex items-center ${
-                    isCollapsed ? "justify-center" : ""
-                  } px-3 py-2.5 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-lg transition-colors`}
-                >
-                  <Settings className={`h-5 w-5 ${isCollapsed ? "" : "mr-3"}`} />
-                  {!isCollapsed && <span>Settings</span>}
-                </Link>
-              </li>
-              <li>
                 <button
                   onClick={handleSignOut}
                   className={`w-full flex items-center ${
