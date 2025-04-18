@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Loader2,
   FileText,
@@ -27,23 +26,28 @@ import {
   CheckCircle,
   AlertCircle,
   Mic,
+  BarChart3,
+  LineChart,
+  Clock,
+  Calendar,
+  Users,
+  ExternalLink,
 } from "lucide-react"
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   AreaChart,
   Area,
+  LineChart as RechartsLineChart,
+  Line,
 } from "recharts"
 
 interface UserProfile {
@@ -93,38 +97,44 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
 
+  // State variables for database data
+  const [totalAiOperations, setTotalAiOperations] = useState(0)
+  const [productsProcessed, setProductsProcessed] = useState(0)
+  const [averageConfidence, setAverageConfidence] = useState(0)
+  const [pendingTasksCount, setPendingTasksCount] = useState(0)
+
   // Mock data for key metrics
   const keyMetrics: KeyMetric[] = [
     {
       name: "Total AI Operations",
-      value: 143,
+      value: totalAiOperations,
       icon: <Zap className="h-5 w-5" />,
       description: "Total AI operations performed",
-      change: 12,
+      change: 12, // Placeholder value
       color: "bg-gradient-to-br from-emerald-400 to-emerald-600",
     },
     {
       name: "Products Processed",
-      value: 87,
+      value: productsProcessed,
       icon: <FileUp className="h-5 w-5" />,
       description: "Total products processed",
-      change: 8,
+      change: 8, // Placeholder value
       color: "bg-gradient-to-br from-blue-400 to-blue-600",
     },
     {
       name: "Avg. Confidence",
-      value: "92%",
+      value: averageConfidence,
       icon: <CheckCircle className="h-5 w-5" />,
       description: "Average AI confidence score",
-      change: 3,
+      change: 3, // Placeholder value
       color: "bg-gradient-to-br from-purple-400 to-purple-600",
     },
     {
       name: "Pending Tasks",
-      value: 5,
+      value: pendingTasksCount,
       icon: <AlertCircle className="h-5 w-5" />,
       description: "Tasks awaiting completion",
-      change: -2,
+      change: -2, // Placeholder value
       color: "bg-gradient-to-br from-amber-400 to-amber-600",
     },
   ]
@@ -328,6 +338,45 @@ export default function Dashboard() {
     },
   ]
 
+  // Analytics data
+  const dailyOperationsData = [
+    { date: "Apr 1", operations: 12 },
+    { date: "Apr 2", operations: 19 },
+    { date: "Apr 3", operations: 15 },
+    { date: "Apr 4", operations: 27 },
+    { date: "Apr 5", operations: 32 },
+    { date: "Apr 6", operations: 24 },
+    { date: "Apr 7", operations: 18 },
+    { date: "Apr 8", operations: 23 },
+    { date: "Apr 9", operations: 29 },
+    { date: "Apr 10", operations: 35 },
+    { date: "Apr 11", operations: 30 },
+    { date: "Apr 12", operations: 41 },
+    { date: "Apr 13", operations: 43 },
+    { date: "Apr 14", operations: 36 },
+  ]
+
+  const userActivityData = [
+    { name: "Mon", active: 20, inactive: 5 },
+    { name: "Tue", active: 25, inactive: 8 },
+    { name: "Wed", active: 30, inactive: 10 },
+    { name: "Thu", active: 22, inactive: 7 },
+    { name: "Fri", active: 18, inactive: 6 },
+    { name: "Sat", active: 15, inactive: 5 },
+    { name: "Sun", active: 12, inactive: 4 },
+  ]
+
+  const timeOfDayData = [
+    { time: "12am", operations: 5 },
+    { time: "3am", operations: 3 },
+    { time: "6am", operations: 8 },
+    { time: "9am", operations: 25 },
+    { time: "12pm", operations: 35 },
+    { time: "3pm", operations: 45 },
+    { time: "6pm", operations: 30 },
+    { time: "9pm", operations: 15 },
+  ]
+
   const COLORS = ["#16783a", "#45c133", "#8696ee", "#5466b5", "#f59e0b", "#ec4899"]
 
   useEffect(() => {
@@ -370,6 +419,54 @@ export default function Dashboard() {
 
     loadProfile()
   }, [user, supabase])
+
+  // Fetch data from the database
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Get total AI operations
+        const { count: aiOperationsCount, error: aiOperationsError } = await supabase
+          .from("ai_operations")
+          .select("*", { count: "exact", head: true })
+
+        if (aiOperationsError) throw aiOperationsError
+        setTotalAiOperations(aiOperationsCount || 0)
+
+        // Get total products processed
+        const { count: productsProcessedCount, error: productsProcessedError } = await supabase
+          .from("category_mappings")
+          .select("*", { count: "exact", head: true })
+
+        if (productsProcessedError) throw productsProcessedError
+        setProductsProcessed(productsProcessedCount || 0)
+
+        // Get average confidence score
+        const { data: avgConfidenceData, error: avgConfidenceError } = await supabase
+          .from("category_mappings")
+          .select("confidence_score")
+
+        if (avgConfidenceError) throw avgConfidenceError
+
+        const validScores = avgConfidenceData?.filter((item) => item.confidence_score !== null)
+        const totalConfidence = validScores?.reduce((sum, item) => sum + (item.confidence_score || 0), 0) || 0
+        const avgConfidence = validScores?.length > 0 ? totalConfidence / validScores.length : 0
+        setAverageConfidence(avgConfidence)
+
+        // Get pending tasks count
+        const { count: pendingTasksCount, error: pendingTasksError } = await supabase
+          .from("pending_tasks")
+          .select("*", { count: "exact", head: true })
+
+        if (pendingTasksError) throw pendingTasksError
+        setPendingTasksCount(pendingTasksCount || 0)
+      } catch (err: any) {
+        console.error("Error fetching dashboard data:", err)
+        setError(err.message || "Failed to load dashboard data")
+      }
+    }
+
+    fetchData()
+  }, [supabase, user])
 
   // Format date to relative time (e.g., "2 days ago")
   const formatRelativeTime = (dateString: string | null) => {
@@ -740,192 +837,375 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
 
-          {/* Most Used Prompts */}
+        {/* Tools Tab Content */}
+        <TabsContent value="tools">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+            {/* Available Tools */}
+            <Card className="md:col-span-2 bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-gray-100">Available Tools</CardTitle>
+                <CardDescription className="text-gray-400">AI tools ready for your use</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {toolsUsage
+                    .filter((tool) => tool.isAvailable)
+                    .map((tool) => (
+                      <Card key={tool.id} className="bg-[#282c34] border-gray-700">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center">
+                            <div className={`${tool.color} p-3 rounded-full mb-3`}>{tool.icon}</div>
+                            <h3 className="font-medium text-gray-200 mb-1">{tool.name}</h3>
+                            <p className="text-xs text-gray-400 mb-3">Used {tool.usageCount} times</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full text-emerald-400 border-emerald-400 hover:bg-emerald-400/10"
+                              onClick={() => router.push(tool.path)}
+                            >
+                              Launch Tool
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tool Usage Stats */}
+            <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-gray-100">Tool Usage Stats</CardTitle>
+                <CardDescription className="text-gray-400">Your tool usage statistics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {toolsUsage
+                    .filter((tool) => tool.usageCount > 0)
+                    .sort((a, b) => b.usageCount - a.usageCount)
+                    .slice(0, 5)
+                    .map((tool, index) => (
+                      <div key={tool.id}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-gray-300">{tool.name}</span>
+                          <span className="text-sm font-medium text-gray-400">{tool.usageCount}</span>
+                        </div>
+                        <Progress
+                          value={(tool.usageCount / sortedTools[0].usageCount) * 100}
+                          className="h-2 bg-gray-700"
+                          indicatorClassName={`${tool.color.replace("bg-", "")}`}
+                        />
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Coming Soon Tools */}
           <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md mb-6">
             <CardHeader>
-              <CardTitle className="text-xl font-bold text-gray-100">Most Used Prompts</CardTitle>
-              <CardDescription className="text-gray-400">Common prompts for each tool</CardDescription>
+              <CardTitle className="text-xl font-bold text-gray-100">Coming Soon</CardTitle>
+              <CardDescription className="text-gray-400">New AI tools in development</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-800">
-                    <TableHead className="text-gray-300">Tool</TableHead>
-                    <TableHead className="text-gray-300">Common Prompts</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {commonPrompts.map((item, index) => (
-                    <TableRow key={index} className="border-gray-800">
-                      <TableCell className="font-medium text-white">{item.tool}</TableCell>
-                      <TableCell className="text-gray-300">
-                        <ul className="list-disc pl-5 space-y-1">
-                          {item.prompts.map((prompt, idx) => (
-                            <li key={idx} className="text-sm">
-                              {prompt}
-                            </li>
-                          ))}
-                        </ul>
-                      </TableCell>
-                    </TableRow>
+              <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {toolsUsage
+                  .filter((tool) => !tool.isAvailable)
+                  .map((tool) => (
+                    <Card key={tool.id} className="bg-[#282c34] border-gray-700 opacity-70">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col items-center text-center">
+                          <div className={`${tool.color} p-3 rounded-full mb-3 opacity-70`}>{tool.icon}</div>
+                          <h3 className="font-medium text-gray-300 mb-1">{tool.name}</h3>
+                          <p className="text-xs text-gray-500 mb-3">Coming soon</p>
+                          <Button variant="outline" size="sm" className="w-full" disabled>
+                            Coming Soon
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
-                </TableBody>
-              </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Most Used Prompts */}
+          <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-100">Most Used Prompts</CardTitle>
+              <CardDescription className="text-gray-400">Your frequently used AI prompts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {commonPrompts.map((item, index) => (
+                  <div key={index}>
+                    <h3 className="text-md font-medium text-gray-200 mb-2">{item.tool}</h3>
+                    <div className="space-y-2">
+                      {item.prompts.map((prompt, promptIndex) => (
+                        <div
+                          key={promptIndex}
+                          className="bg-[#282c34] p-3 rounded-md border border-gray-700 flex justify-between items-center"
+                        >
+                          <p className="text-sm text-gray-300">{prompt}</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-400 hover:text-white"
+                            onClick={() => {
+                              // Copy to clipboard functionality
+                              navigator.clipboard.writeText(prompt)
+                            }}
+                          >
+                            <Share2 className="h-4 w-4" />
+                            <span className="sr-only">Copy prompt</span>
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="tools">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {toolsUsage.map((tool) => (
-              <Card key={tool.id} className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`${tool.color} p-2 rounded-full`}>{tool.icon}</div>
-                      <CardTitle className="text-lg font-bold text-gray-100">{tool.name}</CardTitle>
-                    </div>
-                    {!tool.isAvailable && (
-                      <span className="text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded-full">Coming Soon</span>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Usage</span>
-                      <span className="text-gray-300">{tool.usageCount} operations</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Last Used</span>
-                      <span className="text-gray-300">{formatRelativeTime(tool.lastUsed)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t border-gray-800 pt-4">
-                  <Button
-                    className="w-full"
-                    variant={tool.isAvailable ? "default" : "outline"}
-                    disabled={!tool.isAvailable}
-                    onClick={() => router.push(tool.path)}
-                  >
-                    {tool.isAvailable ? "Launch Tool" : "Coming Soon"}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
+        {/* Analytics Tab Content */}
         <TabsContent value="analytics">
-          <div className="space-y-6">
-            {/* Weekly & Monthly Usage Trends (Full Width) */}
+          {/* Key Analytics Metrics */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Total Operations</p>
+                    <h3 className="text-2xl font-bold mt-1 text-white">{totalAiOperations}</h3>
+                  </div>
+                  <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-2 rounded-full">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-xs">
+                  <span className="text-green-400">+15% from last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Daily Average</p>
+                    <h3 className="text-2xl font-bold mt-1 text-white">24</h3>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-2 rounded-full">
+                    <LineChart className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-xs">
+                  <span className="text-green-400">+8% from last week</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Peak Usage Time</p>
+                    <h3 className="text-2xl font-bold mt-1 text-white">3:00 PM</h3>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-400 to-purple-600 p-2 rounded-full">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-xs">
+                  <span className="text-gray-400">Consistent with last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Active Days</p>
+                    <h3 className="text-2xl font-bold mt-1 text-white">22</h3>
+                  </div>
+                  <div className="bg-gradient-to-br from-amber-400 to-amber-600 p-2 rounded-full">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-xs">
+                  <span className="text-green-400">+3 days from last month</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Daily Operations Chart */}
+          <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md mb-6">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-100">Daily Operations</CardTitle>
+              <CardDescription className="text-gray-400">AI operations over the last 14 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dailyOperationsData}>
+                    <defs>
+                      <linearGradient id="colorOperations" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                    <XAxis dataKey="date" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#1e2128", borderColor: "#374151", color: "white" }}
+                      itemStyle={{ color: "white" }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="operations"
+                      stroke="#10b981"
+                      fillOpacity={1}
+                      fill="url(#colorOperations)"
+                      name="AI Operations"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* User Activity and Time of Day Charts */}
+          <div className="grid gap-6 md:grid-cols-2 mb-6">
+            {/* User Activity Chart */}
             <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
               <CardHeader>
-                <CardTitle className="text-xl font-bold text-gray-100">Usage Analytics</CardTitle>
-                <CardDescription className="text-gray-400">Detailed view of your AI usage over time</CardDescription>
+                <CardTitle className="text-xl font-bold text-gray-100">User Activity</CardTitle>
+                <CardDescription className="text-gray-400">Active vs. inactive days</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={[
-                        ...monthlyUsage,
-                        ...monthlyUsage.map((item) => ({ ...item, date: item.date + " '23", count: item.count * 0.7 })),
-                      ]}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
+                    <BarChart data={userActivityData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                      <XAxis dataKey="name" stroke="#9ca3af" />
+                      <YAxis stroke="#9ca3af" />
                       <Tooltip
                         contentStyle={{ backgroundColor: "#1e2128", borderColor: "#374151", color: "white" }}
                         itemStyle={{ color: "white" }}
                       />
-                      <Legend />
-                      <Line type="monotone" dataKey="count" name="2024" stroke="#10b981" activeDot={{ r: 8 }} />
-                      <Line type="monotone" dataKey="count" name="2023" stroke="#6b7280" activeDot={{ r: 8 }} />
-                    </LineChart>
+                      <Bar dataKey="active" name="Active" stackId="a" fill="#10b981" />
+                      <Bar dataKey="inactive" name="Inactive" stackId="a" fill="#374151" />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Tool Performance Metrics */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-gray-100">Tool Performance</CardTitle>
-                  <CardDescription className="text-gray-400">Average confidence scores by tool</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={topTools.map((tool) => ({ name: tool.name, score: Math.floor(Math.random() * 15) + 80 }))}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: "#1e2128", borderColor: "#374151", color: "white" }}
-                          itemStyle={{ color: "white" }}
-                        />
-                        <Bar dataKey="score" name="Confidence Score" fill="#8696ee" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-gray-100">Usage by Time of Day</CardTitle>
-                  <CardDescription className="text-gray-400">When you use AI tools the most</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={[
-                          { time: "12am", count: 2 },
-                          { time: "3am", count: 0 },
-                          { time: "6am", count: 3 },
-                          { time: "9am", count: 15 },
-                          { time: "12pm", count: 12 },
-                          { time: "3pm", count: 22 },
-                          { time: "6pm", count: 18 },
-                          { time: "9pm", count: 10 },
-                        ]}
-                      >
-                        <defs>
-                          <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8696ee" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#8696ee" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="time" />
-                        <YAxis />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: "#1e2128", borderColor: "#374151", color: "white" }}
-                          itemStyle={{ color: "white" }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="count"
-                          stroke="#8696ee"
-                          fillOpacity={1}
-                          fill="url(#colorTime)"
-                          name="Operations"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Time of Day Chart */}
+            <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-gray-100">Time of Day Usage</CardTitle>
+                <CardDescription className="text-gray-400">When you use AI tools most</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart data={timeOfDayData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                      <XAxis dataKey="time" stroke="#9ca3af" />
+                      <YAxis stroke="#9ca3af" />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1e2128", borderColor: "#374151", color: "white" }}
+                        itemStyle={{ color: "white" }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="operations"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={{ r: 4, fill: "#3b82f6" }}
+                        name="Operations"
+                      />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Detailed Analytics */}
+          <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-100">Analytics Insights</CardTitle>
+              <CardDescription className="text-gray-400">Key insights from your usage patterns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-[#282c34] p-4 rounded-lg border border-gray-700">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-2 rounded-full">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-medium text-gray-200">Usage Pattern</h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Your peak usage is on Wednesdays and Fridays, typically between 2-4 PM. This suggests you're
+                        most productive with AI tools during mid-week afternoons.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#282c34] p-4 rounded-lg border border-gray-700">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-2 rounded-full">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-medium text-gray-200">Growth Trend</h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Your AI usage has increased by 32% over the past 3 months, with the most significant growth in
+                        CopyGen AI and CSV Converter tools.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#282c34] p-4 rounded-lg border border-gray-700">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-purple-400 to-purple-600 p-2 rounded-full">
+                      <PieChartIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-medium text-gray-200">Category Focus</h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        You're processing significantly more Fashion and Electronics products compared to other
+                        categories. Consider exploring opportunities in underutilized categories.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t border-gray-800 pt-4">
+              <Button
+                variant="outline"
+                className="text-emerald-400 border-emerald-400 hover:bg-emerald-400/10 flex items-center gap-2"
+                onClick={() => window.open("/dashboard/analytics/export", "_blank")}
+              >
+                Export Full Analytics Report <ExternalLink className="h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
