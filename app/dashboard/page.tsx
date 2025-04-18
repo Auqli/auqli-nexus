@@ -7,7 +7,6 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useAuth } from "@/components/auth/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Loader2,
   FileText,
@@ -31,7 +30,7 @@ interface UserProfile {
 interface ToolUsage {
   id: string
   name: string
-  icon: React.ReactNode
+  icon: React.ElementType
   usageCount: number
   lastUsed: string | null
   color: string
@@ -264,12 +263,6 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8 bg-[#0f1116] text-white min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
-          Dashboard
-        </h1>
-      </div>
-
       {error && (
         <Card className="mb-6 bg-[#2a1215] border-red-900">
           <CardContent className="pt-6">
@@ -282,110 +275,97 @@ export default function Dashboard() {
       )}
 
       <div className="mb-6">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-[#1e2128] border border-gray-700 rounded-lg p-1 inline-flex">
-            <TabsTrigger
-              value="overview"
-              className="text-gray-300 rounded-md px-4 py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4568DC] data-[state=active]:to-[#B06AB3] data-[state=active]:text-white"
-            >
-              Overview
-            </TabsTrigger>
-          </TabsList>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Welcome Card */}
+          <Card className="md:col-span-2 lg:col-span-2 bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-100">
+                    Welcome, {profile?.name || user.email?.split("@")[0] || "User"}!
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    You've been a member since{" "}
+                    {profile?.created_at
+                      ? new Date(profile.created_at).toLocaleDateString()
+                      : new Date().toLocaleDateString()}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full">
+                      <Zap className="h-4 w-4 text-emerald-400" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-300">Total AI Operations:</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-white">{totalUsage}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="overview">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {/* Welcome Card */}
-              <Card className="md:col-span-2 lg:col-span-2 bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
+          {/* Top Tools Used Card */}
+          <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-100">Top Tools Used</CardTitle>
+              <CardDescription className="text-gray-400">Your most frequently used tools</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {topTools.map((tool) => (
+                <div key={tool.id} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className={`${tool.color} p-2 rounded-full mr-3`}>{tool.icon}</div>
                     <div>
-                      <CardTitle className="text-xl font-bold text-gray-100">
-                        Welcome, {profile?.name || user.email?.split("@")[0] || "User"}!
-                      </CardTitle>
-                      <CardDescription className="text-gray-400">
-                        You've been a member since{" "}
-                        {profile?.created_at
-                          ? new Date(profile.created_at).toLocaleDateString()
-                          : new Date().toLocaleDateString()}
-                      </CardDescription>
+                      <div className="font-medium text-gray-300">{tool.name}</div>
+                      <div className="text-sm text-gray-500">Last used: {formatRelativeTime(tool.lastUsed)}</div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full">
-                          <Zap className="h-4 w-4 text-emerald-400" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-300">Total AI Operations:</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-white">{totalUsage}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  <span className="text-sm text-gray-400">{tool.usageCount} uses</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
-              {/* Top Tools Used Card */}
-              <Card className="bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-gray-100">Top Tools Used</CardTitle>
-                  <CardDescription className="text-gray-400">Your most frequently used tools</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {topTools.map((tool) => (
-                    <div key={tool.id} className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className={`${tool.color} p-2 rounded-full mr-3`}>{tool.icon}</div>
-                        <div>
-                          <div className="font-medium text-gray-300">{tool.name}</div>
-                          <div className="text-sm text-gray-500">Last used: {formatRelativeTime(tool.lastUsed)}</div>
-                        </div>
-                      </div>
-                      <span className="text-sm text-gray-400">{tool.usageCount} uses</span>
+          {/* Recent Activity Card */}
+          <Card className="md:col-span-2 lg:col-span-2 bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-100">Recent Activity</CardTitle>
+              <CardDescription className="text-gray-400">Your recent actions and tool usage</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentActivities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start pb-4 border-b border-gray-800 last:border-0 last:pb-0"
+                  >
+                    <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full mr-3">
+                      {activity.tool === "CSV Converter" && <FileUp className="h-4 w-4 text-emerald-400" />}
+                      {activity.tool === "CopyGen AI" && <FileText className="h-4 w-4 text-blue-400" />}
+                      {activity.tool === "ImageGen AI" && <ImageIcon className="h-4 w-4 text-purple-400" />}
+                      {activity.tool === "BlogGen AI" && <MessageSquare className="h-4 w-4 text-pink-400" />}
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Recent Activity Card */}
-              <Card className="md:col-span-2 lg:col-span-2 bg-[#1e2128] border-gray-700 rounded-lg shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-gray-100">Recent Activity</CardTitle>
-                  <CardDescription className="text-gray-400">Your recent actions and tool usage</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentActivities.map((activity) => (
-                      <div
-                        key={activity.id}
-                        className="flex items-start pb-4 border-b border-gray-800 last:border-0 last:pb-0"
-                      >
-                        <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 p-2 rounded-full mr-3">
-                          {activity.tool === "CSV Converter" && <FileUp className="h-4 w-4 text-emerald-400" />}
-                          {activity.tool === "CopyGen AI" && <FileText className="h-4 w-4 text-blue-400" />}
-                          {activity.tool === "ImageGen AI" && <ImageIcon className="h-4 w-4 text-purple-400" />}
-                          {activity.tool === "BlogGen AI" && <MessageSquare className="h-4 w-4 text-pink-400" />}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <h3 className="font-medium text-gray-300">{activity.tool}</h3>
-                            <span className="text-xs text-gray-500">
-                              {new Date(activity.timestamp).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-400">{activity.action}</p>
-                        </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium text-gray-300">{activity.tool}</h3>
+                        <span className="text-xs text-gray-500">
+                          {new Date(activity.timestamp).toLocaleDateString()}
+                        </span>
                       </div>
-                    ))}
+                      <p className="text-sm text-gray-400">{activity.action}</p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

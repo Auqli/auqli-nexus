@@ -20,13 +20,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
             {/* Include the Header component */}
             <Header />
-            {children}
+            <div className="bg-gradient-to-br from-[#0a0f1a] to-[#16283a] min-h-screen">{children}</div>
           </AuthProvider>
         </ThemeProvider>
       </body>
