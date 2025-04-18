@@ -15,13 +15,13 @@ import {
   ChevronRight,
   ChevronLeft,
   Menu,
-  User,
   Loader2,
   MessageSquare,
   Scissors,
   Lightbulb,
   FileTextIcon as FileText2,
   Share2,
+  LogOut,
 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
@@ -60,7 +60,7 @@ export function SidebarNav() {
     {
       title: "CopyGen AI",
       href: "/copygen",
-      icon: FileText,
+      icon: ImageIcon,
       isAvailable: false,
     },
     {
@@ -106,18 +106,18 @@ export function SidebarNav() {
       isAvailable: false,
     },
     {
-      title: "Account",
-      href: "/dashboard/settings",
-      icon: User,
-      isAvailable: true,
-    },
-    {
       title: "Settings",
       href: "/dashboard/settings",
       icon: Settings,
       isAvailable: true,
     },
   ]
+
+  const signOutNavItem = {
+    title: "Sign Out",
+    href: "#",
+    icon: LogOut,
+  }
 
   const handleSignOut = async () => {
     try {
@@ -246,8 +246,24 @@ export function SidebarNav() {
                   </li>
                 )
               })}
+              <li>
+                <button
+                  onClick={handleSignOut}
+                  className={`w-full flex items-center ${
+                    isCollapsed ? "justify-center" : ""
+                  } px-3 py-2.5 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-lg transition-colors`}
+                >
+                  <LogOut className={`h-5 w-5 ${isCollapsed ? "" : "mr-3"}`} />
+                  {!isCollapsed && <span>Sign out</span>}
+                </button>
+              </li>
             </ul>
           </nav>
+
+          {/* Bottom Actions */}
+          <div className="p-3 border-t border-gray-800">
+            <ul className="space-y-2"></ul>
+          </div>
         </div>
       </motion.aside>
     </>
