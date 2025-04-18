@@ -8,7 +8,13 @@ export async function middleware(req: NextRequest) {
 
   const {
     data: { session },
+    error,
   } = await supabase.auth.getSession()
+
+  if (error) {
+    console.error("Error in middleware:", error)
+    // Handle the error appropriately, e.g., by logging it or displaying a user-friendly message
+  }
 
   // Check if the request is for a protected route
   const isProtectedRoute = req.nextUrl.pathname.startsWith("/dashboard") || req.nextUrl.pathname.startsWith("/profile")

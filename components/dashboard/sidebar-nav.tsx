@@ -4,11 +4,29 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { FileText, ImageIcon, BookOpen, Home, Settings, LogOut, ChevronRight, ChevronLeft, Menu } from "lucide-react"
+import {
+  FileText,
+  ImageIcon,
+  BookOpen,
+  Home,
+  Settings,
+  LogOut,
+  ChevronRight,
+  ChevronLeft,
+  Menu,
+  User,
+  Loader2,
+  MessageSquare,
+  Scissors,
+  Lightbulb,
+  FileTextIcon as FileText2,
+  Share2,
+} from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/components/auth/auth-provider"
 
 interface NavItem {
   title: string
@@ -19,9 +37,12 @@ interface NavItem {
 
 export function SidebarNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const supabase = createClientComponentClient()
+  const { signOut } = useAuth()
 
   const navItems: NavItem[] = [
     {
@@ -32,33 +53,81 @@ export function SidebarNav() {
     },
     {
       title: "CSV Converter",
-      href: "/dashboard/converter",
+      href: "/converter",
       icon: FileText,
       isAvailable: true,
     },
     {
       title: "CopyGen AI",
-      href: "/dashboard/copygen",
+      href: "/copygen",
       icon: FileText,
-      isAvailable: true,
+      isAvailable: false,
     },
     {
       title: "ImageGen AI",
-      href: "/dashboard/imagegen",
+      href: "/imagegen",
       icon: ImageIcon,
-      isAvailable: true,
+      isAvailable: false,
     },
     {
       title: "BlogGen AI",
-      href: "/dashboard/bloggen",
+      href: "/bloggen",
       icon: BookOpen,
+      isAvailable: false,
+    },
+    {
+      title: "CaptionGen AI",
+      href: "/captiongen",
+      icon: MessageSquare,
+      isAvailable: false,
+    },
+    {
+      title: "ClipSlash AI",
+      href: "/clipslash",
+      icon: Scissors,
+      isAvailable: false,
+    },
+    {
+      title: "IdeaSpark AI",
+      href: "/ideaspark",
+      icon: Lightbulb,
+      isAvailable: false,
+    },
+    {
+      title: "CVBoost AI",
+      href: "/cvboost",
+      icon: FileText2,
+      isAvailable: false,
+    },
+    {
+      title: "ThreadGen AI",
+      href: "/threadgen",
+      icon: Share2,
+      isAvailable: false,
+    },
+    {
+      title: "Account",
+      href: "/dashboard/account",
+      icon: User,
+      isAvailable: true,
+    },
+    {
+      title: "Settings",
+      href: "/dashboard/settings",
+      icon: Settings,
       isAvailable: true,
     },
   ]
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = "/"
+    try {
+      setIsSigningOut(true)
+      await signOut()
+    } catch (error) {
+      console.error("Error signing out:", error)
+    } finally {
+      setIsSigningOut(false)
+    }
   }
 
   const toggleSidebar = () => {
@@ -71,6 +140,15 @@ export function SidebarNav() {
 
   return (
     <>
+      {isSigningOut && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-[#1A1D24] p-8 rounded-lg shadow-xl flex flex-col items-center">
+            <Loader2 className="h-12 w-12 text-emerald-500 animate-spin mb-4" />
+            <p className="text-white text-lg font-medium">Signing you out...</p>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -90,7 +168,7 @@ export function SidebarNav() {
 
       {/* Sidebar */}
       <motion.aside
-        className={`fixed top-0 left-0 z-40 h-screen bg-[#1A1D24] border-r border-gray-800 transition-all duration-300 lg:translate-x-0 ${
+        className={`fixed top-16 left-0 z-40 h-screen bg-[#1A1D24] border-r border-gray-800 transition-all duration-300 lg:translate-x-0 ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${isCollapsed ? "lg:w-20" : "lg:w-64"} w-64`}
         initial={false}
@@ -131,11 +209,12 @@ export function SidebarNav() {
           <nav className="flex-1 py-4 px-3 overflow-y-auto">
             <ul className="space-y-2">
               {navItems.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                const href = item.href
+                const isActive = pathname === href || pathname.startsWith(`${href}/`)
                 return (
                   <li key={item.href}>
                     <Link
-                      href={item.isAvailable ? item.href : "#"}
+                      href={item.isAvailable ? href : "#"}
                       className={`flex items-center ${
                         isCollapsed ? "justify-center" : "justify-between"
                       } px-3 py-2.5 rounded-lg transition-colors ${
@@ -156,12 +235,34 @@ export function SidebarNav() {
                   </li>
                 )
               })}
+              <li>
+                <button
+                  onClick={handleSignOut}
+                  className={`w-full flex items-center ${
+                    isCollapsed ? "justify-center" : ""
+                  } px-3 py-2.5 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-lg transition-colors`}
+                >
+                  <LogOut className={`h-5 w-5 ${isCollapsed ? "" : "mr-3"}`} />
+                  {!isCollapsed && <span>Sign out</span>}
+                </button>
+              </li>
             </ul>
           </nav>
 
           {/* Bottom Actions */}
           <div className="p-3 border-t border-gray-800">
             <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/dashboard/account"
+                  className={`flex items-center ${
+                    isCollapsed ? "justify-center" : ""
+                  } px-3 py-2.5 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-lg transition-colors`}
+                >
+                  <User className={`h-5 w-5 ${isCollapsed ? "" : "mr-3"}`} />
+                  {!isCollapsed && <span>Account</span>}
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/dashboard/settings"
