@@ -74,7 +74,7 @@ export function SidebarNav() {
       title: "BlogGen AI",
       href: "/bloggen",
       icon: BookOpen,
-      isAvailable: false,
+      isAvailable: true,
     },
     {
       title: "CaptionGen AI",
