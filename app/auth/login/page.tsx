@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,13 +17,24 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    // Check for redirect parameter after login
+    const redirect = searchParams.get("redirect")
+    if (redirect) {
+      setSuccessMessage(`Logging in and redirecting to ${redirect}...`)
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -34,8 +45,13 @@ export default function Login() {
       if (error) throw error
 
       // Redirect to dashboard on successful login
-      router.push("/dashboard")
-      router.refresh()
+      const redirect = searchParams.get("redirect") || "/dashboard"
+      setSuccessMessage(`Login successful! Redirecting to ${redirect}...`)
+
+      setTimeout(() => {
+        router.push(redirect)
+        router.refresh()
+      }, 1500)
     } catch (err: any) {
       setError(err.message || "Failed to sign in")
       console.error("Login error:", err)
@@ -55,6 +71,12 @@ export default function Login() {
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {successMessage && (
+            <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+              <AlertDescription>{successMessage}</AlertDescription>
             </Alert>
           )}
 

@@ -7,6 +7,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 export function UserWelcome() {
   const [userName, setUserName] = useState("there")
+  const [memberSince, setMemberSince] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const supabase = createClientComponentClient()
 
@@ -30,6 +31,9 @@ export function UserWelcome() {
           // Fallback to email if no name is available
           setUserName(user.email?.split("@")[0] || "there")
         }
+
+        // Set the memberSince date from the auth.users table
+        setMemberSince(user.created_at)
       }
     }
 
@@ -56,6 +60,7 @@ export function UserWelcome() {
               <Sparkles className="h-4 w-4 mr-2" />
               <span>AI-Powered Tools</span>
             </div>
+            <p>Member since {memberSince}</p>
           </div>
         </div>
       </div>

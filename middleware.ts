@@ -1,42 +1,91 @@
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+// List of paths that require authentication
+const PROTECTED_PATHS = [
+  "/converter",
+  "/copygen",
+  "/imagegen",
+  "/bloggen",
+  "/captiongen",
+  "/voiceblog",
+  "/clipslash",
+  "/ideaspark",
+  "/cvboost",
+  "/threadgen",
+  "/dashboard",
+]
 
+export async function middleware(request: NextRequest) {
+  // Create a Supabase client configured to use cookies
+  const supabase = createMiddlewareClient({ req: request, res: NextResponse.next() })
+
+  // Refresh session if expired - required for Server Components
   const {
     data: { session },
-    error,
   } = await supabase.auth.getSession()
 
-  if (error) {
-    console.error("Error in middleware:", error)
-    // Handle the error appropriately, e.g., by logging it or displaying a user-friendly message
-  }
-
-  // Check if the request is for a protected route
-  const isProtectedRoute = req.nextUrl.pathname.startsWith("/dashboard") || req.nextUrl.pathname.startsWith("/profile")
-
-  // Check if the request is for an auth route
-  const isAuthRoute = req.nextUrl.pathname.startsWith("/auth/login") || req.nextUrl.pathname.startsWith("/auth/signup")
+  // Check if the path requires authentication
+  const path = request.nextUrl.pathname
+  const isProtectedPath = PROTECTED_PATHS.some(
+    (protectedPath) => path === protectedPath || path.startsWith(`${protectedPath}/`),
+  )
 
   // If accessing a protected route without a session, redirect to login
-  if (isProtectedRoute && !session) {
-    const redirectUrl = new URL("/auth/login", req.url)
-    redirectUrl.searchParams.set("redirect", req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+  if (isProtectedPath && !session) {
+    const redirectUrl = new URL("/auth/login", request.url)
+    redirectUrl.searchParams.set("redirect", path)
+    // Store the redirect URL in a cookie
+    const response = NextResponse.redirect(redirectUrl)
+    response.cookies.set("redirectAfterLogin", path, {
+      httpOnly: true,
+      maxAge: 60 * 10, // 10 minutes
+      path: "/",
+    })
+    return response
   }
 
-  // If accessing an auth route with a session, redirect to dashboard
-  if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL("/dashboard", req.url))
+  // If accessing the login page with a session, redirect to the dashboard
+  if (request.nextUrl.pathname === "/auth/login" && session) {
+    // Check for the redirect URL in the cookie
+    const redirectAfterLogin = request.cookies.get("redirectAfterLogin")?.value
+    const redirectPath = redirectAfterLogin || "/dashboard"
+
+    // Clear the cookie
+    const response = NextResponse.redirect(new URL(redirectPath, request.url))
+    response.cookies.delete("redirectAfterLogin")
+    return response
   }
 
-  return res
+  return NextResponse.next()
 }
 
+// Specify which paths this middleware should run for
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*", "/auth/login", "/auth/signup"],
+  matcher: [
+    "/converter/:path*",
+    "/copygen/:path*",
+    "/imagegen/:path*",
+    "/bloggen/:path*",
+    "/captiongen/:path*",
+    "/voiceblog/:path*",
+    "/clipslash/:path*",
+    "/ideaspark/:path*",
+    "/cvboost/:path*",
+    "/threadgen/:path*",
+    "/dashboard/:path*",
+    "/auth/login",
+    "/converter",
+    "/copygen",
+    "/imagegen",
+    "/bloggen",
+    "/captiongen",
+    "/voiceblog",
+    "/clipslash",
+    "/ideaspark",
+    "/cvboost",
+    "/threadgen",
+    "/dashboard",
+  ],
 }
