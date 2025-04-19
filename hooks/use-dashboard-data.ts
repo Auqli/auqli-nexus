@@ -1,7 +1,9 @@
+// app/dashboard/page.tsx
+
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { useAuth } from "@/components/auth/auth-provider"
 
 export interface DashboardData {
@@ -13,7 +15,8 @@ export interface DashboardData {
   toolUsage: any[]
   recentActivities: any[]
   dailyOperations: any[]
-  categoryDistribution: any[]
+  memberSince: string | null
+  categoryDistribution: { category: string; count: number }[]
   weeklyUsage: any[]
   monthlyUsage: any[]
   timeOfDayUsage: any[]
@@ -64,7 +67,9 @@ const defaultData: DashboardData = {
 }
 
 export function useDashboardData() {
-  const supabase = createClientComponentClient()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,257 +80,108 @@ export function useDashboardData() {
 
     try {
       setLoading(true)
+      setError(null)
 
-      // Simplified data fetching - fetch only essential data first
-      const [
-        operationsResult,
-        productsResult,
-        confidenceResult,
-        pendingTasksResult,
-        toolUsageResult,
-        recentActivitiesResult,
-      ] = await Promise.allSettled([
-        // Total operations
-        supabase
-          .from("ai_operations")
-          .select("id", { count: "exact" })
-          .eq("user_id", user.id),
-
-        // Products processed
-        supabase
-          .from("category_mappings")
-          .select("id", { count: "exact" })
-          .eq("user_verified", true),
-
-        // Average confidence
-        supabase
-          .from("category_mappings")
-          .select("confidence_score")
-          .not("confidence_score", "is", null),
-
-        // Pending tasks
-        supabase
-          .from("pending_tasks")
-          .select("id", { count: "exact" })
-          .eq("user_id", user.id)
-          .eq("status", "pending"),
-
-        // Tool usage
-        supabase
-          .from("ai_operations")
-          .select("tool_id, ai_tools:tool_id(name, tool_slug)")
-          .eq("user_id", user.id),
-
-        // Recent activities
-        supabase
-          .from("ai_operations")
-          .select("id, timestamp, input_meta, ai_tools:tool_id(name)")
-          .eq("user_id", user.id)
-          .order("timestamp", { ascending: false })
-          .limit(5),
+      // Fetch basic stats
+      const [operationsResult, productsResult, toolsResult, pendingResult] = await Promise.allSettled([
+        supabase.from("ai_operations").select("id", { count: "exact" }).eq("user_id", user.id),
+        supabase.from("category_mappings").select("id", { count: "exact" }).eq("user_verified", true),
+        supabase.from("ai_operations").select("tool_id").eq("user_id", user.id),
+        supabase.from("pending_tasks").select("id", { count: "exact" }).eq("user_id", user.id).eq("status", "pending"),
       ])
 
-      // Process results and update state with available data
-      const newData = { ...defaultData }
+      // Fetch category distribution - avoid using .group()
+      const categoryResult = await supabase
+        .from("category_mappings")
+        .select("main_category")
+        .eq("user_id", user.id)
+        .not("main_category", "is", null)
 
-      // Process total operations
-      if (operationsResult.status === "fulfilled" && !operationsResult.value.error) {
-        newData.totalOperations = operationsResult.value.count || 0
-      }
-
-      // Process products processed
-      if (productsResult.status === "fulfilled" && !productsResult.value.error) {
-        newData.productsProcessed = productsResult.value.count || 0
-      }
-
-      // Process average confidence
-      if (confidenceResult.status === "fulfilled" && !confidenceResult.value.error) {
-        const confidenceData = confidenceResult.value.data
-        if (confidenceData && confidenceData.length > 0) {
-          const sum = confidenceData.reduce((acc, item) => acc + (item.confidence_score || 0), 0)
-          newData.averageConfidence = sum / confidenceData.length
-        }
-      }
-
-      // Process pending tasks
-      if (pendingTasksResult.status === "fulfilled" && !pendingTasksResult.value.error) {
-        newData.pendingTasksCount = pendingTasksResult.value.count || 0
-      }
-
-      // Process tool usage
-      if (toolUsageResult.status === "fulfilled" && !toolUsageResult.value.error) {
-        const toolUsageData = toolUsageResult.value.data || []
-
-        // Count unique tools
-        const uniqueTools = new Set(toolUsageData.map((item) => item.tool_id))
-        newData.uniqueToolsUsed = uniqueTools.size
-
-        // Process tool usage data
-        const toolUsageMap = new Map()
-        toolUsageData.forEach((item) => {
-          if (!toolUsageMap.has(item.tool_id)) {
-            toolUsageMap.set(item.tool_id, {
-              tool_id: item.tool_id,
-              ai_tools: item.ai_tools,
-              count: 1,
-              max_timestamp: item.timestamp || new Date().toISOString(),
-            })
-          } else {
-            const existing = toolUsageMap.get(item.tool_id)
-            existing.count += 1
-            if (item.timestamp && (!existing.max_timestamp || item.timestamp > existing.max_timestamp)) {
-              existing.max_timestamp = item.timestamp
-            }
-          }
+      // Process category distribution in JavaScript
+      const categoryDistribution: { category: string; count: number }[] = []
+      if (categoryResult.data) {
+        const categoryMap: Record<string, number> = {}
+        categoryResult.data.forEach((item) => {
+          const category = item.main_category || "Uncategorized"
+          categoryMap[category] = (categoryMap[category] || 0) + 1
         })
 
-        newData.toolUsage = Array.from(toolUsageMap.values())
+        Object.entries(categoryMap).forEach(([category, count]) => {
+          categoryDistribution.push({ category, count })
+        })
+
+        // Sort by count descending
+        categoryDistribution.sort((a, b) => b.count - a.count)
       }
 
-      // Process recent activities
-      if (recentActivitiesResult.status === "fulfilled" && !recentActivitiesResult.value.error) {
-        const recentActivitiesData = recentActivitiesResult.value.data || []
-        newData.recentActivities = recentActivitiesData.map((activity) => ({
-          id: activity.id,
-          timestamp: activity.timestamp,
-          tool_name: activity.ai_tools?.name || "Unknown Tool",
-          input_meta: activity.input_meta,
-        }))
-      }
+      // Fetch recent activity
+      const recentActivityResult = await supabase
+        .from("ai_operations")
+        .select("id, created_at, tool_id, input_meta")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5)
 
-      // Update state with the data we have so far
-      setData(newData)
-
-      // Now fetch the less critical data in the background
-      fetchAdditionalData(newData)
-    } catch (err: any) {
-      console.error("Error fetching dashboard data:", err)
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchAdditionalData = async (currentData: DashboardData) => {
-    if (!user) return
-
-    try {
-      // Fetch category distribution
-      const { data: categoryDistData, error: categoryDistError } = await supabase
-        .from("category_mappings")
-        .select("main_category, count(*)")
-        .group("main_category")
-
-      if (!categoryDistError && categoryDistData) {
-        setData((prev) => ({
-          ...prev,
-          categoryDistribution: categoryDistData.map((item) => ({
-            category: item.main_category || "Uncategorized",
-            count: Number.parseInt(item.count) || 0,
-          })),
-        }))
-      }
-
-      // Generate weekly usage data
-      const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-      const weeklyData = weekDays.map((day) => ({ day_of_week: day, operations: 0 }))
-
-      // Fetch operations from the last 7 days
+      // Fetch daily operations for the last 7 days
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-      const { data: weeklyOpsData, error: weeklyOpsError } = await supabase
+      const dailyOpsResult = await supabase
         .from("ai_operations")
         .select("timestamp")
         .eq("user_id", user.id)
         .gte("timestamp", sevenDaysAgo.toISOString())
 
-      if (!weeklyOpsError && weeklyOpsData) {
-        // Count operations by day of week
-        const dayCount: Record<string, number> = {}
-        weeklyOpsData.forEach((op) => {
-          const day = new Date(op.timestamp).toLocaleDateString("en-US", { weekday: "short" })
-          dayCount[day] = (dayCount[day] || 0) + 1
+      // Process daily operations in JavaScript
+      const dailyOperations: { date: string; count: number }[] = []
+      if (dailyOpsResult.data) {
+        const dailyMap: Record<string, number> = {}
+        dailyOpsResult.data.forEach((item) => {
+          const dateStr = new Date(item.timestamp).toISOString().split("T")[0]
+          dailyMap[dateStr] = (dailyMap[dateStr] || 0) + 1
         })
 
-        // Update weekly data
-        const updatedWeeklyData = weeklyData.map((item) => ({
-          ...item,
-          operations: dayCount[item.day_of_week.substring(0, 3)] || 0,
-        }))
-
-        setData((prev) => ({ ...prev, weeklyUsage: updatedWeeklyData }))
-      }
-
-      // Generate monthly usage data
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-      const monthlyData = months.map((month) => ({ month, operations: 0 }))
-
-      // Fetch operations from the last 6 months
-      const sixMonthsAgo = new Date()
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-
-      const { data: monthlyOpsData, error: monthlyOpsError } = await supabase
-        .from("ai_operations")
-        .select("timestamp")
-        .eq("user_id", user.id)
-        .gte("timestamp", sixMonthsAgo.toISOString())
-
-      if (!monthlyOpsError && monthlyOpsData) {
-        // Count operations by month
-        const monthCount: Record<string, number> = {}
-        monthlyOpsData.forEach((op) => {
-          const month = new Date(op.timestamp).toLocaleDateString("en-US", { month: "short" })
-          monthCount[month] = (monthCount[month] || 0) + 1
+        // Convert to array format
+        Object.entries(dailyMap).forEach(([date, count]) => {
+          const formattedDate = new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+          dailyOperations.push({ date: formattedDate, count })
         })
 
-        // Update monthly data
-        const updatedMonthlyData = monthlyData.map((item) => ({
-          ...item,
-          operations: monthCount[item.month] || 0,
-        }))
-
-        setData((prev) => ({ ...prev, monthlyUsage: updatedMonthlyData }))
-      }
-
-      // Generate daily operations data
-      const last14Days = Array.from({ length: 14 }, (_, i) => {
-        const date = new Date()
-        date.setDate(date.getDate() - i)
-        return {
-          date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          operations: 0,
-        }
-      }).reverse()
-
-      // Fetch operations from the last 14 days
-      const fourteenDaysAgo = new Date()
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
-
-      const { data: dailyOpsData, error: dailyOpsError } = await supabase
-        .from("ai_operations")
-        .select("timestamp")
-        .eq("user_id", user.id)
-        .gte("timestamp", fourteenDaysAgo.toISOString())
-
-      if (!dailyOpsError && dailyOpsData) {
-        // Count operations by day
-        const dayCount: Record<string, number> = {}
-        dailyOpsData.forEach((op) => {
-          const day = new Date(op.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-          dayCount[day] = (dayCount[day] || 0) + 1
+        // Sort by date ascending
+        dailyOperations.sort((a, b) => {
+          return new Date(a.date).getTime() - new Date(b.date).getTime()
         })
-
-        // Update daily operations data
-        const updatedDailyData = last14Days.map((item) => ({
-          ...item,
-          operations: dayCount[item.date] || 0,
-        }))
-
-        setData((prev) => ({ ...prev, dailyOperations: updatedDailyData }))
       }
-    } catch (err) {
-      console.error("Error fetching additional dashboard data:", err)
+
+      // Count unique tools
+      const uniqueTools = new Set()
+      if (toolsResult.data) {
+        toolsResult.data.forEach((item) => {
+          if (item.tool_id) uniqueTools.add(item.tool_id)
+        })
+      }
+
+      setData({
+        totalOperations: operationsResult.value.count || 0,
+        productsProcessed: productsResult.value.count || 0,
+        averageConfidence: 0,
+        pendingTasksCount: pendingResult.value.count || 0,
+        uniqueToolsUsed: uniqueTools.size,
+        toolUsage: [],
+        recentActivities: [],
+        dailyOperations,
+        memberSince: user.created_at || null,
+        categoryDistribution,
+        weeklyUsage: [],
+        monthlyUsage: [],
+        timeOfDayUsage: [],
+        userActiveDays: [],
+      })
+    } catch (err: any) {
+      console.error("Error fetching dashboard data:", err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 

@@ -28,7 +28,6 @@ import {
   FileTextIcon,
 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 interface UserProfile {
   name: string | null
@@ -56,7 +55,6 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
   const [memberSince, setMemberSince] = useState<string | null>(null)
-  const supabase = createClientComponentClient()
 
   // Get the appropriate icon for a tool
   const getIconForTool = (toolName: string) => {
@@ -268,29 +266,9 @@ export default function Dashboard() {
         created_at: user.created_at,
         avatar_url: user.user_metadata?.avatar_url || null,
       })
+      setMemberSince(user.created_at)
     }
   }, [user])
-
-  // Load member since date
-  useEffect(() => {
-    if (user && user.id) {
-      const fetchMemberSince = async () => {
-        const { data, error } = await supabase
-          .from("user_profiles")
-          .select("created_at")
-          .eq("user_id", user.id)
-          .single()
-
-        if (error) {
-          console.error("Error fetching member since date:", error)
-        } else if (data) {
-          setMemberSince(data.created_at)
-        }
-      }
-
-      fetchMemberSince()
-    }
-  }, [user, supabase])
 
   // Prepare data for rendering
   const toolsUsage = transformToolUsage()
@@ -440,8 +418,7 @@ export default function Dashboard() {
                       </CardTitle>
                       <CardDescription className="text-gray-400">
                         {profile?.company_name ? `${profile.company_name} • ` : ""}
-                        Member since{" "}
-                        {memberSince ? new Date(memberSince).toLocaleDateString() : new Date().toLocaleDateString()}
+                        Member since {data.memberSince ? new Date(data.memberSince).toLocaleDateString() : "Loading..."}
                       </CardDescription>
                     </div>
                   </div>
