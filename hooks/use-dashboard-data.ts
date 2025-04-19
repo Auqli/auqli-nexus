@@ -170,7 +170,7 @@ export function useDashboardData() {
         toolUsage: [],
         recentActivities: [],
         dailyOperations,
-        memberSince: user.created_at || null,
+        memberSince: user?.created_at || null,
         categoryDistribution,
         weeklyUsage: [],
         monthlyUsage: [],
