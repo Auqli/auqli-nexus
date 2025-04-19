@@ -2,17 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth/auth-provider"
-import type { Blog, BloggenPreset } from "@/types/bloggen"
-
-interface GenerateBlogsOptions {
-  count?: number
-  vertical?: string
-  keyword?: string
-  customTopic?: string
-  wordCount?: number
-  model?: string
-  overridePreset?: boolean
-}
+import type { Blog, BloggenPreset, BlogGenerationRequest } from "@/types/bloggen"
 
 export function useBloggen() {
   const { user } = useAuth()
@@ -32,26 +22,18 @@ export function useBloggen() {
 
   // Fetch user's blogs
   const fetchBlogs = async () => {
-    setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setBlogs([
-        {
-          id: "1",
-          title: "10 Ways to Improve Your SEO Strategy",
-          content:
-            "Search engine optimization (SEO) is crucial for any business looking to increase their online visibility...",
-          created_at: new Date().toISOString(),
-          vertical: "marketing",
-          keywords: ["seo", "digital marketing", "website traffic"],
-          word_count: 1200,
-          model_used: "mistralai/Mistral-Small-24B-Instruct-2501",
-        },
-        // More sample blogs...
-      ])
+      setIsLoading(true)
+      const response = await fetch("/api/bloggen/blogs")
+      const data = await response.json()
+
+      if (data.success) {
+        setBlogs(data.blogs)
+      } else {
+        setError(data.error || "Failed to fetch blogs")
+      }
     } catch (err) {
-      setError("Failed to fetch blogs")
+      setError("An error occurred while fetching blogs")
       console.error(err)
     } finally {
       setIsLoading(false)
@@ -61,20 +43,16 @@ export function useBloggen() {
   // Fetch user's preset
   const fetchPreset = async () => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 300))
-      setPreset({
-        id: "default",
-        vertical_focus: ["marketing", "technology"],
-        keywords: ["seo", "digital marketing", "ai"],
-        word_count_target: 1500,
-        preferred_model: "mistralai/Mistral-Small-24B-Instruct-2501",
-        daily_schedule_enabled: true,
-        scheduled_count_per_day: 3,
-        scheduled_time: "09:00",
-      })
+      const response = await fetch("/api/bloggen/preset")
+      const data = await response.json()
+
+      if (data.success) {
+        setPreset(data.preset)
+      } else {
+        setError(data.error || "Failed to fetch preset")
+      }
     } catch (err) {
-      setError("Failed to fetch preset")
+      setError("An error occurred while fetching preset")
       console.error(err)
     }
   }
@@ -107,45 +85,31 @@ export function useBloggen() {
   }
 
   // Generate blogs
-  const generateBlogs = async (options: GenerateBlogsOptions, onStreamUpdate?: (text: string) => void) => {
-    setIsGenerating(true)
-    setError(null)
-
+  const generateBlogs = async (params: BlogGenerationRequest) => {
     try {
-      // Simulate API call with streaming
-      const mockBlog = {
-        id: Date.now().toString(),
-        title: options.customTopic || `Blog about ${options.keyword || options.vertical || "general topic"}`,
-        content: "",
-        created_at: new Date().toISOString(),
-        vertical: options.vertical || preset?.vertical_focus[0] || "general",
-        keywords: options.keyword ? [options.keyword] : preset?.keywords || ["general"],
-        word_count: options.wordCount || preset?.word_count_target || 1500,
-        model_used: options.model || preset?.preferred_model || "mistralai/Mistral-Small-24B-Instruct-2501",
+      setIsGenerating(true)
+      setError(null)
+
+      const response = await fetch("/api/bloggen/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Refresh blogs list
+        await fetchBlogs()
+        return data.blogs
+      } else {
+        setError(data.error || "Failed to generate blogs")
+        return null
       }
-
-      // Simulate streaming response
-      const fullContent = `# ${mockBlog.title}\n\n## Introduction\nIn today's fast-paced digital landscape, staying ahead of the curve is essential for businesses looking to maintain a competitive edge. This blog post explores key strategies and insights related to ${mockBlog.keywords.join(", ")}.\n\n## Why This Matters\nUnderstanding the nuances of ${mockBlog.vertical} can significantly impact your business outcomes. Research shows that companies investing in these areas see a 35% increase in customer engagement and a 28% boost in conversion rates.\n\n## Key Strategies\n1. **Develop a comprehensive approach**: Start by analyzing your current position and identifying gaps in your strategy.\n2. **Leverage data-driven insights**: Use analytics to inform your decision-making process and optimize for better results.\n3. **Implement iterative improvements**: Continuously test and refine your approach based on performance metrics.\n\n## Case Studies\nSeveral leading companies have successfully implemented these strategies with remarkable results. For instance, Company X saw a 45% increase in organic traffic after revamping their ${mockBlog.keywords[0]} strategy.\n\n## Conclusion\nBy adopting these proven techniques and staying informed about industry trends, you can enhance your ${mockBlog.vertical} performance and achieve sustainable growth for your business.`
-
-      const chunks = fullContent.split(" ")
-      let currentContent = ""
-
-      for (let i = 0; i < chunks.length; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 50)) // Simulate network delay
-        currentContent += (i > 0 ? " " : "") + chunks[i]
-        mockBlog.content = currentContent
-
-        if (onStreamUpdate) {
-          onStreamUpdate(currentContent)
-        }
-      }
-
-      // Add the completed blog to the list
-      setBlogs((prev) => [mockBlog, ...prev])
-
-      return { blogs: [mockBlog] }
     } catch (err) {
-      setError("Failed to generate blogs")
+      setError("An error occurred while generating blogs")
       console.error(err)
       return null
     } finally {

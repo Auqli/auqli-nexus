@@ -1,10 +1,9 @@
-import type React from "react"
-import { PageLayout } from "@/components/layout/page-layout"
+import type { ReactNode } from "react"
 
-export default function BloggenLayout({
+export default function BlogGenLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
-  return <PageLayout>{children}</PageLayout>
+  return <>{children}</>
 }
