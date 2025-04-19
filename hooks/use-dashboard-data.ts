@@ -85,7 +85,7 @@ export function useDashboardData() {
       // Fetch basic stats
       const [operationsResult, productsResult, toolsResult, pendingResult] = await Promise.allSettled([
         supabase.from("ai_operations").select("id", { count: "exact" }).eq("user_id", user.id),
-        supabase.from("category_mappings").select("id", { count: "exact" }).eq("user_verified", true),
+        supabase.from("category_mappings").select("id", { count: "exact" }).eq("user_id", user.id),
         supabase.from("ai_operations").select("tool_id").eq("user_id", user.id),
         supabase.from("pending_tasks").select("id", { count: "exact" }).eq("user_id", user.id).eq("status", "pending"),
       ])
