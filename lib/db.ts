@@ -34,6 +34,7 @@ export interface CategoryCorrection {
   corrected_main_category: string
   corrected_subcategory: string
   created_at: string
+  user_id?: string
 }
 
 // Function to find similar product categories from historical data
@@ -170,6 +171,7 @@ export async function saveCategoryCorrection(
   originalSubcategory: string,
   correctedMainCategory: string,
   correctedSubcategory: string,
+  userId: string | null = null, // Add user_id parameter
 ): Promise<void> {
   const { error } = await supabase.from("category_corrections").insert([
     {
@@ -178,6 +180,7 @@ export async function saveCategoryCorrection(
       original_subcategory: originalSubcategory,
       corrected_main_category: correctedMainCategory,
       corrected_subcategory: correctedSubcategory,
+      user_id: userId, // Include user_id in the insert
     },
   ])
 

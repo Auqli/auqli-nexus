@@ -6,16 +6,19 @@ import { ChevronLeft, ChevronRight, X, AlertTriangle, ChevronDown, Search } from
 // Add custom animation for the AI button glow effect
 const glowKeyframes = `
 @keyframes glow {
- 0% { transform: translateX(-100%); }
- 100% { transform: translateX(100%); }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 .animate-glow {
- animation: glow 3s infinite linear;
+  animation: glow 3s infinite linear;
 }
 `
 
 /**
  * Calls DeepInfra's Llama-4 model to match a product to a category
+ * @param {string} productName - The name of the product to match
+ * @param {Array} categories - Available Auqli categories
+ * @returns {Promise<{mainCategory: string, subCategory: string}>}
  */
 async function smartMatchWithAI(productName, categories) {
   // Prepare the category list for the prompt
@@ -80,6 +83,64 @@ async function smartMatchWithAI(productName, categories) {
           }
         }
 
+        // Validate the AI's response against the Auqli categories
+        const mainCategory = result.main_category
+        const subCategory = result.subcategory
+
+        // Check if the main category exists in Auqli categories
+        const isMainValid = categories.some(
+          (category) => category.name && category.name.toLowerCase() === mainCategory.toLowerCase(),
+        )
+
+        if (!isMainValid) {
+          console.warn(
+            `AI returned invalid main category "${mainCategory}" for "${productName}". Defaulting to "Uncategorized".`,
+          )
+          return {
+            mainCategory: "Uncategorized",
+            subCategory: "Uncategorized",
+            confidence: 0.1,
+            noMatch: true,
+          }
+        }
+
+        // Check if the subcategory exists under the main category
+        const parentCategory = categories.find(
+          (category) => category.name && category.name.toLowerCase() === mainCategory.toLowerCase(),
+        )
+
+        const isSubValid =
+          parentCategory &&
+          Array.isArray(parentCategory.subcategories) &&
+          parentCategory.subcategories.some((sub) => sub.name && sub.name.toLowerCase() === subCategory.toLowerCase())
+
+        if (!isSubValid) {
+          console.warn(
+            `AI returned invalid subcategory "${subCategory}" under "${mainCategory}" for "${productName}". Using first valid subcategory.`,
+          )
+
+          // Use the first valid subcategory if available
+          if (
+            parentCategory &&
+            Array.isArray(parentCategory.subcategories) &&
+            parentCategory.subcategories.length > 0
+          ) {
+            return {
+              mainCategory: mainCategory,
+              subCategory: parentCategory.subcategories[0].name,
+              confidence: result.confidence * 0.7, // Reduce confidence since we had to correct the subcategory
+              noMatch: false,
+            }
+          } else {
+            return {
+              mainCategory: mainCategory,
+              subCategory: "Uncategorized",
+              confidence: result.confidence * 0.5, // Significantly reduce confidence
+              noMatch: false,
+            }
+          }
+        }
+
         return {
           mainCategory: result.main_category,
           subCategory: result.subcategory,
@@ -102,6 +163,9 @@ async function smartMatchWithAI(productName, categories) {
 
 /**
  * Builds a prompt for the AI to match a product to a category
+ * @param {string} productName - The name of the product to match
+ * @param {Array} categoryList - List of available categories
+ * @returns {string} - The prompt for the AI
  */
 function buildAIPrompt(productName, categoryList) {
   const categories = categoryList.map((cat) => `- ${cat}`).join("\n")
@@ -116,24 +180,26 @@ Available Categories:
 ${categories}
 
 IMPORTANT: 
-1. If the product name doesn't seem like a real product or doesn't match any category, set "no_match" to true.
-2. Include a confidence score between 0 and 1 indicating how confident you are in the match.
-3. You MUST respond with ONLY a JSON object and nothing else. No explanations, no text before or after the JSON.
+1. You MUST ONLY use categories from the provided list. Do not invent new categories.
+2. If the product name doesn't seem like a real product or doesn't match any category, set "no_match" to true.
+3. Include a confidence score between 0 and 1 indicating how confident you are in the match.
+4. You MUST respond with ONLY a JSON object and nothing else. No explanations, no text before or after the JSON.
+5. The main_category and subcategory MUST EXACTLY match one of the provided categories.
 
 The JSON must follow this exact format:
 {
- "main_category": "...",
- "subcategory": "...",
- "confidence": 0.0,
- "no_match": false
+  "main_category": "...",
+  "subcategory": "...",
+  "confidence": 0.0,
+  "no_match": false
 }
 
 If no match is found, respond with:
 {
- "main_category": "Uncategorized",
- "subcategory": "Uncategorized",
- "confidence": 0.0,
- "no_match": true
+  "main_category": "Uncategorized",
+  "subcategory": "Uncategorized",
+  "confidence": 0.0,
+  "no_match": true
 }
 `
 }
@@ -281,7 +347,20 @@ function getConfidenceLevelColor(confidence) {
   return "text-red-400"
 }
 
-export default function CategoryModal({ isOpen, onClose, onSave, unmatchedProducts = [], auqliCategories = [] }) {
+import PropTypes from "prop-types"
+
+function CategorySelectionModal({
+  isOpen,
+  onClose,
+  onSave,
+  unmatchedProducts = [],
+  auqliCategories = [],
+  onDbUpdate,
+  toast,
+  autoMatchingState,
+  setAutoMatchingState,
+  setDbSaveStatus,
+}) {
   // Convert to plain JavaScript without TypeScript annotations
   const [selectedCategories, setSelectedCategories] = useState({})
   const [currentProductIndex, setCurrentProductIndex] = useState(0)
@@ -766,7 +845,17 @@ export default function CategoryModal({ isOpen, onClose, onSave, unmatchedProduc
             Product {currentProductIndex + 1} of {unmatchedProducts.length}
           </div>
           <div className="flex space-x-3">
-            <button onClick={onClose} className="px-6 py-2 bg-[#1a2235] hover:bg-[#222d42] rounded-md text-white">
+            <button
+              onClick={() => {
+                // When closing, preserve the auto-matching state but stop the active matching
+                if (isAutoMatching) {
+                  setIsAutoMatching(false)
+                  // Keep the autoMatchingState as is to allow resuming
+                }
+                onClose()
+              }}
+              className="px-6 py-2 bg-[#1a2235] hover:bg-[#222d42] rounded-md text-white"
+            >
               Cancel
             </button>
 
@@ -777,13 +866,19 @@ export default function CategoryModal({ isOpen, onClose, onSave, unmatchedProduc
                   setIsAutoMatching,
                   setMatchingStatus,
                   setCurrentMatchingIndex,
-                  unmatchedProducts,
+                  filteredProducts, // Use filteredProducts instead of unmatchedProducts
                   setCurrentProductIndex,
                   smartMatchWithAI,
                   auqliCategories,
                   setConfidenceScores,
                   setSelectedCategories,
                   setExpandedCategory,
+                  autoMatchingState,
+                  setAutoMatchingState,
+                  selectedCategories, // Pass selectedCategories here
+                  setDbSaveStatus, // Add database save status
+                  onDbUpdate, // Add callback for database updates
+                  toast, // Add toast for notifications
                 )
               }
               disabled={isAutoMatching}
@@ -804,7 +899,9 @@ export default function CategoryModal({ isOpen, onClose, onSave, unmatchedProduc
                 <span className="ml-4">
                   {isAutoMatching
                     ? `Matching... (${currentMatchingIndex + 1}/${unmatchedProducts.length})`
-                    : "Auto-Match All With NexAI"}
+                    : autoMatchingState.inProgress
+                      ? "Resume Matching with NexAI"
+                      : "Auto-Match All With NexAI"}
                 </span>
 
                 {/* AI icon */}
@@ -838,3 +935,14 @@ export default function CategoryModal({ isOpen, onClose, onSave, unmatchedProduc
     </div>
   )
 }
+
+CategorySelectionModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  onSave: PropTypes.func,
+  unmatchedProducts: PropTypes.array,
+  auqliCategories: PropTypes.array,
+  onDbUpdate: PropTypes.func,
+}
+
+export { CategorySelectionModal }

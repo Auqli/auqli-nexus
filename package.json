@@ -63,8 +63,8 @@
     "react-markdown": "latest",
     "remark-gfm": "latest",
     "prop-types": "latest",
-    "csv-parse": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "latest",
+    "csv-parse": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

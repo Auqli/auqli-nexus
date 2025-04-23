@@ -1,6 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/db"
+import { enhancedSmartMatch } from "@/lib/enhanced-category-matcher"
 
 export async function fetchCategoryStats() {
   try {
@@ -217,19 +218,23 @@ export async function getCategorySuggestions(productName) {
  * Server action to match a product category
  */
 export async function matchProductCategory(productName, productDescription, auqliCategories) {
-  // Dummy implementation for now
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  try {
+    // Use the enhancedSmartMatch function to get the category match
+    const match = await enhancedSmartMatch(productName, productDescription, auqliCategories)
 
-  const mainCategory = "Fashion"
-  const subCategory = "T-Shirts"
-  const confidence = 0.8
-
-  return {
-    success: true,
-    mainCategory,
-    subCategory,
-    confidence,
-    source: "ai",
+    return {
+      success: true,
+      mainCategory: match.mainCategory,
+      subCategory: match.subCategory,
+      confidence: match.confidence,
+      source: match.source,
+    }
+  } catch (error) {
+    console.error("Error in smart matching:", error)
+    return {
+      success: false,
+      error: "Failed to match category.",
+    }
   }
 }
 

@@ -27,25 +27,56 @@ export function htmlToText(html: string): string {
 }
 
 /**
- * Extracts the main category from a category string.
+ * Extracts the main category from a category string and validates it against Auqli categories.
  * @param {string} categoryString - The category string to extract from.
- * @returns {string} The extracted main category, or an empty string if not found.
+ * @param {Array} auqliCategories - The list of valid Auqli categories.
+ * @returns {string} The extracted and validated main category, or "Uncategorized" if not found.
  */
-export function extractMainCategory(categoryString: string): string {
+export function extractMainCategory(categoryString: string, auqliCategories?: any[]): string {
   if (!categoryString) return ""
 
   // Split the category string by delimiters like '>', '/', or ','
   const delimiters = /[>\\/,]/
   const categories = categoryString.split(delimiters).map((cat) => cat.trim())
 
-  // Return the first non-empty category
+  // Get the first non-empty category
+  let extractedCategory = ""
   for (const category of categories) {
     if (category) {
-      return category
+      extractedCategory = category
+      break
     }
   }
 
-  return ""
+  // If no auqliCategories provided or no category extracted, return as is
+  if (!auqliCategories || !extractedCategory) {
+    return extractedCategory
+  }
+
+  // Validate against Auqli categories
+  // Check for exact match
+  const exactMatch = auqliCategories.find(
+    (cat) => cat.name && cat.name.toLowerCase() === extractedCategory.toLowerCase(),
+  )
+
+  if (exactMatch) {
+    return exactMatch.name
+  }
+
+  // Check for partial match
+  const partialMatch = auqliCategories.find(
+    (cat) =>
+      cat.name &&
+      (cat.name.toLowerCase().includes(extractedCategory.toLowerCase()) ||
+        extractedCategory.toLowerCase().includes(cat.name.toLowerCase())),
+  )
+
+  if (partialMatch) {
+    return partialMatch.name
+  }
+
+  // If no match found, return the original extraction
+  return extractedCategory
 }
 
 /**

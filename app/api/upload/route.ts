@@ -116,8 +116,41 @@ export async function POST(request: NextRequest) {
     // Final validation to ensure no duplicates, no blank titles, and no missing data
     const validatedProducts = validateAndCleanProducts(products)
 
+    // Add a final validation step to ensure all categories are valid Auqli categories
+    const finalValidatedProducts = validatedProducts.map((product) => {
+      // Validate main category
+      const validMainCategory = validateCategoryAgainstAuqli(product.mainCategory, auqliCategories)
+
+      // If main category is valid, validate subcategory
+      let validSubCategory = product.subCategory
+      if (validMainCategory !== "Uncategorized") {
+        const categoryObj = auqliCategories.find((cat) => cat.name === validMainCategory)
+        if (categoryObj && Array.isArray(categoryObj.subcategories)) {
+          const subCatMatch = categoryObj.subcategories.find(
+            (sub) => sub.name && sub.name.toLowerCase() === product.subCategory.toLowerCase(),
+          )
+
+          if (subCatMatch) {
+            validSubCategory = subCatMatch.name
+          } else {
+            validSubCategory = "Uncategorized"
+          }
+        } else {
+          validSubCategory = "Uncategorized"
+        }
+      } else {
+        validSubCategory = "Uncategorized"
+      }
+
+      return {
+        ...product,
+        mainCategory: validMainCategory,
+        subCategory: validSubCategory,
+      }
+    })
+
     return NextResponse.json({
-      products: validatedProducts,
+      products: finalValidatedProducts,
       totalProcessed: records.length,
     })
   } catch (error: any) {
@@ -183,124 +216,192 @@ function validateAndCleanProducts(products: Product[]) {
   return validatedProducts
 }
 
-// Add this helper function to the route file
-function improveApparelCategorization(product: Product): Product {
+// First, let's modify the improveApparelCategorization function to only use valid Auqli categories
+
+// Replace the improveApparelCategorization function with this improved version:
+function improveApparelCategorization(product: Product, auqliCategories: any[]): Product {
+  // First, check if "Apparel & Accessories" or similar category exists in Auqli categories
+  const apparelCategory = findValidApparelCategory(auqliCategories)
+
+  if (!apparelCategory) {
+    // If no valid apparel category exists in Auqli categories, don't modify the product
+    return product
+  }
+
   // Normalize product name for better matching
   const normalizedName = product.name.toLowerCase()
 
   // Check for specific patterns in clothing items
-
   // Men's clothing patterns
   if (/\bmen'?s?\b|\bman'?s?\b|\bmale\b/i.test(normalizedName)) {
-    // If we already have Apparel & Accessories as main category
-    if (product.mainCategory === "Apparel & Accessories") {
+    // If we already have a valid apparel category as main category
+    if (product.mainCategory === apparelCategory) {
       // But subcategory is missing or generic
       if (!product.subCategory || product.subCategory === "Uncategorized") {
         // Try to determine specific subcategory
         if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-          product.subCategory = "Men's T-Shirts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's T-Shirts")
         } else if (/\bpolo\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Polo Shirts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Polo Shirts")
         } else if (/\bhenley\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Casual Shirts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Casual Shirts")
         } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Jeans"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Jeans")
         } else if (/\bshort\b/i.test(normalizedName)) {
-          product.subCategory = "Men's Shorts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Shorts")
         } else {
           // Default to Men's Clothing if we can't determine specific type
-          product.subCategory = "Men's Clothing"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Clothing")
         }
       }
     } else {
       // If main category isn't set to Apparel yet
-      product.mainCategory = "Apparel & Accessories"
+      product.mainCategory = apparelCategory
 
       // Try to determine specific subcategory
       if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-        product.subCategory = "Men's T-Shirts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's T-Shirts")
       } else if (/\bpolo\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Polo Shirts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Polo Shirts")
       } else if (/\bhenley\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Casual Shirts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Casual Shirts")
       } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Jeans"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Jeans")
       } else if (/\bshort\b/i.test(normalizedName)) {
-        product.subCategory = "Men's Shorts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Shorts")
       } else {
         // Default to Men's Clothing if we can't determine specific type
-        product.subCategory = "Men's Clothing"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Men's Clothing")
       }
     }
   }
 
-  // Women's clothing patterns
+  // Women's clothing patterns - similar logic with valid subcategory checks
   else if (/\bwomen'?s?\b|\bwoman'?s?\b|\bfemale\b|\bladies\b/i.test(normalizedName)) {
-    // If we already have Apparel & Accessories as main category
-    if (product.mainCategory === "Apparel & Accessories") {
+    // If we already have a valid apparel category as main category
+    if (product.mainCategory === apparelCategory) {
       // But subcategory is missing or generic
       if (!product.subCategory || product.subCategory === "Uncategorized") {
-        // Try to determine specific subcategory
+        // Try to determine specific subcategory with validation
         if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-          product.subCategory = "Women's T-Shirts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's T-Shirts")
         } else if (/\bdress\b/i.test(normalizedName)) {
-          product.subCategory = "Dresses"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Dresses")
         } else if (/\bskirt\b/i.test(normalizedName)) {
-          product.subCategory = "Skirts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Skirts")
         } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-          product.subCategory = "Women's Jeans"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's Jeans")
         } else if (/\bshort\b/i.test(normalizedName)) {
-          product.subCategory = "Women's Shorts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's Shorts")
         } else if (/\bblouse\b/i.test(normalizedName)) {
-          product.subCategory = "Blouses & Shirts"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Blouses & Shirts")
         } else {
           // Default to Women's Clothing if we can't determine specific type
-          product.subCategory = "Women's Clothing"
+          product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's Clothing")
         }
       }
     } else {
       // If main category isn't set to Apparel yet
-      product.mainCategory = "Apparel & Accessories"
+      product.mainCategory = apparelCategory
 
-      // Try to determine specific subcategory
+      // Try to determine specific subcategory with validation
       if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-        product.subCategory = "Women's T-Shirts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's T-Shirts")
       } else if (/\bdress\b/i.test(normalizedName)) {
-        product.subCategory = "Dresses"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Dresses")
       } else if (/\bskirt\b/i.test(normalizedName)) {
-        product.subCategory = "Skirts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Skirts")
       } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-        product.subCategory = "Women's Jeans"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's Jeans")
       } else if (/\bshort\b/i.test(normalizedName)) {
-        product.subCategory = "Women's Shorts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's Shorts")
       } else if (/\bblouse\b/i.test(normalizedName)) {
-        product.subCategory = "Blouses & Shirts"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Blouses & Shirts")
       } else {
         // Default to Women's Clothing if we can't determine specific type
-        product.subCategory = "Women's Clothing"
+        product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Women's Clothing")
       }
     }
   }
 
   // Generic clothing items without gender specification
   else if (/\btee\b|\bt-?shirt\b|\bpolo\b|\bhenley\b|\bjean\b|\bdenim\b|\bshort\b/i.test(normalizedName)) {
-    product.mainCategory = "Apparel & Accessories"
+    product.mainCategory = apparelCategory
 
-    // Try to determine specific subcategory
+    // Try to determine specific subcategory with validation
     if (/\bt-?shirt|\btee\b/i.test(normalizedName)) {
-      product.subCategory = "T-Shirts"
+      product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "T-Shirts")
     } else if (/\bpolo\b/i.test(normalizedName)) {
-      product.subCategory = "Polo Shirts"
+      product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Polo Shirts")
     } else if (/\bhenley\b/i.test(normalizedName)) {
-      product.subCategory = "Casual Shirts"
+      product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Casual Shirts")
     } else if (/\bjean|\bdenim\b/i.test(normalizedName)) {
-      product.subCategory = "Jeans"
+      product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Jeans")
     } else if (/\bshort\b/i.test(normalizedName)) {
-      product.subCategory = "Shorts"
+      product.subCategory = findValidSubcategory(auqliCategories, apparelCategory, "Shorts")
     }
   }
 
   return product
+}
+
+// Add these helper functions to find valid categories and subcategories
+function findValidApparelCategory(auqliCategories: any[]): string {
+  // List of possible apparel category names to check
+  const apparelCategoryNames = ["Apparel & Accessories", "Apparel", "Clothing", "Fashion", "Clothes", "Garments"]
+
+  // Check if any of these categories exist in auqliCategories
+  for (const categoryName of apparelCategoryNames) {
+    const category = auqliCategories.find((cat) => cat.name && cat.name.toLowerCase() === categoryName.toLowerCase())
+
+    if (category) {
+      return category.name
+    }
+  }
+
+  // If no exact match, try partial matches
+  for (const categoryName of apparelCategoryNames) {
+    const category = auqliCategories.find(
+      (cat) => cat.name && cat.name.toLowerCase().includes(categoryName.toLowerCase()),
+    )
+
+    if (category) {
+      return category.name
+    }
+  }
+
+  // If still no match, return null
+  return null
+}
+
+function findValidSubcategory(auqliCategories: any[], mainCategory: string, preferredSubcategory: string): string {
+  // Find the main category object
+  const categoryObj = auqliCategories.find((cat) => cat.name === mainCategory)
+
+  if (!categoryObj || !Array.isArray(categoryObj.subcategories)) {
+    return "Uncategorized"
+  }
+
+  // Check for exact match
+  const exactMatch = categoryObj.subcategories.find(
+    (sub) => sub.name && sub.name.toLowerCase() === preferredSubcategory.toLowerCase(),
+  )
+
+  if (exactMatch) {
+    return exactMatch.name
+  }
+
+  // Check for partial match
+  const partialMatch = categoryObj.subcategories.find(
+    (sub) => sub.name && sub.name.toLowerCase().includes(preferredSubcategory.toLowerCase()),
+  )
+
+  if (partialMatch) {
+    return partialMatch.name
+  }
+
+  // If no match found, return the first subcategory or "Uncategorized"
+  return categoryObj.subcategories.length > 0 ? categoryObj.subcategories[0].name : "Uncategorized"
 }
 
 // Find the findMatchingCategory function and update it to use our expanded dictionary
@@ -753,11 +854,86 @@ function findMatchingCategory(
     }
   }
 
-  return {
+  // At the end of the function, validate the returned category
+  const result = {
     mainCategory: scores[0].categoryName,
     subCategory: scores[0].subcategoryName || "",
     confidence: confidence,
   }
+
+  // Validate that the mainCategory exists in the Auqli categories
+  const validMainCategory = validateCategoryAgainstAuqli(result.mainCategory, categories)
+
+  // If the mainCategory is not valid, return "Uncategorized"
+  if (validMainCategory === "Uncategorized") {
+    return {
+      mainCategory: "Uncategorized",
+      subCategory: "Uncategorized",
+      confidence: 0,
+    }
+  }
+
+  // If the mainCategory is valid, validate the subCategory
+  const categoryObj = categories.find((cat) => cat.name === validMainCategory)
+  if (categoryObj && Array.isArray(categoryObj.subcategories)) {
+    const validSubCategory = categoryObj.subcategories.find(
+      (sub) => sub.name && sub.name.toLowerCase() === result.subCategory.toLowerCase(),
+    )
+
+    if (!validSubCategory) {
+      // If no exact match, try to find a partial match
+      const partialMatch = categoryObj.subcategories.find(
+        (sub) =>
+          sub.name &&
+          (sub.name.toLowerCase().includes(result.subCategory.toLowerCase()) ||
+            result.subCategory.toLowerCase().includes(sub.name.toLowerCase())),
+      )
+
+      if (partialMatch) {
+        result.subCategory = partialMatch.name
+      } else {
+        // If no match found, use the first subcategory or "Uncategorized"
+        result.subCategory = categoryObj.subcategories.length > 0 ? categoryObj.subcategories[0].name : "Uncategorized"
+      }
+    }
+  } else {
+    result.subCategory = "Uncategorized"
+  }
+
+  return {
+    mainCategory: validMainCategory,
+    subCategory: result.subCategory,
+    confidence: result.confidence,
+  }
+}
+
+// Now let's update the extractMainCategory function to validate against Auqli categories
+
+// Add this function to validate extracted categories against Auqli categories
+function validateCategoryAgainstAuqli(categoryName: string, auqliCategories: any[]): string {
+  if (!categoryName) return "Uncategorized"
+
+  // Check for exact match
+  const exactMatch = auqliCategories.find((cat) => cat.name && cat.name.toLowerCase() === categoryName.toLowerCase())
+
+  if (exactMatch) {
+    return exactMatch.name
+  }
+
+  // Check for partial match
+  const partialMatch = auqliCategories.find(
+    (cat) =>
+      cat.name &&
+      (cat.name.toLowerCase().includes(categoryName.toLowerCase()) ||
+        categoryName.toLowerCase().includes(cat.name.toLowerCase())),
+  )
+
+  if (partialMatch) {
+    return partialMatch.name
+  }
+
+  // If no match found, return "Uncategorized"
+  return "Uncategorized"
 }
 
 // Update the mapShopifyToAuqli function to handle the new requirements
@@ -842,7 +1018,7 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: any[]): Promis
       const finalMainCategory =
         confidence >= confidenceThreshold
           ? mainCategory
-          : extractMainCategory(mainRecord["Product Category"] || "") || "Uncategorized"
+          : extractMainCategory(mainRecord["Product Category"] || "", auqliCategories) || "Uncategorized"
 
       const finalSubCategory = confidence >= confidenceThreshold ? subCategory : mainRecord["Type"] || "Uncategorized"
 
@@ -932,7 +1108,7 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: any[]): Promis
         const finalMainCategory =
           confidence >= confidenceThreshold
             ? mainCategory
-            : extractMainCategory(variantRecord["Product Category"] || "") || "Uncategorized"
+            : extractMainCategory(variantRecord["Product Category"] || "", auqliCategories) || "Uncategorized"
 
         const finalSubCategory =
           confidence >= confidenceThreshold ? subCategory : variantRecord["Type"] || "Uncategorized"
@@ -963,54 +1139,62 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: any[]): Promis
   })
 
   // Apply additional apparel-specific categorization improvements
-  const improvedProducts = products.map((product) => improveApparelCategorization(product))
+  // Update this line to pass auqliCategories to improveApparelCategorization
+  const improvedProducts = products.map((product) => improveApparelCategorization(product, auqliCategories))
 
   return improvedProducts
 }
 
 // Update the mapWooCommerceToAuqli function to use the improved matching
 async function mapWooCommerceToAuqli(records: any[], auqliCategories: any[]): Promise<Product[]> {
-  const mappedProducts = records.map((record) => {
-    const productName = record["Name"] || record["name"] || record["product_name"] || ""
-    const productDescription = htmlToText(record["Description"] || record["description"] || "")
-
-    // Find matching Auqli category based on product name and description
-    const { mainCategory, subCategory, confidence } = findMatchingCategory(
-      productName,
-      productDescription,
-      auqliCategories,
-    )
-
-    // Only use the matched category if confidence is above threshold
-    // With our improved matching, we can use a higher threshold
-    const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
-    const finalMainCategory =
-      confidence >= confidenceThreshold
-        ? mainCategory
-        : extractMainCategory(record["Categories"] || record["categories"] || "") || "Uncategorized"
-    const finalSubCategory =
-      confidence >= confidenceThreshold ? subCategory : record["Tags"] || record["tags"] || "Uncategorized"
-
-    // Clean the product title
-    const cleanedTitle = cleanProductTitle(productName)
-
-    return {
-      id: record["ID"] || record["id"] || record["product_id"] || "",
-      name: cleanedTitle,
-      price: record["Regular price"] || record["regular_price"] || record["price"] || "",
-      image: record["Images"] || record["images"] || record["image"] || "",
-      description: productDescription,
-      weight: record["Weight"] ? record["Weight"] : "0",
-      inventory: record["Stock"] || record["stock"] || record["inventory"] || "0",
-      condition: mapCondition(record["Condition"] || ""), // Map to either "New" or "Fairly Used"
-      mainCategory: finalMainCategory,
-      subCategory: finalSubCategory,
-      uploadStatus: record["Status"] || record["status"] || "active",
-      additionalImages: [],
-      sku: record["sku"] || "",
-    }
-  })
+  // [existing code remains the same]
 
   // Apply validation to ensure no duplicates, no blank titles, and no missing data
-  return validateAndCleanProducts(mappedProducts)
+  const mappedProducts = validateAndCleanProducts(
+    records.map((record) => {
+      const productName = record["Name"] || record["name"] || record["product_name"] || ""
+      const productDescription = htmlToText(record["Description"] || record["description"] || "")
+
+      // Find matching Auqli category based on product name and description
+      const { mainCategory, subCategory, confidence } = findMatchingCategory(
+        productName,
+        productDescription,
+        auqliCategories,
+      )
+
+      // Only use the matched category if confidence is above threshold
+      // With our improved matching, we can use a higher threshold
+      const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
+      const finalMainCategory =
+        confidence >= confidenceThreshold
+          ? mainCategory
+          : extractMainCategory(record["Categories"] || record["categories"] || "", auqliCategories) || "Uncategorized"
+      const finalSubCategory =
+        confidence >= confidenceThreshold ? subCategory : record["Tags"] || record["tags"] || "Uncategorized"
+
+      // Clean the product title
+      const cleanedTitle = cleanProductTitle(productName)
+
+      return {
+        id: record["ID"] || record["id"] || record["product_id"] || "",
+        name: cleanedTitle,
+        price: record["Regular price"] || record["regular_price"] || record["price"] || "",
+        image: record["Images"] || record["images"] || record["image"] || "",
+        description: productDescription,
+        weight: record["Weight"] ? record["Weight"] : "0",
+        inventory: record["Stock"] || record["stock"] || record["inventory"] || "0",
+        condition: mapCondition(record["Condition"] || ""), // Map to either "New" or "Fairly Used"
+        mainCategory: finalMainCategory,
+        subCategory: finalSubCategory,
+        uploadStatus: record["Status"] || record["status"] || "active",
+        additionalImages: [],
+        sku: record["sku"] || "",
+      }
+    }),
+  )
+
+  // Apply the same apparel categorization improvements
+  const improvedProducts = mappedProducts.map((product) => improveApparelCategorization(product, auqliCategories))
+
+  return improvedProducts
 }
