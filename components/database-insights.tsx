@@ -137,8 +137,8 @@ export function DatabaseInsights({ refreshTrigger = 0 }) {
   }, [])
 
   return (
-    <Card className="border shadow-md overflow-hidden rounded-md bg-[#1a1d24] border-gray-800">
-      <CardHeader className="bg-[#1e2128] text-white p-6 flex flex-row justify-between items-center">
+    <Card className="border shadow-md overflow-hidden rounded-md">
+      <CardHeader className="bg-[#16783a] text-white p-6 flex flex-row justify-between items-center">
         <CardTitle>Database Insights</CardTitle>
         <button
           onClick={fetchStats}

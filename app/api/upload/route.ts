@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch Auqli categories for smart matching
-    const categoriesResponse = await fetch("https://auqliserver-8xr8zvib.b4a.run/api/public/categories", {
+    const categoriesResponse = await fetch("https://api.auqli.live/api/public/categories", {
       cache: "no-store",
     })
 

@@ -1,24 +1,61 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/auth/auth-provider"
+import { motion, AnimatePresence } from "framer-motion"
+import { Menu, X, ExternalLink } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 export function SiteHeader() {
-  const router = useRouter()
-  const { user } = useAuth()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const pathname = usePathname()
+  const [shouldRender, setShouldRender] = useState(true)
+
+  useEffect(() => {
+    if (pathname?.startsWith("/auqli-tools")) {
+      setShouldRender(false)
+    } else {
+      setShouldRender(true)
+    }
+
+    // Log for debugging
+    console.log("Current path:", pathname, "Should render header:", pathname?.startsWith("/auqli-tools") ? false : true)
+  }, [pathname])
+
+  // Handle scroll event to make navbar sticky
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+
+  // Skip rendering this header for auqli-tools routes
+  if (!shouldRender) {
+    return null
+  }
 
   return (
-    <header className="bg-[#0a0f1a] border-b border-gray-800">
+    <motion.header
+      className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${
+        isScrolled ? "bg-[#0a0f1a]/95 backdrop-blur-md border-gray-800/50 shadow-md" : "bg-[#0a0f1a] border-gray-800"
+      }`}
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center z-10">
             <div className="flex items-center">
               <Image
-                src="/images/auqli-symbol.png"
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MARK-rlaHxgk2H2Z1pLvKYo7HsSBa801gp4.png"
                 alt="Auqli Logo"
                 width={36}
                 height={36}
@@ -29,82 +66,117 @@ export function SiteHeader() {
             </div>
           </Link>
 
-          {/* Navigation */}
-          <nav className="flex items-center space-x-6">
-            <Link href="/about" className="text-white hover:text-gray-300 text-sm font-medium flex items-center">
-              About
-              <svg
-                className="w-3 h-3 ml-1"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </Link>
-
-            <Link href="/blog" className="text-white hover:text-gray-300 text-sm font-medium flex items-center">
-              Blog
-              <svg
-                className="w-3 h-3 ml-1"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </Link>
-
-            <Link href="/pricing" className="text-white hover:text-gray-300 text-sm font-medium">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/pricing" className="text-gray-300 hover:text-white transition-colors">
               Pricing
+            </Link>
+            <Link href="/converter" className="flex items-center text-gray-300 hover:text-white transition-colors">
+              <span>CSV Converter</span>
+            </Link>
+            <Link href="/imagegen" className="flex items-center text-gray-300 hover:text-white transition-colors">
+              <span>ImageGen AI</span>
+            </Link>
+            <Link href="/copygen" className="flex items-center text-gray-300 hover:text-white transition-colors">
+              <span>CopyGen AI</span>
+            </Link>
+            <Link href="/bloggen" className="flex items-center text-gray-300 hover:text-white transition-colors">
+              <span>BlogGen AI</span>
+            </Link>
+            <Link
+              href="https://auqli.live/blog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center text-gray-300 hover:text-white transition-colors"
+            >
+              <span>Blog</span>
+              <ExternalLink className="ml-1 h-3.5 w-3.5" />
             </Link>
           </nav>
 
-          {/* Auth Buttons */}
-          <div className="flex items-center space-x-3">
-            {user ? (
-              <div className="flex items-center space-x-3">
-                <span className="text-gray-300">
-                  Hi, {user.user_metadata?.full_name || user.email?.split("@")[0] || "User"}!
-                </span>
-                <Link href="/dashboard">
-                  <Button className="bg-transparent border border-gray-600 hover:border-gray-500 text-white px-4 py-1.5 rounded-md text-sm font-medium">
-                    Dashboard
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <>
-                <Link href="/auth/signup">
-                  <Button
-                    variant="outline"
-                    className="border-gray-600 hover:border-gray-500 text-white px-4 py-1.5 rounded-md text-sm font-medium"
-                  >
-                    Sign Up
-                  </Button>
-                </Link>
-                <Link href="/auth/login">
-                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md text-sm font-medium">
-                    Login
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
+          {/* Desktop CTA Button */}
+          <div className="hidden md:block"></div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden text-gray-300 hover:text-white transition-colors z-10"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
       </div>
-    </header>
+
+      {/* Mobile Navigation */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-[#0a0f1a] border-t border-gray-800 overflow-hidden"
+          >
+            <div className="container mx-auto px-4 py-4">
+              <nav className="flex flex-col space-y-4">
+                <Link
+                  href="/pricing"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                >
+                  <span className="font-medium">Pricing</span>
+                </Link>
+
+                <Link
+                  href="/converter"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                >
+                  <span className="font-medium">CSV Converter</span>
+                </Link>
+
+                <Link
+                  href="/imagegen"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                >
+                  <span className="font-medium">ImageGen AI</span>
+                </Link>
+
+                <Link
+                  href="/copygen"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                >
+                  <span className="font-medium">CopyGen AI</span>
+                </Link>
+
+                <Link
+                  href="/bloggen"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                >
+                  <span className="font-medium">BlogGen AI</span>
+                </Link>
+
+                <Link
+                  href="https://auqli.live/blog"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 text-gray-300 hover:text-white transition-colors rounded-md hover:bg-white/5"
+                >
+                  <span className="font-medium">Blog</span>
+                  <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                </Link>
+              </nav>
+
+              {/* Mobile CTA Button */}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.header>
   )
 }

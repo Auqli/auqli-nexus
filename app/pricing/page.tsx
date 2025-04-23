@@ -1,12 +1,13 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Check, AlertCircle } from "lucide-react"
+import { Check } from "lucide-react"
 import { SiteFooter } from "@/components/layout/site-footer"
 import { PageContainer } from "@/components/layout/page-container"
 import { PageHeader } from "@/components/layout/page-header"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function PricingPage() {
+  // Add this at the beginning of the PricingPage function
+  console.log("Rendering pricing page")
   return (
     <>
       <PageContainer>
@@ -15,15 +16,7 @@ export default function PricingPage() {
           description="Choose the plan that works best for your business needs"
         />
 
-        <Alert className="max-w-3xl mx-auto mb-12 bg-amber-50 border-amber-200 text-amber-800">
-          <AlertCircle className="h-4 w-4 text-amber-500" />
-          <AlertTitle>Coming Soon</AlertTitle>
-          <AlertDescription>
-            Our pricing plans are currently being finalized. Check back soon for detailed pricing information.
-          </AlertDescription>
-        </Alert>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mt-12 opacity-70">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mt-12">
           {/* Basic Plan */}
           <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader>
@@ -51,9 +44,7 @@ export default function PricingPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full bg-gray-800 hover:bg-gray-700" disabled>
-                Coming Soon
-              </Button>
+              <Button className="w-full bg-gray-800 hover:bg-gray-700">Coming Soon</Button>
             </CardFooter>
           </Card>
 
@@ -91,9 +82,7 @@ export default function PricingPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full bg-green-500 hover:bg-green-600 text-white" disabled>
-                Coming Soon
-              </Button>
+              <Button className="w-full bg-green-500 hover:bg-green-600 text-white">Coming Soon</Button>
             </CardFooter>
           </Card>
 
@@ -132,9 +121,7 @@ export default function PricingPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full bg-gray-800 hover:bg-gray-700" disabled>
-                Coming Soon
-              </Button>
+              <Button className="w-full bg-gray-800 hover:bg-gray-700">Coming Soon</Button>
             </CardFooter>
           </Card>
         </div>

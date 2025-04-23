@@ -8,6 +8,7 @@ interface PageLayoutProps {
 export function PageLayout({ children }: PageLayoutProps) {
   return (
     <>
+      {/* Remove the SiteHeader from here if it exists */}
       {children}
       <SiteFooter />
     </>

@@ -59,15 +59,12 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@emotion/is-prop-valid": "latest",
-    "@supabase/supabase-js": "latest",
     "framer-motion": "latest",
     "react-markdown": "latest",
     "remark-gfm": "latest",
     "prop-types": "latest",
     "csv-parse": "latest",
-    "@supabase/auth-helpers-nextjs": "latest",
-    "uuid": "latest",
-    "@supabase/ssr": "latest"
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

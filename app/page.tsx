@@ -2,26 +2,11 @@
 
 import { useEffect, useState, useRef } from "react"
 import { motion, useScroll, useTransform, useInView } from "framer-motion"
-import {
-  ArrowRight,
-  Sparkles,
-  PenTool,
-  Download,
-  Share2,
-  Send,
-  ImageIcon,
-  FileText,
-  Mic,
-  Scissors,
-  Lightbulb,
-  FileTextIcon as FileText2,
-  MessageSquare,
-  User,
-} from "lucide-react"
+import { ArrowRight, Sparkles, PenTool, Download, Share2, Send, ImageIcon, FileText, BarChart2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageLayout } from "@/components/layout/page-layout"
-import Link from "next/link"
+import { ToolCard } from "@/components/tool-card"
 
 export default function Home() {
   const [isPageLoaded, setIsPageLoaded] = useState(false)
@@ -87,13 +72,13 @@ export default function Home() {
     },
   }
 
-  // Tool data - Updated with all the new tools
+  // Tool data
   const tools = [
     {
       id: "imagegen",
       name: "ImageGen AI",
       description:
-        "Instantly generate high-quality product photos, banners, and visuals with AI. Perfect for new drops, seasonal campaigns, or ad creatives — no designer needed.",
+        "Instantly generate high-quality product photos, banners, and visuals with AI. Perfect for new drops or seasonal promotions.",
       icon: ImageIcon,
       iconBg: "bg-gradient-to-br from-[#8b5cf6] to-[#a78bfa]",
       cardBg: "bg-gradient-to-br from-[#f9f7ff] to-[#f3efff]",
@@ -101,13 +86,45 @@ export default function Home() {
       ctaText: "Try Now",
       ctaLink: "/imagegen",
       isAvailable: true,
-      badgeColor: "bg-gradient-to-r from-purple-600 to-indigo-600",
+      animation: (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            className="absolute top-1/3 right-1/4 w-10 h-10 rounded-lg bg-purple-400/10"
+            animate={{
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, 0],
+              opacity: [0.3, 0.6, 0.3],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute bottom-1/3 left-1/4 w-8 h-8 rounded-lg bg-purple-400/10"
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, -5, 0],
+              opacity: [0.2, 0.5, 0.2],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "loop",
+              ease: "easeInOut",
+              delay: 0.5,
+            }}
+          />
+        </div>
+      ),
     },
     {
       id: "copygen",
       name: "CopyGen AI",
       description:
-        "Create powerful product titles, descriptions, and headlines that sell. Skip writer's block with high-converting copy optimized for e-commerce and social.",
+        "Create powerful product titles, descriptions, and headlines that sell. Skip the writer's block and launch faster.",
       icon: PenTool,
       iconBg: "bg-gradient-to-br from-[#5466b5] to-[#8696ee]",
       cardBg: "bg-gradient-to-br from-[#f8faff] to-[#f0f0ff]",
@@ -115,13 +132,41 @@ export default function Home() {
       ctaText: "Try Now",
       ctaLink: "/copygen",
       isAvailable: true,
-      badgeColor: "bg-gradient-to-r from-blue-600 to-indigo-600",
+      animation: (
+        <div className="absolute bottom-4 right-4 opacity-30">
+          <motion.div
+            animate={{
+              opacity: [0.3, 0.6, 0.3],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "reverse",
+            }}
+          >
+            <div className="text-xs font-mono text-[#5466b5] whitespace-nowrap">
+              <motion.span
+                animate={{
+                  opacity: [1, 0, 1],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Number.POSITIVE_INFINITY,
+                  repeatType: "loop",
+                  times: [0, 0.5, 1],
+                }}
+              >
+                Product Titles
+              </motion.span>
+            </div>
+          </motion.div>
+        </div>
+      ),
     },
     {
       id: "bloggen",
       name: "BlogGen AI",
-      description:
-        "Generate long-form, SEO-optimized blog articles to grow organic traffic. Perfect for boosting your store's visibility and thought leadership in any niche.",
+      description: "Generate SEO-optimized blog articles to drive organic traffic and improve store visibility.",
       icon: FileText,
       iconBg: "bg-gradient-to-br from-[#f59e0b] to-[#fbbf24]",
       cardBg: "bg-gradient-to-br from-[#fffbeb] to-[#fef3c7]",
@@ -129,13 +174,29 @@ export default function Home() {
       ctaText: "Try Now",
       ctaLink: "/bloggen",
       isAvailable: true,
-      badgeColor: "bg-gradient-to-r from-yellow-500 to-amber-500",
+      animation: (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            className="absolute top-1/4 right-1/4 w-8 h-8 rounded-md bg-amber-400/10 rotate-12"
+            animate={{
+              y: [0, -10, 0],
+              rotate: [12, 20, 12],
+              opacity: [0.3, 0.6, 0.3],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "reverse",
+            }}
+          />
+        </div>
+      ),
     },
     {
       id: "csv-converter",
       name: "CSV Converter",
       description:
-        "Easily clean, convert, and prepare product CSVs for bulk uploads to your store. No more manual formatting errors — just upload, convert, and launch.",
+        "Easily convert and prepare product CSVs for bulk uploads to your store. No manual formatting needed.",
       icon: Download,
       iconBg: "bg-gradient-to-br from-[#16783a] to-[#45c133]",
       cardBg: "bg-gradient-to-br from-[#f8fdf9] to-[#f0f9f1]",
@@ -143,105 +204,96 @@ export default function Home() {
       ctaText: "Try Now",
       ctaLink: "/converter",
       isAvailable: true,
-      badgeColor: "bg-gradient-to-r from-green-600 to-emerald-600",
+      animation: (
+        <div className="absolute bottom-12 right-8 opacity-40 pointer-events-none">
+          <motion.div
+            className="w-8 h-10 border border-dashed border-green-400 rounded-md relative"
+            animate={{
+              y: [0, -15],
+              opacity: [0.4, 0],
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "loop",
+              ease: "easeInOut",
+              times: [0, 1],
+              delay: 0.2,
+            }}
+          >
+            <div className="absolute top-1 left-1 right-1 h-1 bg-green-400 rounded-sm"></div>
+          </motion.div>
+          <div className="w-8 h-10 border border-green-400 rounded-md relative mt-1">
+            <div className="absolute top-1 left-1 right-1 h-1 bg-green-400 rounded-sm"></div>
+            <div className="absolute top-3 left-1 right-1 h-1 bg-green-400 rounded-sm"></div>
+            <div className="absolute top-5 left-1 right-1 h-1 bg-green-400 rounded-sm"></div>
+            <div className="absolute top-7 left-1 right-1 h-1 bg-green-400 rounded-sm"></div>
+          </div>
+        </div>
+      ),
     },
     {
-      id: "captiongen",
-      name: "CaptionGen AI",
-      description:
-        "Auto-generate subtitles for your videos in multiple languages. Upload any video and let AI transcribe, subtitle, and translate into Tagalog, Yoruba, French, and more.",
-      icon: MessageSquare,
-      iconBg: "bg-gradient-to-br from-[#f97316] to-[#fb923c]",
-      cardBg: "bg-gradient-to-br from-[#fff7ed] to-[#ffedd5]",
-      borderColor: "border-orange-200",
-      ctaText: "Coming Soon",
-      ctaLink: "/captiongen",
-      isAvailable: false,
-      badgeColor: "bg-gradient-to-r from-orange-500 to-amber-500",
-    },
-    {
-      id: "voiceblog",
-      name: "VoiceBlog AI",
-      description:
-        "Turn your voice notes into full blog posts with perfect structure and flow. Ideal for busy founders, creators, and coaches who want to publish without typing.",
-      icon: Mic,
-      iconBg: "bg-gradient-to-br from-[#7f1d1d] to-[#b91c1c]",
-      cardBg: "bg-gradient-to-br from-[#fef2f2] to-[#fee2e2]",
-      borderColor: "border-red-200",
-      ctaText: "Coming Soon",
-      ctaLink: "/voiceblog",
-      isAvailable: false,
-      badgeColor: "bg-gradient-to-r from-red-700 to-red-500",
-    },
-    {
-      id: "clipslash",
-      name: "ClipSlash AI",
-      description:
-        "Cut your long videos into viral clips — automatically. AI detects emotional hooks, punchlines, and high-impact moments ready for TikTok, Shorts, and Reels.",
-      icon: Scissors,
-      iconBg: "bg-gradient-to-br from-[#ef4444] to-[#f87171]",
-      cardBg: "bg-gradient-to-br from-[#fef2f2] to-[#fee2e2]",
-      borderColor: "border-red-200",
-      ctaText: "Coming Soon",
-      ctaLink: "/clipslash",
-      isAvailable: false,
-      badgeColor: "bg-gradient-to-r from-red-600 to-rose-500",
-    },
-    {
-      id: "ideaspark",
-      name: "IdeaSpark AI",
-      description:
-        "Generate scroll-stopping video ideas, hooks, and shot lists — instantly. Just tell us your product or niche and get viral-ready content ideas on demand.",
-      icon: Lightbulb,
-      iconBg: "bg-gradient-to-br from-[#eab308] to-[#facc15]",
-      cardBg: "bg-gradient-to-br from-[#fefce8] to-[#fef9c3]",
-      borderColor: "border-yellow-200",
-      ctaText: "Coming Soon",
-      ctaLink: "/ideaspark",
-      isAvailable: false,
-      badgeColor: "bg-gradient-to-r from-yellow-500 to-amber-500",
-    },
-    {
-      id: "cvboost",
-      name: "CVBoost AI",
-      description:
-        "Get a stronger CV and custom-tailored cover letter in seconds. Upload your resume and job link — AI will optimize your bullet points and write a professional cover letter.",
-      icon: FileText2,
-      iconBg: "bg-gradient-to-br from-[#8b5cf6] to-[#a78bfa]",
-      cardBg: "bg-gradient-to-br from-[#f9f7ff] to-[#f3efff]",
-      borderColor: "border-purple-200",
-      ctaText: "Coming Soon",
-      ctaLink: "/cvboost",
-      isAvailable: false,
-      badgeColor: "bg-gradient-to-r from-purple-600 to-indigo-600",
-    },
-    {
-      id: "threadgen",
-      name: "ThreadGen AI",
-      description:
-        "Convert any blog post or video into a high-engagement Twitter/X thread. AI summarizes and rewrites long-form content into threads with hooks, bullets, and call-to-actions.",
-      icon: Share2,
+      id: "seo-booster",
+      name: "SEO Booster",
+      description: "Automatically generate meta titles, descriptions, and ALT text for better search rankings.",
+      icon: BarChart2,
       iconBg: "bg-gradient-to-br from-[#3b82f6] to-[#60a5fa]",
-      cardBg: "bg-gradient-to-br from-[#eff6ff] to-[#dbeafe]",
+      cardBg: "bg-gradient-to-br from-[#f8faff] to-[#eef5ff]",
       borderColor: "border-blue-200",
       ctaText: "Coming Soon",
-      ctaLink: "/threadgen",
+      ctaLink: "#",
       isAvailable: false,
-      badgeColor: "bg-gradient-to-r from-blue-600 to-blue-500",
+      animation: (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border border-blue-200 -translate-x-1/2 -translate-y-1/2"
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [0.1, 0.3, 0.1],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+          />
+        </div>
+      ),
     },
     {
-      id: "flexgen",
-      name: "FlexGen AI",
-      description:
-        "Type a vibe → get a 🔥 WhatsApp bio and matching AI profile pic. Funny, bold, romantic, or boss mode — FlexGen is built to make you stand out on social.",
-      icon: User,
-      iconBg: "bg-gradient-to-br from-[#7f1d1d] to-[#b91c1c]",
-      cardBg: "bg-gradient-to-br from-[#fef2f2] to-[#fee2e2]",
-      borderColor: "border-red-200",
+      id: "ad-copy-generator",
+      name: "Ad Copy Generator",
+      description: "Create high-converting ad copy for Facebook, Instagram, and Google Ads in seconds.",
+      icon: Share2,
+      iconBg: "bg-gradient-to-br from-[#ec4899] to-[#f472b6]",
+      cardBg: "bg-gradient-to-br from-[#fdf8fd] to-[#fdf0f9]",
+      borderColor: "border-pink-200",
       ctaText: "Coming Soon",
-      ctaLink: "/flexgen",
+      ctaLink: "#",
       isAvailable: false,
-      badgeColor: "bg-gradient-to-r from-red-700 to-red-500",
+      animation: (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            className="absolute top-1/4 right-1/4 text-pink-400 opacity-30"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.6, 0.3],
+              rotate: [0, 5, 0],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+            </svg>
+          </motion.div>
+        </div>
+      ),
     },
   ]
 
@@ -352,7 +404,7 @@ export default function Home() {
                 </motion.div>
 
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-5 text-white leading-tight tracking-tight">
-                  Auqli Nexus – AI Tool Suite
+                  Nexus Is Your AI Toolkit
                 </h1>
 
                 <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
@@ -405,82 +457,21 @@ export default function Home() {
                 animate={toolsInView ? "visible" : "hidden"}
                 variants={staggerContainer}
               >
-                {tools.map((tool, index) => (
-                  <motion.div
+                {tools.slice(0, 6).map((tool, index) => (
+                  <ToolCard
                     key={tool.id}
-                    className="group"
-                    whileHover={tool.isAvailable ? { scale: 1.03, y: -8 } : { scale: 1 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                    variants={itemFadeIn}
-                  >
-                    <div
-                      className={`border-0 overflow-hidden shadow-lg hover:shadow-xl rounded-2xl ${tool.cardBg} h-full relative ${!tool.isAvailable ? "opacity-80" : ""}`}
-                    >
-                      {/* Animated background elements for each card */}
-                      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                        <motion.div
-                          className={`absolute top-1/3 right-1/4 w-10 h-10 rounded-lg ${tool.iconBg}/10`}
-                          animate={{
-                            scale: [1, 1.1, 1],
-                            rotate: [0, 5, 0],
-                            opacity: [0.3, 0.6, 0.3],
-                          }}
-                          transition={{
-                            duration: 3,
-                            repeat: Number.POSITIVE_INFINITY,
-                            repeatType: "loop",
-                            ease: "easeInOut",
-                          }}
-                        />
-                      </div>
-
-                      <div className={`border-b ${tool.borderColor} p-4 sm:p-5`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className={`${tool.iconBg} text-white p-3 rounded-xl mr-3 shadow-md`}>
-                              <tool.icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg sm:text-xl text-gray-800">{tool.name}</h3>
-                              <div
-                                className={`mt-1 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${tool.isAvailable ? tool.badgeColor : "bg-gray-200 text-gray-600"} text-white border-0`}
-                              >
-                                {tool.isAvailable ? (
-                                  <>
-                                    <Sparkles className="h-3 w-3 mr-1" />
-                                    AI Powered
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="mr-1">🚀</span> Coming Soon
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-4 sm:p-5">
-                        <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{tool.description}</p>
-                      </div>
-                      <div className="bg-transparent p-4 sm:p-5 pt-0 mt-auto">
-                        {tool.isAvailable ? (
-                          <Button asChild className={`${tool.iconBg} text-white rounded-lg w-full md:w-auto`}>
-                            <Link href={tool.ctaLink} className="flex items-center justify-center">
-                              {tool.ctaText} <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button
-                            disabled
-                            className="w-full bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed rounded-lg py-3 hover:bg-gray-100"
-                          >
-                            {tool.ctaText}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
+                    id={tool.id}
+                    name={tool.name}
+                    description={tool.description}
+                    icon={<tool.icon />}
+                    iconBg={tool.iconBg}
+                    cardBg={tool.cardBg}
+                    borderColor={tool.borderColor}
+                    ctaText={tool.ctaText}
+                    ctaLink={tool.ctaLink}
+                    isAvailable={tool.isAvailable}
+                    animation={tool.animation}
+                  />
                 ))}
               </motion.div>
             </div>

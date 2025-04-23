@@ -19,17 +19,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { ShopifySampleCSV } from "@/components/sample-csv"
 import { Progress } from "@/components/ui/progress"
+import { ProgressAnimation } from "@/components/progress-animation"
 import { EnhancedPageHeader } from "@/components/layout/enhanced-page-header"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { InvalidCSVModal } from "@/components/invalid-csv-modal"
 import { CategorySelectionModal } from "@/components/category-selection-modal"
-import { useToast } from "@/components/ui/use-toast"
 
 // Add these imports at the top of the file
 import { DatabaseInsights } from "@/components/database-insights"
 import { CategorySuggestions } from "@/components/category-suggestions"
 import { LearningProgress } from "@/components/learning-progress"
 import { matchProductCategory, saveUserFeedback } from "@/app/actions"
+import { useToast } from "@/hooks/use-toast"
+import { RealtimeNotifications } from "@/components/realtime-notifications"
 
 // Expected Shopify CSV headers
 const EXPECTED_SHOPIFY_HEADERS = [
@@ -43,15 +44,6 @@ const EXPECTED_SHOPIFY_HEADERS = [
   "published",
   "image src",
 ]
-
-// Debounce function
-function debounce(func, delay) {
-  let timeout
-  return function (...args) {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => func.apply(this, args), delay)
-  }
-}
 
 export default function ConverterPage() {
   const [products, setProducts] = useState([])
@@ -111,7 +103,8 @@ export default function ConverterPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("https://api.staging.auqli.live/api/public/categories")
+        // Change this URL from auqliserver-8xr8zvib.b4a.run to api.auqli.live
+        const response = await fetch("https://api.auqli.live/api/public/categories")
         if (response.ok) {
           const data = await response.json()
 
@@ -285,6 +278,9 @@ export default function ConverterPage() {
     if (!file) return
 
     setFileName(file.name)
+    if (window.addNotification) {
+      window.addNotification(`Processing file: ${file.name}`)
+    }
     setIsLoading(true)
     setError(null)
     setAllCategoriesMatched(false)
@@ -298,7 +294,14 @@ export default function ConverterPage() {
     if (!isValidShopifyCSV) {
       setIsLoading(false)
       setShowInvalidCSVModal(true)
+      if (window.addNotification) {
+        window.addNotification("Invalid CSV format. Please use a Shopify CSV template.", "error")
+      }
       return
+    }
+
+    if (window.addNotification) {
+      window.addNotification(`Starting conversion of ${file.name}`)
     }
 
     try {
@@ -324,6 +327,12 @@ export default function ConverterPage() {
           const newValue = Math.min(prev + Math.floor(Math.random() * 5) + 1, itemCount)
           // Update progress percentage based on actual processed items
           setProcessingProgress((newValue / itemCount) * 100)
+
+          // Dispatch a notification
+          if (window.addNotification) {
+            window.addNotification(`Processing item ${newValue} of ${itemCount}`)
+          }
+
           return newValue
         })
       }, 100)
@@ -336,9 +345,16 @@ export default function ConverterPage() {
       // Clear the progress tracker
       clearInterval(progressTracker)
 
+      if (window.addNotification) {
+        window.addNotification(`Completed processing ${itemCount} items`)
+      }
+
       if (result.error) {
         setError(result.error)
         setProducts([])
+        if (window.addNotification) {
+          window.addNotification(`Error processing CSV: ${result.error}`, "error")
+        }
       } else if (result.products) {
         // Complete the progress to 100%
         setProcessedItems(itemCount)
@@ -348,6 +364,9 @@ export default function ConverterPage() {
         if (result.isAuqliFormatted) {
           setIsAuqliFormatted(true)
           setAuqliFormatMessage(result.message || "This file appears to be already formatted for Auqli.")
+          if (window.addNotification) {
+            window.addNotification("File is already in Auqli format", "success")
+          }
 
           // Add IDs to products for better tracking
           const productsWithIds = result.products.map((product, index) => ({
@@ -404,21 +423,14 @@ export default function ConverterPage() {
               subCategory: product.subCategory,
             }))
 
-          // Debounce the state updates
-          const debouncedSetUnmatchedProducts = debounce((value) => {
-            setUnmatchedProducts(value)
-          }, 500)
-
-          const debouncedSetIsCategoryModalOpen = debounce((value) => {
-            setIsCategoryModalOpen(value)
-          }, 500)
-
           if (unmatched.length > 0) {
-            // Filter out any products that might already be matched
-            const filteredUnmatched = filterMatchedProducts(unmatched, {})
-            debouncedSetUnmatchedProducts(filteredUnmatched)
-            debouncedSetIsCategoryModalOpen(true)
+            setUnmatchedProducts(unmatched)
+            setIsCategoryModalOpen(true)
+            if (window.addNotification) {
+              window.addNotification(`${unmatched.length} products require category selection`)
+            }
           }
+
           setProducts(productsWithIds)
         }
       }
@@ -426,6 +438,9 @@ export default function ConverterPage() {
       console.error("Error during upload:", err)
       setError("Failed to process the CSV file. Please check the format and try again.")
       setProducts([])
+      if (window.addNotification) {
+        window.addNotification(`Error processing CSV: ${err.message}`, "error")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -600,26 +615,137 @@ export default function ConverterPage() {
     setShowSample(!showSample)
   }
 
-  // Dummy functions to resolve undeclared variable errors
-  const filterMatchedProducts = (unmatched, selectedCategories) => {
-    // Implement your logic here to filter matched products
-    return unmatched
+  // Add this to the existing handleUploadSuccess function in app/page.tsx
+  const handleUploadSuccess = (products, isAuqliFormatted = false) => {
+    // Add IDs to products for better tracking
+    const productsWithIds = products.map((product, index) => {
+      const isCategorized =
+        !!product.mainCategory &&
+        !!product.subCategory &&
+        !product.mainCategory.includes("Uncategorized") &&
+        !product.subCategory.includes("Uncategorized")
+
+      return {
+        ...product,
+        id: `product-${index}`,
+        isCategorized,
+      }
+    })
+
+    setProducts(productsWithIds)
+    setError(null)
+
+    // If the file is already in Auqli format, we don't need to check for categories
+    if (isAuqliFormatted) {
+      setTotalProducts(productsWithIds.length)
+      setMatchedCategories(productsWithIds.length) // All products are considered categorized
+      setHasUncategorizedProducts(false)
+      setAllCategoriesMatched(true)
+      return
+    }
+
+    // Count products with matched categories (not Uncategorized)
+    const matched = productsWithIds.filter((product) => product.isCategorized).length
+
+    setMatchedCategories(matched)
+    setTotalProducts(productsWithIds.length)
+    setAllCategoriesMatched(matched === productsWithIds.length)
+    setHasUncategorizedProducts(matched < productsWithIds.length)
+
+    // Check for products with missing or default categories
+    const unmatched = productsWithIds
+      .filter((product) => !product.isCategorized)
+      .map((product) => ({
+        id: product.id,
+        name: product.name,
+        mainCategory: product.mainCategory,
+        subCategory: product.subCategory,
+      }))
+
+    if (unmatched.length > 0) {
+      setUnmatchedProducts(unmatched)
+      setIsCategoryModalOpen(true)
+      if (window.addNotification) {
+        window.addNotification(`${unmatched.length} products require category selection`)
+      }
+    }
   }
 
-  const handleMainCategoryChange = (productId, mainCategory) => {
-    // Implement your logic here to handle main category change
-    console.log(`Main category changed for product ${productId} to ${mainCategory}`)
-  }
+  // Effect to update categorization status whenever products change
+  useEffect(() => {
+    updateCategorizationStatus()
+  }, [products, updateCategorizationStatus])
 
-  const handleSubCategoryChange = (productId, subCategory) => {
-    // Implement your logic here to handle subcategory change
-    console.log(`Subcategory changed for product ${productId} to ${subCategory}`)
-  }
+  // Find the line where currentProduct is defined and update it with a proper default value
+  // Replace:
+  // const currentProduct = unmatchedProducts[currentProductIndex] || {
+  //   id: "",
+  //   name: "",
+  //   mainCategory: "",
+  //   subCategory: "",
+  // }
 
+  // With:
   const [currentProduct, setCurrentProduct] = useState(null)
+  const [currentProductIndex, setCurrentProductIndex] = useState(0)
+
+  // Then add this useEffect to update currentProduct safely when unmatchedProducts or currentProductIndex changes
+  useEffect(() => {
+    if (unmatchedProducts && unmatchedProducts.length > 0 && currentProductIndex < unmatchedProducts.length) {
+      setCurrentProduct(unmatchedProducts[currentProductIndex])
+    } else {
+      setCurrentProduct({
+        id: "",
+        name: "",
+        mainCategory: "",
+        subCategory: "",
+      })
+    }
+  }, [unmatchedProducts, currentProductIndex])
+
+  const handleMainCategoryChange = (productId, newMainCategory) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === productId ? { ...product, mainCategory: newMainCategory } : product,
+      ),
+    )
+  }
+
+  const handleSubCategoryChange = (productId, newSubCategory) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) => (product.id === productId ? { ...product, subCategory: newSubCategory } : product)),
+    )
+  }
+
+  // Add this function inside the ConverterPage component
+  const handleDbUpdate = () => {
+    // Increment the refresh trigger to cause the database components to refresh
+    setDbRefreshTrigger((prev) => prev + 1)
+  }
+
+  // Add this function to filter out already matched products
+  const filterMatchedProducts = (products, selectedCategories) => {
+    return products.filter((product) => {
+      const selected = selectedCategories[product.id]
+
+      // Keep products that don't have categories selected yet
+      if (!selected) return true
+
+      // Keep products that have "noMatch" flag
+      if (selected.noMatch) return true
+
+      // Filter out products that have both main category and subcategory properly selected
+      const hasMainCategory = selected.mainCategory && !selected.mainCategory.includes("Uncategorized")
+      const hasSubCategory = selected.subCategory && !selected.subCategory.includes("Uncategorized")
+
+      // Keep only products that are missing either main category or subcategory
+      return !(hasMainCategory && hasSubCategory)
+    })
+  }
 
   return (
     <>
+      <RealtimeNotifications />
       <EnhancedPageHeader
         title="CSV Product Formatter"
         description="Transform your Shopify product data into Auqli-ready format with just a few clicks."
@@ -797,7 +923,7 @@ export default function ConverterPage() {
                       >
                         <Button
                           onClick={() => setPlatform("shopify")}
-                          className="bg-[#8696ee] hover:bg-[#5466b5] text-white"
+                          className="bg-[#8696ee] hover:bg-[#5466b5] text-white transition-all duration-300"
                         >
                           <ChevronLeft className="mr-2 h-4 w-4" />
                           Switch to Shopify
@@ -959,21 +1085,21 @@ export default function ConverterPage() {
                             xmlns="http://www.w3.org/2000/svg"
                           >
                             <path
-                              d="M12 2L2 7L12 12L22 7L12 2Z"
+                              d="M21 16V8.00002C20.9996 7.6493 20.9071 7.30483 20.7315 7.00119C20.556 6.69754 20.3037 6.44539 20 6.27002L13 2.27002C12.696 2.09449 12.3511 2.00208 12 2.00208C11.6489 2.00208 11.304 2.09449 11 2.27002L4 6.27002C3.69626 6.44539 3.44398 6.69754 3.26846 7.00119C3.09294 7.30483 3.00036 7.6493 3 8.00002V16C3.00036 16.3508 3.09294 16.6952 3.26846 16.9989C3.44398 17.3025 3.69626 17.5547 4 17.73L11 21.73C11.304 21.9056 11.6489 21.998 12 21.998C12.3511 21.998 12.696 21.9056 13 21.73L20 17.73C20.3037 17.5547 20.556 17.3025 20.7315 16.9989C20.9071 16.6952 20.9996 16.3508 21 16Z"
                               stroke="#8696ee"
                               strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
                             <path
-                              d="M2 17L12 22L22 17"
+                              d="M3.27002 6.96002L12 12L20.73 6.96002"
                               stroke="#8696ee"
                               strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
                             <path
-                              d="M2 12L12 17L22 12"
+                              d="M12 22.08V12"
                               stroke="#8696ee"
                               strokeWidth="2"
                               strokeLinecap="round"
@@ -984,11 +1110,11 @@ export default function ConverterPage() {
                       </div>
                     </motion.div>
 
-                    <h3 className="text-2xl font-bold text-white mb-3">WooCommerce Integration Coming Soon</h3>
+                    <h3 className="text-xl font-bold text-white mb-4">WooCommerce Integration Coming Soon</h3>
 
-                    <p className="text-gray-400 text-center max-w-md mb-6">
-                      We're working hard to bring WooCommerce support to the Auqli CSV Product Formatter. Stay tuned for
-                      updates!
+                    <p className="text-gray-400 text-center max-w-md mb-8">
+                      We're currently developing WooCommerce support for the Auqli CSV Product Formatter. Check back
+                      soon for this exciting new feature!
                     </p>
 
                     <div className="flex space-x-4">
@@ -1021,7 +1147,26 @@ export default function ConverterPage() {
                           <span>Processing CSV file...</span>
                           <span>{Math.round(processingProgress)}%</span>
                         </div>
+                        {/* Update the ProgressAnimation component with item counts */}
+                        <ProgressAnimation
+                          progress={processingProgress}
+                          totalItems={totalItems}
+                          processedItems={processedItems}
+                        />
                         <Progress value={processingProgress} className="h-2" />
+
+                        {/* Add database save progress indicator */}
+                        {isSavingToDatabase && (
+                          <div className="mt-4">
+                            <div className="flex justify-between text-sm">
+                              <span>Saving to database...</span>
+                              <span>{Math.round(databaseSaveProgress)}%</span>
+                            </div>
+                            <Progress value={databaseSaveProgress} className="h-2 bg-blue-900/20">
+                              <div className="h-full bg-blue-600" style={{ width: `${databaseSaveProgress}%` }} />
+                            </Progress>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1088,146 +1233,6 @@ export default function ConverterPage() {
                 </AnimatePresence>
               </CardContent>
 
-              {products.length > 0 && (
-                <>
-                  {hasUncategorizedProducts && matchedCategories < totalProducts ? (
-                    <Alert
-                      variant="warning"
-                      className="mt-4 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800"
-                    >
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      <AlertTitle className="text-amber-800 dark:text-amber-300">
-                        Incomplete Category Mapping
-                      </AlertTitle>
-                      <AlertDescription className="text-amber-700 dark:text-amber-400">
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span>Shopify products processed:</span>
-                            <span className="font-medium">{totalProducts}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Categories matched to Auqli:</span>
-                            <span className="font-medium">
-                              {matchedCategories} of {totalProducts}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Categories not matched (action required):</span>
-                            <span className="font-medium">{totalProducts - matchedCategories}</span>
-                          </div>
-                          <div className="mt-3">
-                            <Button
-                              variant="outline"
-                              className="border-amber-300 bg-amber-100 text-amber-700 hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-900/40 dark: dark:text-amber-300 dark:hover:bg-amber-900/60"
-                              onClick={() => setIsCategoryModalOpen(true)}
-                            >
-                              Match Now
-                            </Button>
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    matchedCategories === totalProducts && (
-                      <Alert className="mt-4 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <AlertTitle className="text-green-800 dark:text-green-300">All Categories Matched</AlertTitle>
-                        <AlertDescription className="text-green-700 dark:text-green-400">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span>Shopify products processed:</span>
-                              <span className="font-medium">{totalProducts}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Categories matched to Auqli:</span>
-                              <span className="font-medium">
-                                {matchedCategories} of {totalProducts}
-                              </span>
-                            </div>
-                            <div className="mt-3">
-                              <p>
-                                All products have been successfully categorized. You can now download the formatted CSV.
-                              </p>
-                            </div>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    )
-                  )}
-                </>
-              )}
-
-              <AnimatePresence>
-                {products.length > 0 && (
-                  <motion.div
-                    className="bg-[#111827] px-6 pb-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <div className="overflow-x-auto bg-[#0c1322] rounded-lg border border-gray-700">
-                      <div className="p-4 border-b border-gray-700">
-                        <h3 className="text-lg font-semibold text-white">Formatted Products for Auqli</h3>
-                        <p className="text-sm text-gray-400">Preview of your converted product data</p>
-                      </div>
-                      <div className="p-4 overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="border-gray-700">
-                              <TableHead className="text-[#d7f4db]">product name</TableHead>
-                              <TableHead className="text-[#d7f4db]">product main price</TableHead>
-                              <TableHead className="text-[#d7f4db]">product main image</TableHead>
-                              <TableHead className="text-[#d7f4db]">product description</TableHead>
-                              <TableHead className="text-[#d7f4db]">product weight</TableHead>
-                              <TableHead className="text-[#d7f4db]">product inventory</TableHead>
-                              <TableHead className="text-[#d7f4db]">product condition</TableHead>
-                              <TableHead className="text-[#d7f4db]">product main category</TableHead>
-                              <TableHead className="text-[#d7f4db]">product subcategory</TableHead>
-                              <TableHead className="text-[#d7f4db]">upload status</TableHead>
-                              <TableHead className="text-[#d7f4db]">other image1</TableHead>
-                              <TableHead className="text-[#d7f4db]">other image2</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {products.slice(0, 5).map((product, index) => (
-                              <TableRow key={index} className="border-gray-700 hover:bg-[#1a2235] transition-colors">
-                                <TableCell className="font-medium text-white">{product.name}</TableCell>
-                                <TableCell className="text-gray-300">{product.price}</TableCell>
-                                <TableCell className="max-w-[100px] truncate text-gray-300">{product.image}</TableCell>
-                                <TableCell className="max-w-[150px] truncate text-gray-300">
-                                  {product.description}
-                                </TableCell>
-                                <TableCell className="text-gray-300">{product.weight}</TableCell>
-                                <TableCell className="text-gray-300">{product.inventory}</TableCell>
-                                <TableCell className="text-gray-300">{product.condition}</TableCell>
-                                <TableCell className="text-gray-300">{product.mainCategory}</TableCell>
-                                <TableCell className="text-gray-300">{product.subCategory}</TableCell>
-                                <TableCell className="text-gray-300">{product.uploadStatus}</TableCell>
-                                <TableCell className="max-w-[100px] truncate text-gray-300">
-                                  {product.additionalImages && product.additionalImages.length > 0
-                                    ? product.additionalImages[0]
-                                    : ""}
-                                </TableCell>
-                                <TableCell className="max-w-[100px] truncate text-gray-300">
-                                  {product.additionalImages && product.additionalImages.length > 1
-                                    ? product.additionalImages[1]
-                                    : ""}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                        {products.length > 5 && (
-                          <p className="text-sm text-gray-400 mt-4 p-2">
-                            Showing 5 of {products.length} products. Download to see all.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
               <CardFooter className="flex justify-end bg-[#111827] p-6 pt-0">
                 <AnimatePresence>
                   {products.length > 0 && (
@@ -1269,8 +1274,8 @@ export default function ConverterPage() {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-              <DatabaseInsights />
-              <LearningProgress />
+              <DatabaseInsights refreshTrigger={dbRefreshTrigger} />
+              <LearningProgress refreshTrigger={dbRefreshTrigger} />
             </div>
 
             {currentProduct && currentProduct.name && (
@@ -1278,8 +1283,12 @@ export default function ConverterPage() {
                 <CategorySuggestions
                   productName={currentProduct.name}
                   onSelectCategory={(main, sub) => {
-                    handleMainCategoryChange(currentProduct.id, main)
-                    handleSubCategoryChange(currentProduct.id, sub)
+                    handleCategorySelection({
+                      [currentProduct.id]: {
+                        mainCategory: main,
+                        subCategory: sub,
+                      },
+                    })
                     handleCategoryFeedback(currentProduct.name, main, sub, true)
                   }}
                 />
@@ -1294,10 +1303,23 @@ export default function ConverterPage() {
 
       <CategorySelectionModal
         isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        onSave={handleCategorySelection}
+        onClose={() => {
+          setIsCategoryModalOpen(false)
+          updateCategorizationStatus()
+          // Refresh database insights when modal is closed
+          handleDbUpdate()
+        }}
+        onSave={(selectedCategories) => {
+          handleCategorySelection(selectedCategories)
+          // Refresh database insights when categories are saved
+          handleDbUpdate()
+        }}
         unmatchedProducts={unmatchedProducts}
         auqliCategories={auqliCategories}
+        // Add this prop to filter out already matched products when reopening the modal
+        filterMatchedProducts={true}
+        // Add this prop to trigger database updates
+        onDbUpdate={handleDbUpdate}
       />
     </>
   )

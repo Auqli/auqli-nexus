@@ -1,37 +1,17 @@
 import { createClient } from "@supabase/supabase-js"
 
-// Update the Supabase client initialization to handle missing credentials better
-
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
-// Log the environment variables for debugging (without exposing sensitive data)
-console.log("Supabase URL available:", !!supabaseUrl)
-console.log("Supabase Anon Key available:", !!supabaseAnonKey)
-
-// Create a singleton pattern for the Supabase client
-const supabaseInstance = null
-
-export const supabase =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : {
-        // Provide a mock implementation when credentials are missing
-        from: () => ({
-          select: () => ({
-            textSearch: () => ({
-              order: () => ({
-                limit: () => ({ data: [], error: null }),
-              }),
-            }),
-            eq: () => ({ data: [], error: null, count: 0 }),
-            count: () => ({ count: 0, error: null }),
-            order: () => ({ limit: () => ({ data: [], error: null }) }),
-          }),
-          insert: () => ({ error: null }),
-        }),
-      }
+// Create the Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+  },
+})
 
 // Type definitions based on our database schema
 export interface CategoryMapping {
@@ -43,6 +23,7 @@ export interface CategoryMapping {
   confidence_score: number | null
   user_verified: boolean
   created_at: string
+  user_id?: string
 }
 
 export interface CategoryCorrection {
@@ -77,6 +58,29 @@ export async function findSimilarProductCategories(productName: string, threshol
   return data as CategoryMapping[]
 }
 
+// Add a function to check if RLS is enabled on the category_mappings table
+export async function checkRLS() {
+  try {
+    const { data, error } = await supabase.rpc("execute_sql", {
+      sql_query: `
+        SELECT tablename, rowsecurity 
+        FROM pg_tables 
+        WHERE schemaname = 'public' AND tablename = 'category_mappings'
+      `,
+    })
+
+    if (error) {
+      console.error("Error checking RLS:", error)
+      return { error: error.message }
+    }
+
+    return { data }
+  } catch (err) {
+    console.error("Exception checking RLS:", err)
+    return { error: err.message }
+  }
+}
+
 // Improve the saveCategoryMapping function with better error handling and retry logic
 export async function saveCategoryMapping(
   productName: string,
@@ -85,14 +89,17 @@ export async function saveCategoryMapping(
   subCategory: string,
   confidenceScore: number,
   userVerified = false,
-): Promise<void> {
-  // Maximum retry attempts
-  const MAX_RETRIES = 3
-  let retries = 0
+) {
+  try {
+    console.log("Attempting to save category mapping:", {
+      product_name: productName,
+      main_category: mainCategory,
+      sub_category: subCategory,
+    })
 
-  while (retries < MAX_RETRIES) {
-    try {
-      const { error } = await supabase.from("category_mappings").insert([
+    const { data, error } = await supabase
+      .from("category_mappings")
+      .insert([
         {
           product_name: productName,
           product_description: productDescription,
@@ -102,28 +109,18 @@ export async function saveCategoryMapping(
           user_verified: userVerified,
         },
       ])
+      .select()
 
-      if (error) {
-        console.error(`Error saving category mapping (attempt ${retries + 1}):`, error)
-        retries++
-
-        // Wait longer between each retry
-        await new Promise((resolve) => setTimeout(resolve, 500 * retries))
-      } else {
-        // Success, exit the retry loop
-        return
-      }
-    } catch (error) {
-      console.error(`Exception during save (attempt ${retries + 1}):`, error)
-      retries++
-
-      // Wait longer between each retry
-      await new Promise((resolve) => setTimeout(resolve, 500 * retries))
+    if (error) {
+      console.error("Error saving category mapping:", error)
+      throw error
+    } else {
+      console.log("Successfully saved category mapping:", data)
     }
+  } catch (error) {
+    console.error("Error saving category mapping:", error)
+    throw error
   }
-
-  // If we get here, all retries failed
-  console.error(`Failed to save category mapping for "${productName}" after ${MAX_RETRIES} attempts`)
 }
 
 /**

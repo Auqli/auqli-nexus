@@ -11,38 +11,20 @@ From product conversion to AI copywriting, product discovery, supplier matching,
 
 ## 🌟 Core Features
 
-### ✅ Shopify CSV Converter (Live)
+### ✅ Shopify CSV Converter (Phase 1 — Live)
 Instantly convert your Shopify CSV product data into marketplace-ready format. Supports automatic category mapping, error correction, and bulk processing.
 
-### ✅ AI Copywriting Assistant (Live)
+### 🚀 AI Copywriting Assistant (Phase 2 — In Progress)
 Generate high-converting product titles and descriptions in seconds. Save time on copywriting and make your product listings stand out.
 
-### ✅ AI Blog Generator (Live)
-Create SEO-optimized blog content for your store with AI. Drive more organic traffic and establish thought leadership in your niche.
+### 🔜 AI Product Search
+Discover trending and high-potential products using AI-powered market insights.
 
-### ✅ AI Image Generator (Live)
-Generate product images, banners, and marketing visuals with AI. Perfect for new product launches and marketing campaigns.
+### 🔜 AI Import Connect
+Get matched with verified suppliers and importers worldwide, based on your product needs.
 
-### 🔜 CaptionGen AI (Coming Soon)
-Auto-generate subtitles for your videos in multiple languages. Upload any video and let AI transcribe, subtitle, and translate.
-
-### 🔜 VoiceBlog AI (Coming Soon)
-Turn your voice notes into full blog posts with perfect structure and flow. Ideal for busy founders and content creators.
-
-### 🔜 ClipSlash AI (Coming Soon)
-Cut your long videos into viral clips — automatically. AI detects emotional hooks, punchlines, and high-impact moments.
-
-### 🔜 IdeaSpark AI (Coming Soon)
-Generate scroll-stopping video ideas, hooks, and shot lists — instantly. Get viral-ready content ideas on demand.
-
-### 🔜 CVBoost AI (Coming Soon)
-Get a stronger CV and custom-tailored cover letter in seconds. Optimize your resume and generate professional cover letters.
-
-### 🔜 ThreadGen AI (Coming Soon)
-Convert any blog post or video into a high-engagement Twitter/X thread. AI summarizes and rewrites long-form content.
-
-### 🔜 FlexGen AI (Coming Soon)
-Generate WhatsApp bios and matching AI profile pics. Stand out on social with personalized content.
+### 🔜 AI Social Post Creative
+Turn your products into scroll-stopping social media creatives, ready to post.
 
 ---
 
@@ -52,7 +34,7 @@ Generate WhatsApp bios and matching AI profile pics. Stand out on social with pe
 - ✅ Product creators and dropshippers
 - ✅ Entrepreneurs launching new products
 - ✅ Marketers managing product listings and promotions
-- ✅ Content creators looking to automate workflows
+- ✅ Anyone looking to automate product and content workflows
 
 > **If you sell or promote products online, Nexus speeds you up.**
 
@@ -61,10 +43,12 @@ Generate WhatsApp bios and matching AI profile pics. Stand out on social with pe
 ## 🌐 Live Demo
 
 Explore Auqli Nexus online:  
-👉 [https://nexus.auqli.com](https://nexus.auqli.com)
+👉 [https://auqli-switch.vercel.app](https://auqli-switch.vercel.app)
 
 Use the Shopify to Auqli Converter directly:  
-👉 [https://nexus.auqli.com/converter](https://nexus.auqli.com/converter)
+👉 [https://auqli-switch.vercel.app/converter](https://auqli-switch.vercel.app/converter)
+
+*Note: Domain will update to the official Auqli Nexus domain soon.*
 
 ---
 
@@ -82,109 +66,81 @@ Use the Shopify to Auqli Converter directly:
 git clone https://github.com/Auqli/auqli-nexus.git
 cd auqli-nexus
 npm install
-\`\`\`
-
-### Start the development server
-
-\`\`\`bash
+Start the development server
+bash
+Copy
+Edit
 npm run dev
-\`\`\`
 Visit: http://localhost:3000
 
-### Build for production
-
-\`\`\`bash
+Build for production
+bash
+Copy
+Edit
 npm run build
-\`\`\`
 
----
+🧭 Roadmap
+Phase	Feature
+✅ Phase 1	Shopify CSV Converter
+🚀 Phase 2 (Now)	AI Copywriting Assistant
+🔜 Phase 3	AI Product Search
+🔜 Phase 4	AI Import Connect
+🔜 Phase 5	AI Social Post Creative
+🌟 Future	Dashboard, analytics, API integrations, workflow automations
+💡 Why Use Auqli Nexus?
+Save Time — Automate manual tasks and reduce errors.
 
-## 🧭 Roadmap
+Scale Faster — Speed up your workflows, from product sourcing to content creation.
 
-| Phase | Feature | Status |
-|-------|---------|--------|
-| ✅ Phase 1 | Shopify CSV Converter | Completed |
-| ✅ Phase 2 | AI Copywriting Assistant | Completed |
-| ✅ Phase 3 | AI Blog Generator | Completed |
-| ✅ Phase 4 | AI Image Generator | Completed |
-| 🔜 Phase 5 | CaptionGen AI | In Development |
-| 🔜 Phase 6 | VoiceBlog AI | Planned |
-| 🔜 Phase 7 | ClipSlash AI | Planned |
-| 🔜 Future | Additional AI tools and integrations | Planned |
+AI-Powered — Built with powerful AI to help you grow smarter.
 
----
+Platform-Agnostic — Shopify, Auqli, TikTok Shop, or your own site — you choose.
 
-## 💡 Why Use Auqli Nexus?
+For Everyone — Sellers, creators, marketers, and entrepreneurs.
 
-- **Save Time** — Automate manual tasks and reduce errors.
-- **Scale Faster** — Speed up your workflows, from product sourcing to content creation.
-- **AI-Powered** — Built with powerful AI to help you grow smarter.
-- **Platform-Agnostic** — Shopify, Auqli, TikTok Shop, or your own site — you choose.
-- **For Everyone** — Sellers, creators, marketers, and entrepreneurs.
-
----
-
-## 🤝 Contributing
-
+🤝 Contributing
 We welcome contributions!
 
-1. Fork the repository
-2. Create a new branch:
-\`\`\`bash
+Fork the repository
+
+Create a new branch:
 git checkout -b feature/your-feature
-\`\`\`
-3. Commit your changes:
-\`\`\`bash
+
+Commit your changes:
 git commit -m 'Add your feature'
-\`\`\`
-4. Push to the branch:
-\`\`\`bash
+
+Push to the branch:
 git push origin feature/your-feature
-\`\`\`
-5. Open a Pull Request!
 
----
+Open a Pull Request!
 
-## 💡 Suggest a Tool
+💡 Suggest a Tool
+We’re building Nexus for creators, sellers, and entrepreneurs.
 
-We're building Nexus for creators, sellers, and entrepreneurs.
-
-👉 [Suggest a Tool](Coming Soon)
+👉 Suggest a Tool (Link to form or feedback page — add later)
 
 Help us build the tools you need!
 
----
-
-## 📬 Stay Updated
-
+📬 Stay Updated
 🚀 Subscribe for early access to new tools and updates!
 
-- [Newsletter](https://auqli.live/newsletter) (Coming Soon)
+Newsletter (Coming Soon)
 
----
+Early Access Program (Coming Soon)
 
-## 📄 License
-
+📄 License
 This project is licensed under the MIT License.
 
----
-
-## 🌍 About Auqli Nexus
-
+🌍 About Auqli Nexus
 Auqli Nexus is a growing suite of AI tools designed to automate, accelerate, and simplify your product workflows.
 It works for any online seller, marketer, or entrepreneur looking to scale their business smarter.
 
-Learn more: https://nexus.auqli.com
+Learn more: https://auqli.live
 
----
-
-## 📣 Contact
-
+📣 Contact
 Questions or feedback?
-📩 support@auqli.live
+📩 hello@auqli.live
 
-We'd love to hear from you!
-
----
+We’d love to hear from you!
 
 🚀 Built for creators, sellers, and entrepreneurs. More powerful tools launching soon.
