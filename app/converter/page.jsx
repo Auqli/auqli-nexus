@@ -1,23 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import {
-  Upload,
-  ChevronLeft,
-  AlertTriangle,
-  X,
-  RefreshCw,
-  CheckCircle,
-  Download,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react"
+import { Upload, AlertTriangle, X, RefreshCw, CheckCircle, Download, ChevronUp, ChevronDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { ShopifySampleCSV } from "@/components/sample-csv"
+import { WooCommerceSampleCSV } from "@/components/woocommerce-sample-csv"
 import { Progress } from "@/components/ui/progress"
 import { ProgressAnimation } from "@/components/progress-animation"
 import { EnhancedPageHeader } from "@/components/layout/enhanced-page-header"
@@ -43,6 +34,17 @@ const EXPECTED_SHOPIFY_HEADERS = [
   "tags",
   "published",
   "image src",
+]
+
+// Expected WooCommerce CSV headers
+const EXPECTED_WOOCOMMERCE_HEADERS = [
+  "name",
+  "description",
+  "regular price",
+  "sale price",
+  "stock quantity",
+  "categories",
+  "images",
 ]
 
 export default function ConverterPage() {
@@ -181,6 +183,45 @@ export default function ConverterPage() {
     })
   }
 
+  // Function to validate if a CSV file matches the WooCommerce template format
+  const validateWooCommerceCSV = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+
+      reader.onload = (event) => {
+        const content = event.target?.result
+        if (!content) {
+          resolve(false)
+          return
+        }
+
+        // Get the first line (headers) and convert to lowercase for case-insensitive comparison
+        const lines = content.split("\n")
+        if (lines.length === 0) {
+          resolve(false)
+          return
+        }
+
+        const headers = lines[0].toLowerCase().split(",")
+
+        // Check if the required WooCommerce headers are present
+        // These match the headers in the provided sample CSV
+        const matchedHeaders = EXPECTED_WOOCOMMERCE_HEADERS.filter((header) =>
+          headers.some((h) => h.trim().replace(/"/g, "") === header),
+        )
+
+        // If at least 4 of the expected headers are present, consider it valid
+        resolve(matchedHeaders.length >= 4)
+      }
+
+      reader.onerror = () => {
+        resolve(false)
+      }
+
+      reader.readAsText(file)
+    })
+  }
+
   // Helper function to check if a product is properly categorized
   const isProductCategorized = useCallback((product) => {
     return (
@@ -288,14 +329,22 @@ export default function ConverterPage() {
     setTotalItems(0)
     setProcessedItems(0)
 
-    // Validate if the file is a Shopify CSV template
-    const isValidShopifyCSV = await validateShopifyCSV(file)
+    // Validate if the file matches the selected platform's CSV template
+    let isValidCSV = false
+    if (platform === "shopify") {
+      isValidCSV = await validateShopifyCSV(file)
+    } else if (platform === "woocommerce") {
+      isValidCSV = await validateWooCommerceCSV(file)
+    }
 
-    if (!isValidShopifyCSV) {
+    if (!isValidCSV) {
       setIsLoading(false)
       setShowInvalidCSVModal(true)
       if (window.addNotification) {
-        window.addNotification("Invalid CSV format. Please use a Shopify CSV template.", "error")
+        window.addNotification(
+          `Invalid CSV format. Please use a ${platform === "shopify" ? "Shopify" : "WooCommerce"} CSV template.`,
+          "error",
+        )
       }
       return
     }
@@ -788,11 +837,11 @@ export default function ConverterPage() {
                   <button
                     onClick={() => setPlatform("woocommerce")}
                     className={`py-3 px-4 flex justify-center items-center transition-all duration-300 ${
-                      platform === "woocommerce" ? "bg-[#16783a]" : "bg-[#111827] hover:bg-[#1a2235]"
+                      platform === "woocommerce" ? "bg-[#5466b5]" : "bg-[#111827] hover:bg-[#1a2235]"
                     }`}
                   >
                     <span className="font-medium">WooCommerce</span>
-                    <Badge className="ml-2 bg-[#8696ee] text-white">Coming Soon</Badge>
+                    <Badge className="ml-2 bg-[#8696ee] text-white">Available</Badge>
                   </button>
                 </div>
 
@@ -836,100 +885,41 @@ export default function ConverterPage() {
                       </AnimatePresence>
                     </>
                   ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                      className="flex flex-col items-center justify-center py-10"
-                    >
-                      <motion.div
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{
-                          duration: 0.5,
-                          type: "spring",
-                          stiffness: 100,
-                        }}
-                      >
-                        <div className="relative w-24 h-24 mb-6">
-                          <motion.div
-                            className="absolute inset-0 bg-[#8696ee] rounded-full opacity-20"
-                            animate={{
-                              scale: [1, 1.2, 1],
-                            }}
-                            transition={{
-                              duration: 3,
-                              repeat: Number.POSITIVE_INFINITY,
-                              ease: "easeInOut",
-                            }}
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <svg
-                              width="48"
-                              height="48"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M12 2L2 7L12 12L22 7L12 2Z"
-                                stroke="#8696ee"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M2 17L12 22L22 17"
-                                stroke="#8696ee"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M2 12L12 17L22 12"
-                                stroke="#8696ee"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      <motion.h3
-                        className="text-2xl font-bold text-white mb-3"
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2, duration: 0.5 }}
-                      >
-                        WooCommerce Integration Coming Soon
-                      </motion.h3>
-
-                      <motion.p
-                        className="text-gray-400 text-center max-w-md mb-6"
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.4, duration: 0.5 }}
-                      >
-                        We're working hard to bring WooCommerce support to the Auqli CSV Product Formatter. Stay tuned
-                        for updates!
-                      </motion.p>
-
-                      <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.6, duration: 0.5 }}
-                      >
-                        <Button
-                          onClick={() => setPlatform("shopify")}
-                          className="bg-[#8696ee] hover:bg-[#5466b5] text-white transition-all duration-300"
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-[#d7f4db]">
+                          Upload your WooCommerce product export CSV file to convert it to Auqli format.
+                        </p>
+                        <button
+                          onClick={toggleSampleVisibility}
+                          className="text-sm text-[#8696ee] hover:text-[#a6b3f5] transition-colors flex items-center"
                         >
-                          <ChevronLeft className="mr-2 h-4 w-4" />
-                          Switch to Shopify
-                        </Button>
-                      </motion.div>
-                    </motion.div>
+                          {showSample ? "Hide Sample" : "Show Sample"}
+                          {showSample ? (
+                            <ChevronUp className="ml-1 h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="ml-1 h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+
+                      <AnimatePresence>
+                        {showSample && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mb-4">
+                              <p className="text-xs font-medium mb-2 text-[#8696ee]">Sample WooCommerce CSV Format:</p>
+                              <WooCommerceSampleCSV />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -1043,98 +1033,106 @@ export default function ConverterPage() {
                 ) : (
                   <motion.div
                     className="flex flex-col items-center justify-center bg-[#0c1322] border border-gray-700 rounded-lg p-8 text-center"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
+                    whileHover={{ boxShadow: "0 0 15px rgba(134, 150, 238, 0.3)" }}
+                    transition={{ duration: 0.3 }}
                   >
                     <motion.div
-                      className="mb-6"
-                      animate={{
-                        y: [0, -10, 0],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Number.POSITIVE_INFINITY,
-                        ease: "easeInOut",
-                      }}
+                      className="mb-4 rounded-full bg-[#5466b5] p-3"
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
                     >
-                      <div className="relative">
-                        <div className="absolute -top-6 -right-6">
-                          <motion.div
-                            animate={{
-                              scale: [1, 1.2, 1],
-                              rotate: [0, 5, 0, -5, 0],
-                            }}
-                            transition={{
-                              duration: 3,
-                              repeat: Number.POSITIVE_INFINITY,
-                              ease: "easeInOut",
-                            }}
-                          >
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#8696ee] text-[10px] font-bold text-white">
-                              SOON
-                            </span>
-                          </motion.div>
-                        </div>
-                        <div className="rounded-full bg-[#1a2235] p-5">
-                          <svg
-                            width="48"
-                            height="48"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M21 16V8.00002C20.9996 7.6493 20.9071 7.30483 20.7315 7.00119C20.556 6.69754 20.3037 6.44539 20 6.27002L13 2.27002C12.696 2.09449 12.3511 2.00208 12 2.00208C11.6489 2.00208 11.304 2.09449 11 2.27002L4 6.27002C3.69626 6.44539 3.44398 6.69754 3.26846 7.00119C3.09294 7.30483 3.00036 7.6493 3 8.00002V16C3.00036 16.3508 3.09294 16.6952 3.26846 16.9989C3.44398 17.3025 3.69626 17.5547 4 17.73L11 21.73C11.304 21.9056 11.6489 21.998 12 21.998C12.3511 21.998 12.696 21.9056 13 21.73L20 17.73C20.3037 17.5547 20.556 17.3025 20.7315 16.9989C20.9071 16.6952 20.9996 16.3508 21 16Z"
-                              stroke="#8696ee"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M3.27002 6.96002L12 12L20.73 6.96002"
-                              stroke="#8696ee"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M12 22.08V12"
-                              stroke="#8696ee"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
+                      <Upload className="h-6 w-6 text-white" />
                     </motion.div>
-
-                    <h3 className="text-xl font-bold text-white mb-4">WooCommerce Integration Coming Soon</h3>
-
-                    <p className="text-gray-400 text-center max-w-md mb-8">
-                      We're currently developing WooCommerce support for the Auqli CSV Product Formatter. Check back
-                      soon for this exciting new feature!
+                    <h3 className="mb-2 text-lg font-semibold text-white">Upload your CSV file</h3>
+                    <p className="mb-4 text-sm text-gray-400 max-w-xs">
+                      Select your WooCommerce product export file to convert to Auqli format
                     </p>
-
-                    <div className="flex space-x-4">
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <div className="w-full max-w-xs">
+                      {fileName && !isLoading ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between bg-[#1a2235] px-3 py-2 rounded-md">
+                            <span className="text-sm text-white truncate max-w-[180px]">{fileName}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#2a3245]"
+                              onClick={resetFile}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button className="flex-1 bg-[#5466b5] hover:bg-[#3a4a8c] text-white" asChild>
+                              <label
+                                htmlFor="file-upload"
+                                className="cursor-pointer flex items-center justify-center py-2"
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                <span>Upload Another CSV</span>
+                                <input
+                                  id="file-upload"
+                                  type="file"
+                                  accept=".csv"
+                                  className="hidden"
+                                  onChange={handleFileUpload}
+                                />
+                              </label>
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
                         <Button
-                          onClick={() => setPlatform("shopify")}
-                          className="bg-[#8696ee] hover:bg-[#5466b5] text-white"
+                          className="w-full bg-[#5466b5] hover:bg-[#3a4a8c] text-white"
+                          disabled={isLoading}
+                          asChild
                         >
-                          <ChevronLeft className="mr-2 h-4 w-4" />
-                          Back to Shopify
+                          <label
+                            htmlFor="file-upload"
+                            className="cursor-pointer flex items-center justify-center py-2.5"
+                          >
+                            {isLoading ? (
+                              <span className="flex items-center">
+                                <svg
+                                  className="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                Processing...
+                              </span>
+                            ) : (
+                              <span className="flex items-center">
+                                <Upload className="mr-2 h-4 w-4" />
+                                Choose File
+                              </span>
+                            )}
+                            <input
+                              id="file-upload"
+                              type="file"
+                              accept=".csv"
+                              className="hidden"
+                              onChange={handleFileUpload}
+                              disabled={isLoading}
+                            />
+                          </label>
                         </Button>
-                      </motion.div>
+                      )}
 
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <a href="https://auqli.com/contact" target="_blank" rel="noopener noreferrer">
-                          <Button variant="outline" className="border-[#8696ee] text-[#8696ee] hover:bg-[#8696ee]/10">
-                            Get Notified
-                          </Button>
-                        </a>
-                      </motion.div>
+                      {!fileName && !isLoading && <p className="mt-2 text-sm text-gray-400">No file chosen</p>}
                     </div>
                   </motion.div>
                 )}
@@ -1261,7 +1259,9 @@ export default function ConverterPage() {
                       ) : (
                         <Button
                           onClick={downloadFormattedCSV}
-                          className="bg-[#16783a] hover:bg-[#225b35] text-white transition-colors"
+                          className={`bg-${platform === "shopify" ? "[#16783a]" : "[#5466b5]"} hover:bg-${
+                            platform === "shopify" ? "[#225b35]" : "[#3a4a8c]"
+                          } text-white transition-colors`}
                         >
                           <Download className="mr-2 h-4 w-4" />
                           Download Auqli Formatted CSV
@@ -1299,7 +1299,7 @@ export default function ConverterPage() {
       </div>
 
       {/* Invalid CSV Modal */}
-      <InvalidCSVModal isOpen={showInvalidCSVModal} onClose={() => setShowInvalidCSVModal(false)} />
+      <InvalidCSVModal isOpen={showInvalidCSVModal} onClose={() => setShowInvalidCSVModal(false)} platform={platform} />
 
       <CategorySelectionModal
         isOpen={isCategoryModalOpen}

@@ -1147,54 +1147,65 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: any[]): Promis
 
 // Update the mapWooCommerceToAuqli function to use the improved matching
 async function mapWooCommerceToAuqli(records: any[], auqliCategories: any[]): Promise<Product[]> {
-  // [existing code remains the same]
+  // Map WooCommerce CSV columns to Auqli format
+  const mappedProducts = records.map((record) => {
+    const productName = record["Name"] || record["name"] || ""
+    const productDescription = htmlToText(record["Description"] || record["description"] || "")
+
+    // Use Sale Price if available, otherwise use Regular Price
+    const price =
+      record["Sale Price"] || record["sale price"] || record["Regular Price"] || record["regular price"] || "0"
+
+    // Clean up price (remove commas, currency symbols, etc.)
+    const cleanedPrice = price.toString().replace(/[^\d.]/g, "")
+
+    // Get stock quantity
+    const inventory = record["Stock Quantity"] || record["stock quantity"] || record["Stock"] || record["stock"] || "0"
+
+    // Get image URL
+    const image = record["Images"] || record["images"] || ""
+
+    // Find matching Auqli category based on product name and description
+    const { mainCategory, subCategory, confidence } = findMatchingCategory(
+      productName,
+      productDescription,
+      auqliCategories,
+    )
+
+    // Only use the matched category if confidence is above threshold
+    const confidenceThreshold = 60
+    const finalMainCategory =
+      confidence >= confidenceThreshold
+        ? mainCategory
+        : extractMainCategory(record["Categories"] || record["categories"] || "", auqliCategories) || "Uncategorized"
+
+    const finalSubCategory = confidence >= confidenceThreshold ? subCategory : "Uncategorized"
+
+    // Clean the product title
+    const cleanedTitle = cleanProductTitle(productName)
+
+    return {
+      id: record["ID"] || record["id"] || `wc-${Math.random().toString(36).substring(2, 9)}`,
+      name: cleanedTitle,
+      price: cleanedPrice,
+      image: image,
+      description: productDescription,
+      weight: record["Weight"] || record["weight"] || "0",
+      inventory: inventory,
+      condition: mapCondition(record["Condition"] || record["condition"] || "New"),
+      mainCategory: finalMainCategory,
+      subCategory: finalSubCategory,
+      uploadStatus: "active",
+      additionalImages: [],
+      sku: record["SKU"] || record["sku"] || "",
+    }
+  })
 
   // Apply validation to ensure no duplicates, no blank titles, and no missing data
-  const mappedProducts = validateAndCleanProducts(
-    records.map((record) => {
-      const productName = record["Name"] || record["name"] || record["product_name"] || ""
-      const productDescription = htmlToText(record["Description"] || record["description"] || "")
-
-      // Find matching Auqli category based on product name and description
-      const { mainCategory, subCategory, confidence } = findMatchingCategory(
-        productName,
-        productDescription,
-        auqliCategories,
-      )
-
-      // Only use the matched category if confidence is above threshold
-      // With our improved matching, we can use a higher threshold
-      const confidenceThreshold = 60 // Increased from 40 to 60 due to better matching
-      const finalMainCategory =
-        confidence >= confidenceThreshold
-          ? mainCategory
-          : extractMainCategory(record["Categories"] || record["categories"] || "", auqliCategories) || "Uncategorized"
-      const finalSubCategory =
-        confidence >= confidenceThreshold ? subCategory : record["Tags"] || record["tags"] || "Uncategorized"
-
-      // Clean the product title
-      const cleanedTitle = cleanProductTitle(productName)
-
-      return {
-        id: record["ID"] || record["id"] || record["product_id"] || "",
-        name: cleanedTitle,
-        price: record["Regular price"] || record["regular_price"] || record["price"] || "",
-        image: record["Images"] || record["images"] || record["image"] || "",
-        description: productDescription,
-        weight: record["Weight"] ? record["Weight"] : "0",
-        inventory: record["Stock"] || record["stock"] || record["inventory"] || "0",
-        condition: mapCondition(record["Condition"] || ""), // Map to either "New" or "Fairly Used"
-        mainCategory: finalMainCategory,
-        subCategory: finalSubCategory,
-        uploadStatus: record["Status"] || record["status"] || "active",
-        additionalImages: [],
-        sku: record["sku"] || "",
-      }
-    }),
-  )
+  const validatedProducts = validateAndCleanProducts(mappedProducts)
 
   // Apply the same apparel categorization improvements
-  const improvedProducts = mappedProducts.map((product) => improveApparelCategorization(product, auqliCategories))
+  const improvedProducts = validatedProducts.map((product) => improveApparelCategorization(product, auqliCategories))
 
   return improvedProducts
 }
