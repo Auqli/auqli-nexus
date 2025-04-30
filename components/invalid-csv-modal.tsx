@@ -1,96 +1,54 @@
-"use client"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { ShopifySampleCSV } from "@/components/sample-csv"
+import { WooCommerceSampleCSV } from "@/components/woocommerce-sample-csv"
 
-import { AlertTriangle, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import PropTypes from "prop-types"
-
-export function InvalidCSVModal({ isOpen, onClose, platform = "shopify" }) {
-  if (!isOpen) return null
-
-  const isShopify = platform === "shopify"
-  const themeColor = isShopify ? "#45c133" : "#8696ee"
-  const buttonColor = isShopify ? "bg-[#16783a] hover:bg-[#225b35]" : "bg-[#5466b5] hover:bg-[#3a4a8c]"
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="relative w-[90vw] max-w-lg bg-[#0c1322] rounded-lg overflow-hidden text-white">
-        {/* Close button */}
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
-          <X className="h-5 w-5" />
-        </button>
-
-        {/* Header */}
-        <div className="p-6 border-b border-gray-700">
-          <div className="flex items-center">
-            <AlertTriangle className="h-6 w-6 text-amber-500 mr-3" />
-            <h2 className="text-xl font-bold">Invalid CSV Format</h2>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <p className="mb-4">
-            The uploaded file does not match the expected {isShopify ? "Shopify" : "WooCommerce"} CSV format. Please
-            ensure you are uploading a valid {isShopify ? "Shopify" : "WooCommerce"} product export file.
-          </p>
-
-          <div className="bg-[#1a2235] p-4 rounded-md mb-4">
-            <h3 className="font-medium mb-2" style={{ color: themeColor }}>
-              Required {isShopify ? "Shopify" : "WooCommerce"} CSV Headers:
-            </h3>
-            <ul className="list-disc pl-5 text-sm text-gray-300 space-y-1">
-              {isShopify ? (
-                <>
-                  <li>Handle</li>
-                  <li>Title</li>
-                  <li>Body (HTML)</li>
-                  <li>Vendor</li>
-                  <li>Product Category</li>
-                  <li>Type</li>
-                  <li>Tags</li>
-                  <li>Published</li>
-                  <li>Image Src</li>
-                </>
-              ) : (
-                <>
-                  <li>Name</li>
-                  <li>Description</li>
-                  <li>Regular Price</li>
-                  <li>Sale Price</li>
-                  <li>Stock Quantity</li>
-                  <li>Categories</li>
-                  <li>Images</li>
-                </>
-              )}
-            </ul>
-          </div>
-
-          <p className="text-sm text-gray-400">
-            Need help?{" "}
-            <a href="#" className="hover:underline" style={{ color: themeColor }}>
-              View our guide
-            </a>{" "}
-            on exporting products from {isShopify ? "Shopify" : "WooCommerce"} or{" "}
-            <a href="#" className="hover:underline" style={{ color: themeColor }}>
-              contact support
-            </a>
-            .
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-700 flex justify-end">
-          <Button onClick={onClose} className={`text-white ${buttonColor}`}>
-            Close
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+interface InvalidCSVModalProps {
+  isOpen: boolean
+  onClose: () => void
+  platform: string
 }
 
-InvalidCSVModal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  platform: PropTypes.string,
+export function InvalidCSVModal({ isOpen, onClose, platform }: InvalidCSVModalProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Invalid CSV Format</DialogTitle>
+          <DialogDescription>
+            {platform === "shopify" ? (
+              <>
+                Your CSV file doesn't match the expected Shopify format. Please make sure you're uploading a CSV file
+                exported from Shopify. Here's an example of the expected format:
+              </>
+            ) : (
+              <>
+                Your CSV file doesn't match the expected WooCommerce format. Please make sure you're uploading a CSV
+                file exported from WooCommerce. Here's an example of the expected format:
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-4 border rounded-md overflow-hidden">
+          {platform === "shopify" ? <ShopifySampleCSV /> : <WooCommerceSampleCSV />}
+        </div>
+
+        <div className="mt-4 text-sm text-gray-500">
+          <p>
+            {platform === "shopify" ? (
+              <>
+                To export your products from Shopify, go to Products &gt; All Products, click "Export", and select "CSV
+                for all products" or "CSV for current page".
+              </>
+            ) : (
+              <>
+                To export your products from WooCommerce, go to Products &gt; All Products, click "Export", and select
+                the CSV format.
+              </>
+            )}
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }

@@ -53,8 +53,8 @@ export function extractMainCategory(categoryString: string, auqliCategories?: an
     return extractedCategory
   }
 
-  // Validate against Auqli categories
-  // Check for exact match
+  // Validate against Auqli categories - STRICT VALIDATION
+  // Check for exact match only
   const exactMatch = auqliCategories.find(
     (cat) => cat.name && cat.name.toLowerCase() === extractedCategory.toLowerCase(),
   )
@@ -63,20 +63,8 @@ export function extractMainCategory(categoryString: string, auqliCategories?: an
     return exactMatch.name
   }
 
-  // Check for partial match
-  const partialMatch = auqliCategories.find(
-    (cat) =>
-      cat.name &&
-      (cat.name.toLowerCase().includes(extractedCategory.toLowerCase()) ||
-        extractedCategory.toLowerCase().includes(cat.name.toLowerCase())),
-  )
-
-  if (partialMatch) {
-    return partialMatch.name
-  }
-
-  // If no match found, return the original extraction
-  return extractedCategory
+  // If no match found, return "Uncategorized"
+  return "Uncategorized"
 }
 
 /**

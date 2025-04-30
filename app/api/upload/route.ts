@@ -221,7 +221,7 @@ function validateAndCleanProducts(products: Product[]) {
 // Replace the improveApparelCategorization function with this improved version:
 function improveApparelCategorization(product: Product, auqliCategories: any[]): Product {
   // First, check if "Apparel & Accessories" or similar category exists in Auqli categories
-  const apparelCategory = findValidApparelCategory(auqliCategories)
+  const apparelCategory = findApparelCategoryForImprovement(auqliCategories)
 
   if (!apparelCategory) {
     // If no valid apparel category exists in Auqli categories, don't modify the product
@@ -346,7 +346,7 @@ function improveApparelCategorization(product: Product, auqliCategories: any[]):
 }
 
 // Add these helper functions to find valid categories and subcategories
-function findValidApparelCategory(auqliCategories: any[]): string {
+function findApparelCategoryForImprovement(auqliCategories: any[]): string {
   // List of possible apparel category names to check
   const apparelCategoryNames = ["Apparel & Accessories", "Apparel", "Clothing", "Fashion", "Clothes", "Garments"]
 
@@ -413,7 +413,7 @@ function findMatchingCategory(
   categories: any[],
 ): { mainCategory: string; subCategory: string; confidence: number } {
   if (!categories || categories.length === 0) {
-    return { mainCategory: "", subCategory: "", confidence: 0 }
+    return { mainCategory: "Uncategorized", subCategory: "Uncategorized", confidence: 0 }
   }
 
   // Normalize input text for better matching
@@ -506,21 +506,19 @@ function findMatchingCategory(
 
   // If we found a good match in our dictionary, try to find it in Auqli categories
   if (bestCategoryMatch && bestCategoryScore > 10) {
-    // Find the matching Auqli category
-    for (const category of categories) {
-      if (!category || !category.name) continue
+    // Find the matching Auqli category - STRICT VALIDATION
+    const validCategory = validateCategoryAgainstAuqli(bestCategoryMatch, categories)
 
-      // Check for exact or similar category name match
-      if (
-        category.name === bestCategoryMatch ||
-        category.name.toLowerCase().includes(bestCategoryMatch.toLowerCase()) ||
-        bestCategoryMatch.toLowerCase().includes(category.name.toLowerCase())
-      ) {
-        // Find best matching subcategory
-        let bestSubcategory = { id: "", name: "", score: 0 }
-        const subcategories = Array.isArray(category.subcategories) ? category.subcategories : []
+    if (validCategory !== "Uncategorized") {
+      // Find the category object
+      const categoryObj = categories.find((cat) => cat.name === validCategory)
 
-        for (const subcategory of subcategories) {
+      // Find best matching subcategory
+      let bestSubcategory = "Uncategorized"
+      let bestSubcategoryScore = 0
+
+      if (categoryObj && Array.isArray(categoryObj.subcategories)) {
+        for (const subcategory of categoryObj.subcategories) {
           if (!subcategory || !subcategory.name) continue
 
           const subcategoryName = subcategory.name.toLowerCase()
@@ -533,378 +531,33 @@ function findMatchingCategory(
             subcategoryScore += subcategoryName.length
           }
 
-          // Special case for clothing sizes
-          const sizeRegex = /\b(xs|s|m|l|xl|xxl|xxxl|2xl|3xl|4xl|5xl|small|medium|large|extra large)\b/i
-          const sizeMatch = normalizedProductName.match(sizeRegex)
-          if (sizeMatch && subcategoryName.includes(sizeMatch[0].toLowerCase())) {
-            subcategoryScore += 15 // Bonus for size matches
-          }
-
-          // Special case for colors
-          const colorRegex =
-            /\b(black|white|red|blue|green|yellow|purple|pink|orange|brown|grey|gray|navy|beige|gold|silver)\b/i
-          const colorMatch = normalizedProductName.match(colorRegex)
-          if (colorMatch && subcategoryName.includes(colorMatch[0].toLowerCase())) {
-            subcategoryScore += 10 // Bonus for color matches
-          }
-
-          if (subcategoryScore > bestSubcategory.score) {
-            bestSubcategory = {
-              id: subcategory.id || "",
-              name: subcategory.name,
-              score: subcategoryScore,
-            }
+          if (subcategoryScore > bestSubcategoryScore) {
+            bestSubcategoryScore = subcategoryScore
+            bestSubcategory = subcategory.name
           }
         }
 
-        // Calculate confidence based on category and subcategory scores
-        const maxPossibleScore = productName.length * 3
-        const confidence = Math.min(100, Math.round((bestCategoryScore / maxPossibleScore) * 100))
-
-        return {
-          mainCategory: category.name,
-          subCategory: bestSubcategory.name || "",
-          confidence: confidence,
-        }
-      }
-    }
-  }
-
-  // If no match found with our dictionary, fall back to the original algorithm
-  // Common tech product terms and their category mappings
-  const techTermMappings: { [key: string]: { category: string; subcategory?: string; weight: number } } = {
-    // Tablets and related terms
-    ipad: { category: "Tablets", subcategory: "iPad", weight: 100 },
-    tablet: { category: "Tablets", weight: 80 },
-    "galaxy tab": { category: "Tablets", subcategory: "Samsung", weight: 90 },
-    surface: { category: "Tablets", subcategory: "Microsoft", weight: 90 },
-
-    // Phones
-    iphone: { category: "Mobile Phones", subcategory: "iPhone", weight: 100 },
-    galaxy: { category: "Mobile Phones", subcategory: "Samsung", weight: 90 },
-    pixel: { category: "Mobile Phones", subcategory: "Google", weight: 90 },
-    smartphone: { category: "Mobile Phones", weight: 80 },
-    phone: { category: "Mobile Phones", weight: 70 },
-
-    // Laptops
-    macbook: { category: "Computing", subcategory: "Apple", weight: 100 },
-    laptop: { category: "Computing", weight: 80 },
-    notebook: { category: "Computing", weight: 70 },
-    chromebook: { category: "Computing", subcategory: "Chrome OS", weight: 90 },
-
-    // Accessories
-    case: { category: "Accessories", weight: 60 },
-    cover: { category: "Accessories", weight: 60 },
-    charger: { category: "Accessories", weight: 70 },
-    cable: { category: "Accessories", weight: 60 },
-    headphone: { category: "Accessories", subcategory: "Audio", weight: 80 },
-    earphone: { category: "Accessories", subcategory: "Audio", weight: 80 },
-    airpod: { category: "Accessories", subcategory: "Audio", weight: 90 },
-
-    // Wearables
-    watch: { category: "Wearable Tech", weight: 70 },
-    smartwatch: { category: "Wearable Tech", weight: 90 },
-    "apple watch": { category: "Wearable Tech", subcategory: "Apple", weight: 100 },
-    fitbit: { category: "Wearable Tech", subcategory: "Fitness Trackers", weight: 100 },
-    "fitness tracker": { category: "Wearable Tech", subcategory: "Fitness Trackers", weight: 90 },
-
-    // Gaming
-    playstation: { category: "Gaming", subcategory: "PlayStation", weight: 100 },
-    ps5: { category: "Gaming", subcategory: "PlayStation", weight: 100 },
-    ps4: { category: "Gaming", subcategory: "PlayStation", weight: 100 },
-    xbox: { category: "Gaming", subcategory: "Xbox", weight: 100 },
-    nintendo: { category: "Gaming", subcategory: "Nintendo", weight: 100 },
-    switch: { category: "Gaming", subcategory: "Nintendo", weight: 90 },
-    controller: { category: "Gaming", subcategory: "Accessories", weight: 80 },
-    gaming: { category: "Gaming", weight: 70 },
-
-    // PC Components
-    gpu: { category: "Computing", subcategory: "Graphics Cards", weight: 100 },
-    "graphics card": { category: "Computing", subcategory: "Graphics Cards", weight: 100 },
-    cpu: { category: "Computing", subcategory: "Processors", weight: 100 },
-    processor: { category: "Computing", subcategory: "Processors", weight: 90 },
-    ram: { category: "Computing", subcategory: "Memory", weight: 90 },
-    ssd: { category: "Computing", subcategory: "SSD", weight: 100 },
-    hdd: { category: "Computing", subcategory: "HDD", weight: 100 },
-    "hard drive": { category: "Computing", weight: 90 },
-
-    // Kitchen
-    blender: { category: "Home & Living", subcategory: "Small Appliances", weight: 90 },
-    mixer: { category: "Home & Living", subcategory: "Small Appliances", weight: 90 },
-    toaster: { category: "Home & Living", subcategory: "Small Appliances", weight: 90 },
-    coffee: { category: "Home & Living", subcategory: "Coffee & Tea", weight: 90 },
-
-    // Health & Beauty
-    skincare: { category: "Health & Beauty", subcategory: "Skin Care", weight: 90 },
-    makeup: { category: "Health & Beauty", subcategory: "Makeup", weight: 90 },
-    hair: { category: "Health & Beauty", subcategory: "Hair Care", weight: 90 },
-    fragrance: { category: "Health & Beauty", subcategory: "Fragrances", weight: 90 },
-
-    // Fashion
-    shirt: { category: "Fashion", subcategory: "Shirts", weight: 90 },
-    tshirt: { category: "Fashion", subcategory: "T-Shirts", weight: 90 },
-    "t-shirt": { category: "Fashion", subcategory: "T-Shirts", weight: 90 },
-    jacket: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
-    coat: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
-    puffer: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
-    overcoat: { category: "Fashion", subcategory: "Jackets & Coats", weight: 90 },
-    jeans: { category: "Fashion", subcategory: "Jeans", weight: 90 },
-    pants: { category: "Fashion", subcategory: "Pants", weight: 90 },
-    shorts: { category: "Fashion", subcategory: "Shorts", weight: 90 },
-    hat: { category: "Fashion", subcategory: "Hats", weight: 90 },
-    beanie: { category: "Fashion", subcategory: "Hats", weight: 90 },
-    "bucket hat": { category: "Fashion", subcategory: "Hats", weight: 90 },
-    headband: { category: "Fashion", subcategory: "Hair Accessories", weight: 90 },
-    tube: { category: "Fashion", subcategory: "Accessories", weight: 80 },
-  }
-
-  // Initialize scores for each category and subcategory
-  const scores = []
-
-  // First, check for direct matches with tech term mappings
-  let directMatchFound = false
-  let directMatchScore = 0
-  let directMatchCategory = ""
-  let directMatchSubcategory = ""
-
-  // Check for multi-word terms first (like "apple watch")
-  const multiWordTerms = Object.keys(techTermMappings)
-    .filter((term) => term.includes(" "))
-    .sort((a, b) => b.length - a.length)
-  for (const term of multiWordTerms) {
-    if (searchText.includes(term)) {
-      const mapping = techTermMappings[term]
-      directMatchCategory = mapping.category
-      directMatchSubcategory = mapping.subcategory || ""
-      directMatchScore = mapping.weight
-      directMatchFound = true
-      break
-    }
-  }
-
-  // If no multi-word match, check single words
-  if (!directMatchFound) {
-    for (const term of productTerms) {
-      if (techTermMappings[term]) {
-        const mapping = techTermMappings[term]
-        directMatchCategory = mapping.category
-        directMatchSubcategory = mapping.subcategory || ""
-        directMatchScore = mapping.weight
-        directMatchFound = true
-        break
-      }
-    }
-  }
-
-  // If we have a direct match with high confidence, use it
-  if (directMatchFound && directMatchScore >= 90) {
-    // Find the actual category and subcategory in the Auqli categories
-    for (const category of categories) {
-      if (!category || !category.name) continue
-
-      if (category.name.toLowerCase() === directMatchCategory.toLowerCase()) {
-        // If we have a direct subcategory match
-        if (directMatchSubcategory && Array.isArray(category.subcategories)) {
-          for (const subcategory of category.subcategories) {
-            if (!subcategory || !subcategory.name) continue
-
-            if (subcategory.name.toLowerCase() === directMatchSubcategory.toLowerCase()) {
-              return {
-                mainCategory: category.name,
-                subCategory: subcategory.name,
-                confidence: 95, // High confidence for direct matches
-              }
-            }
-          }
-        }
-
-        // If we found the category but not the exact subcategory
-        // We'll return the category with a slightly lower confidence
-        return {
-          mainCategory: category.name,
-          subCategory: directMatchSubcategory || "",
-          confidence: 85,
-        }
-      }
-    }
-  }
-
-  // If no direct match or low confidence, proceed with keyword matching
-  // Calculate scores based on keyword matching
-  for (const category of categories) {
-    if (!category || !category.name) continue
-
-    const categoryName = category.name.toLowerCase()
-    const categoryKeywords = categoryName.split(/\s+/)
-    let categoryScore = 0
-
-    // Calculate category score
-    for (const keyword of categoryKeywords) {
-      if (keyword.length > 2) {
-        // Exact match in product name (highest weight)
-        if (normalizedProductName.includes(keyword)) {
-          categoryScore += keyword.length * 3
-        }
-        // Match in search text (lower weight)
-        else if (searchText.includes(keyword)) {
-          categoryScore += keyword.length
-        }
-      }
-    }
-
-    // Boost scores for certain categories based on product terms
-    for (const term of productTerms) {
-      // Check if any term in our mappings partially matches this category
-      for (const mappingTerm in techTermMappings) {
-        if (term.includes(mappingTerm) || mappingTerm.includes(term)) {
-          const mapping = techTermMappings[mappingTerm]
-          if (mapping.category.toLowerCase() === categoryName) {
-            categoryScore += mapping.weight / 2 // Half weight for partial matches
-          }
-        }
-      }
-    }
-
-    // Find best matching subcategory
-    let bestSubcategory = { id: "", name: "", score: 0 }
-
-    // Ensure subcategories exists and is an array before iterating
-    const subcategories = Array.isArray(category.subcategories) ? category.subcategories : []
-
-    for (const subcategory of subcategories) {
-      // Skip if subcategory doesn't have a name
-      if (!subcategory || !subcategory.name) continue
-
-      const subcategoryName = subcategory.name.toLowerCase()
-      const subcategoryKeywords = subcategoryName.split(/\s+/)
-      let subcategoryScore = 0
-
-      // Calculate subcategory score
-      for (const keyword of subcategoryKeywords) {
-        if (keyword.length > 2) {
-          // Exact match in product name (highest weight)
-          if (normalizedProductName.includes(keyword)) {
-            subcategoryScore += keyword.length * 3
-          }
-          // Match in search text (lower weight)
-          else if (searchText.includes(keyword)) {
-            subcategoryScore += keyword.length
-          }
+        // If no good subcategory match, use the first subcategory
+        if (bestSubcategory === "Uncategorized" && categoryObj.subcategories.length > 0) {
+          bestSubcategory = categoryObj.subcategories[0].name
         }
       }
 
-      // Boost scores for certain subcategories based on product terms
-      for (const term of productTerms) {
-        // Check if any term in our mappings partially matches this subcategory
-        for (const mappingTerm in techTermMappings) {
-          const mapping = techTermMappings[mappingTerm]
-          if (
-            mapping.subcategory &&
-            (term.includes(mappingTerm) || mappingTerm.includes(term)) &&
-            mapping.subcategory.toLowerCase() === subcategoryName
-          ) {
-            subcategoryScore += mapping.weight / 2 // Half weight for partial matches
-          }
-        }
-      }
+      // Calculate confidence based on category score
+      const maxPossibleScore = productName.length * 3
+      const confidence = Math.min(100, Math.round((bestCategoryScore / maxPossibleScore) * 100))
 
-      if (subcategoryScore > bestSubcategory.score) {
-        bestSubcategory = {
-          id: subcategory.id || "",
-          name: subcategory.name,
-          score: subcategoryScore,
-        }
-      }
-    }
-
-    scores.push({
-      categoryId: category.id,
-      categoryName: category.name,
-      score: categoryScore,
-      subcategoryId: bestSubcategory.id,
-      subcategoryName: bestSubcategory.name,
-      subcategoryScore: bestSubcategory.score,
-    })
-  }
-
-  // Sort by category score
-  scores.sort((a, b) => b.score - a.score)
-
-  // If no good match found, return empty strings with zero confidence
-  if (scores.length === 0 || scores[0].score === 0) {
-    return { mainCategory: "", subCategory: "", confidence: 0 }
-  }
-
-  // Calculate confidence score (0-100)
-  // Higher scores mean better matches
-  const topScore = scores[0].score
-  const maxPossibleScore = productName.length * 3 // Maximum possible score based on our scoring system
-  const confidence = Math.min(100, Math.round((topScore / maxPossibleScore) * 100))
-
-  // Special case for iPad - if product name contains "ipad" but we didn't find a direct match
-  if (normalizedProductName.includes("ipad") && scores[0].categoryName !== "Tablets") {
-    // Look for the Tablets category in our scores
-    const tabletsCategory = scores.find((score) => score.categoryName === "Tablets")
-    if (tabletsCategory) {
       return {
-        mainCategory: "Tablets",
-        subCategory: "iPad",
-        confidence: 90, // High confidence for this special case
+        mainCategory: validCategory,
+        subCategory: bestSubcategory,
+        confidence: confidence,
       }
     }
   }
 
-  // At the end of the function, validate the returned category
-  const result = {
-    mainCategory: scores[0].categoryName,
-    subCategory: scores[0].subcategoryName || "",
-    confidence: confidence,
-  }
-
-  // Validate that the mainCategory exists in the Auqli categories
-  const validMainCategory = validateCategoryAgainstAuqli(result.mainCategory, categories)
-
-  // If the mainCategory is not valid, return "Uncategorized"
-  if (validMainCategory === "Uncategorized") {
-    return {
-      mainCategory: "Uncategorized",
-      subCategory: "Uncategorized",
-      confidence: 0,
-    }
-  }
-
-  // If the mainCategory is valid, validate the subCategory
-  const categoryObj = categories.find((cat) => cat.name === validMainCategory)
-  if (categoryObj && Array.isArray(categoryObj.subcategories)) {
-    const validSubCategory = categoryObj.subcategories.find(
-      (sub) => sub.name && sub.name.toLowerCase() === result.subCategory.toLowerCase(),
-    )
-
-    if (!validSubCategory) {
-      // If no exact match, try to find a partial match
-      const partialMatch = categoryObj.subcategories.find(
-        (sub) =>
-          sub.name &&
-          (sub.name.toLowerCase().includes(result.subCategory.toLowerCase()) ||
-            result.subCategory.toLowerCase().includes(sub.name.toLowerCase())),
-      )
-
-      if (partialMatch) {
-        result.subCategory = partialMatch.name
-      } else {
-        // If no match found, use the first subcategory or "Uncategorized"
-        result.subCategory = categoryObj.subcategories.length > 0 ? categoryObj.subcategories[0].name : "Uncategorized"
-      }
-    }
-  } else {
-    result.subCategory = "Uncategorized"
-  }
-
-  return {
-    mainCategory: validMainCategory,
-    subCategory: result.subCategory,
-    confidence: result.confidence,
-  }
+  // If no match found with our dictionary or no valid match in Auqli categories,
+  // return Uncategorized
+  return { mainCategory: "Uncategorized", subCategory: "Uncategorized", confidence: 0 }
 }
 
 // Now let's update the extractMainCategory function to validate against Auqli categories
@@ -920,19 +573,7 @@ function validateCategoryAgainstAuqli(categoryName: string, auqliCategories: any
     return exactMatch.name
   }
 
-  // Check for partial match
-  const partialMatch = auqliCategories.find(
-    (cat) =>
-      cat.name &&
-      (cat.name.toLowerCase().includes(categoryName.toLowerCase()) ||
-        categoryName.toLowerCase().includes(cat.name.toLowerCase())),
-  )
-
-  if (partialMatch) {
-    return partialMatch.name
-  }
-
-  // If no match found, return "Uncategorized"
+  // If no exact match, return "Uncategorized"
   return "Uncategorized"
 }
 
@@ -1149,63 +790,154 @@ async function mapShopifyToAuqli(records: any[], auqliCategories: any[]): Promis
 async function mapWooCommerceToAuqli(records: any[], auqliCategories: any[]): Promise<Product[]> {
   // Map WooCommerce CSV columns to Auqli format
   const mappedProducts = records.map((record) => {
-    const productName = record["Name"] || record["name"] || ""
-    const productDescription = htmlToText(record["Description"] || record["description"] || "")
+    // Get product name
+    const productName = record["Name"] || ""
+
+    // Combine short description and description
+    const shortDesc = record["Short description"] || ""
+    const fullDesc = record["Description"] || ""
+    const combinedDescription = shortDesc ? shortDesc + (fullDesc ? "\n\n" + fullDesc : "") : fullDesc
+
+    // Process as HTML to plain text
+    const productDescription = htmlToText(combinedDescription)
 
     // Use Sale Price if available, otherwise use Regular Price
-    const price =
-      record["Sale Price"] || record["sale price"] || record["Regular Price"] || record["regular price"] || "0"
+    const salePrice = record["Sale price"] || ""
+    const regularPrice = record["Regular price"] || ""
+    const price = salePrice || regularPrice || "0"
 
     // Clean up price (remove commas, currency symbols, etc.)
     const cleanedPrice = price.toString().replace(/[^\d.]/g, "")
 
     // Get stock quantity
-    const inventory = record["Stock Quantity"] || record["stock quantity"] || record["Stock"] || record["stock"] || "0"
+    const inventory = record["Stock"] || record["In stock?"] || "0"
 
     // Get image URL
-    const image = record["Images"] || record["images"] || ""
+    const image = record["Images"] || ""
+
+    // Get weight (convert to kg if needed)
+    const weight = record["Weight (kg)"] || "0"
 
     // Find matching Auqli category based on product name and description
+    // Also consider Categories and Brands fields for better matching
+    const categories = record["Categories"] || ""
+    const brands = record["Brands"] || ""
+    const tags = record["Tags"] || ""
+
+    // Combine all category information for better matching
+    const categoryInfo = `${categories} ${brands} ${tags}`
+
     const { mainCategory, subCategory, confidence } = findMatchingCategory(
       productName,
-      productDescription,
+      productDescription + " " + categoryInfo,
       auqliCategories,
     )
 
-    // Only use the matched category if confidence is above threshold
+    // Extract category from WooCommerce categories field
+    const extractedCategory = extractMainCategory(categoryInfo, auqliCategories)
+
+    // Use the matched category if confidence is above threshold, otherwise use extracted category
+    // If both fail, use "Uncategorized"
     const confidenceThreshold = 60
     const finalMainCategory =
-      confidence >= confidenceThreshold
-        ? mainCategory
-        : extractMainCategory(record["Categories"] || record["categories"] || "", auqliCategories) || "Uncategorized"
+      confidence >= confidenceThreshold ? mainCategory : extractedCategory !== "" ? extractedCategory : "Uncategorized"
 
-    const finalSubCategory = confidence >= confidenceThreshold ? subCategory : "Uncategorized"
+    // Ensure the subcategory is valid for the main category
+    let finalSubCategory = subCategory
+
+    if (finalMainCategory !== "Uncategorized") {
+      const categoryObj = auqliCategories.find((cat) => cat.name === finalMainCategory)
+      if (categoryObj && Array.isArray(categoryObj.subcategories)) {
+        // Check if the subcategory exists in this category
+        const validSubcategory = categoryObj.subcategories.find(
+          (sub) => sub.name && sub.name.toLowerCase() === subCategory.toLowerCase(),
+        )
+
+        if (!validSubcategory) {
+          // If not valid, use the first subcategory or "Uncategorized"
+          finalSubCategory = categoryObj.subcategories.length > 0 ? categoryObj.subcategories[0].name : "Uncategorized"
+        }
+      } else {
+        finalSubCategory = "Uncategorized"
+      }
+    } else {
+      finalSubCategory = "Uncategorized"
+    }
+
+    // Determine product condition (default to "New")
+    const condition = "New"
+
+    // Determine upload status
+    const uploadStatus = record["Published"] === "1" ? "active" : "inactive"
 
     // Clean the product title
     const cleanedTitle = cleanProductTitle(productName)
 
     return {
-      id: record["ID"] || record["id"] || `wc-${Math.random().toString(36).substring(2, 9)}`,
+      id: record["ID"] || `wc-${Math.random().toString(36).substring(2, 9)}`,
       name: cleanedTitle,
       price: cleanedPrice,
       image: image,
       description: productDescription,
-      weight: record["Weight"] || record["weight"] || "0",
+      weight: weight,
       inventory: inventory,
-      condition: mapCondition(record["Condition"] || record["condition"] || "New"),
+      condition: condition,
       mainCategory: finalMainCategory,
       subCategory: finalSubCategory,
-      uploadStatus: "active",
+      uploadStatus: uploadStatus,
       additionalImages: [],
-      sku: record["SKU"] || record["sku"] || "",
+      sku: record["SKU"] || "",
     }
   })
 
   // Apply validation to ensure no duplicates, no blank titles, and no missing data
   const validatedProducts = validateAndCleanProducts(mappedProducts)
 
-  // Apply the same apparel categorization improvements
-  const improvedProducts = validatedProducts.map((product) => improveApparelCategorization(product, auqliCategories))
+  // Apply the same apparel categorization improvements with strict validation
+  const improvedProducts = validatedProducts.map((product) => {
+    const improved = improveApparelCategorization(product, auqliCategories)
+
+    // Final validation to ensure categories exist in Auqli
+    improved.mainCategory = validateCategoryAgainstAuqli(improved.mainCategory, auqliCategories)
+
+    if (improved.mainCategory !== "Uncategorized") {
+      const categoryObj = auqliCategories.find((cat) => cat.name === improved.mainCategory)
+      if (categoryObj && Array.isArray(categoryObj.subcategories)) {
+        const validSubcategory = categoryObj.subcategories.find(
+          (sub) => sub.name && sub.name.toLowerCase() === improved.subCategory.toLowerCase(),
+        )
+
+        if (!validSubcategory) {
+          improved.subCategory =
+            categoryObj.subcategories.length > 0 ? categoryObj.subcategories[0].name : "Uncategorized"
+        }
+      } else {
+        improved.subCategory = "Uncategorized"
+      }
+    } else {
+      improved.subCategory = "Uncategorized"
+    }
+
+    return improved
+  })
 
   return improvedProducts
+}
+
+// Update the findValidApparelCategory function to be more strict
+function findApparelCategory(auqliCategories: any[]): string {
+  // List of possible apparel category names to check
+  const apparelCategoryNames = ["Apparel & Accessories", "Apparel", "Clothing", "Fashion", "Clothes", "Garments"]
+
+  // Check if any of these categories exist in auqliCategories - EXACT MATCH ONLY
+  for (const categoryName of apparelCategoryNames) {
+    const category = auqliCategories.find((cat) => cat.name && cat.name.toLowerCase() === categoryName.toLowerCase())
+
+    if (category) {
+      return category.name
+    }
+  }
+
+  // If no exact match, return null
+  return null
 }
